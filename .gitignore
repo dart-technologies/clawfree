@@ -1,0 +1,87 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+*.config.dart
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Android
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+
+# iOS / macOS
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/Flutter/App.framework
+**/ios/**/Flutter/Flutter.framework
+**/ios/**/Flutter/Flutter.podspec
+**/ios/**/Flutter/Generated.xcconfig
+**/ios/**/Flutter/ephemeral
+**/ios/**/Flutter/app.flx
+**/ios/**/Flutter/app.zip
+**/ios/**/Flutter/flutter_assets/
+**/ios/**/Flutter/flutter_export_environment.sh
+**/ios/Flutter/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/macos/Flutter/ephemeral
+**/macos/Pods/
+
+# Web
+
+# Environment / secrets
+.env
+*.env.local
+infra/.env
+
+# Node (OpenClaw gateway)
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Docker
+docker-compose.override.yml
+
+# Coverage
+coverage/
+lcov.info
+
+# Test
+.test_runner/
+
+# Archived Docs
+docs/archive/
+
+# Claude Code
+.claude/

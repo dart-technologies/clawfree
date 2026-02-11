@@ -1,0 +1,11 @@
+{
+  "name": "clawfree-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CORS proxy gateway for clawfree — forwards Anthropic API calls with CORS headers + SSE streaming",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {}
+}

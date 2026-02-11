@@ -1,0 +1,20 @@
+services:
+  # clawfree CORS Gateway — proxies Anthropic API with CORS headers + SSE streaming
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: clawfree-gateway
+    env_file:
+      - .env.local
+    ports:
+      - "18789:18789"
+    environment:
+      - GATEWAY_PORT=18789
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:18789/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped

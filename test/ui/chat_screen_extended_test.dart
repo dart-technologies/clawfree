@@ -1,0 +1,306 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:clawfree/src/core/agent_store.dart';
+import 'package:clawfree/src/core/chat_session.dart';
+import 'package:clawfree/src/ui/chat_screen.dart';
+import 'package:clawfree/src/ui/theme.dart';
+import 'package:clawfree/src/voice/tts_service.dart';
+import 'package:clawfree/src/voice/stt_service.dart';
+
+import '../fixtures/mock_ai_client.dart';
+
+Widget _buildApp(ChatSession session, {SttService? sttService}) {
+  return MaterialApp(
+    theme: ClawfreeTheme.light,
+    home: ChatScreen(chatSession: session, sttService: sttService),
+  );
+}
+
+void main() {
+  group('ChatScreen error + retry', () {
+    testWidgets('error message shows retry button after retries exhausted',
+        (WidgetTester tester) async {
+      final client = ErrorAiClient();
+      final session = ChatSession(aiClient: client);
+
+      await tester.pumpWidget(_buildApp(session));
+
+      // runAsync runs real async; sendMessage retries up to _maxRetries (2)
+      // so 3 total attempts, each with microtask flushes.
+      await tester.runAsync(() async {
+        await session.sendMessage('Hello');
+        // Extra delay to let all retries + finally blocks settle
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      // Pump multiple frames to process notifyListeners from retries
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      // Should have an error message in the session
+      final errorMessages = session.messages.where((m) => m.isError);
+      expect(errorMessages, isNotEmpty,
+          reason: 'Expected at least one error message after retries');
+
+      // The retry ("Try again") button should be rendered
+      expect(find.text('Try again'), findsOneWidget);
+
+      session.dispose();
+    });
+
+    testWidgets('retry button has refresh icon',
+        (WidgetTester tester) async {
+      final client = ErrorAiClient();
+      final session = ChatSession(aiClient: client);
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.runAsync(() async {
+        await session.sendMessage('test');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+      session.dispose();
+    });
+
+    testWidgets('error message text contains "Error:"',
+        (WidgetTester tester) async {
+      final client = ErrorAiClient();
+      final session = ChatSession(aiClient: client);
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.runAsync(() async {
+        await session.sendMessage('trigger error');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.textContaining('Error:'), findsOneWidget);
+
+      session.dispose();
+    });
+  });
+
+  group('ChatScreen shimmer skeleton', () {
+    testWidgets('ChatScreen renders without crash when message is sent',
+        (WidgetTester tester) async {
+      final session = ChatSession(
+        aiClient: MockAiClient(responses: ['Just text']),
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.runAsync(() => session.sendMessage('Hello'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // No crash -- the screen is stable
+      expect(find.text('clawfree'), findsOneWidget);
+
+      session.dispose();
+    });
+  });
+
+  group('ChatScreen platform-adaptive input', () {
+    testWidgets('on macOS, CupertinoTextField is used for input',
+        (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      expect(find.byType(CupertinoTextField), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+
+      session.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    testWidgets('on Android, TextField is used for input',
+        (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(CupertinoTextField), findsNothing);
+
+      session.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    testWidgets('on macOS, send button is CupertinoButton',
+        (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      expect(find.byType(CupertinoButton), findsOneWidget);
+
+      session.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    });
+  });
+
+  group('ChatScreen export dialog', () {
+    testWidgets('export dialog shows agent name in title',
+        (WidgetTester tester) async {
+      final agentStore = AgentStore();
+      agentStore.addAgent({
+        'name': 'GitDigest Bot',
+        'model': 'claude-opus-4-6',
+        'tools': ['browser'],
+        'channels': ['telegram'],
+      });
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+        agentStore: agentStore,
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GitDigest Bot (OpenClaw)'), findsOneWidget);
+
+      session.dispose();
+    });
+
+    testWidgets('export dialog has Copy button text and Close button',
+        (WidgetTester tester) async {
+      final agentStore = AgentStore();
+      agentStore.addAgent({
+        'name': 'TestAgent',
+        'model': 'claude-opus-4-6',
+        'tools': [],
+        'channels': [],
+      });
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+        agentStore: agentStore,
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Copy'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
+
+      session.dispose();
+    });
+
+    testWidgets('export dialog has copy icon', (WidgetTester tester) async {
+      final agentStore = AgentStore();
+      agentStore.addAgent({
+        'name': 'TestAgent',
+        'model': 'opus',
+        'tools': [],
+        'channels': [],
+      });
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+        agentStore: agentStore,
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.copy), findsOneWidget);
+
+      session.dispose();
+    });
+
+    testWidgets('export dialog shows JSON content',
+        (WidgetTester tester) async {
+      final agentStore = AgentStore();
+      agentStore.addAgent({
+        'name': 'MyBot',
+        'model': 'claude-opus-4-6',
+        'tools': ['browser', 'search'],
+        'channels': ['telegram'],
+      });
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+        agentStore: agentStore,
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('MyBot'), findsWidgets);
+      expect(find.textContaining('claude-opus-4-6'), findsWidgets);
+
+      session.dispose();
+    });
+
+    testWidgets('Close button dismisses the export dialog',
+        (WidgetTester tester) async {
+      final agentStore = AgentStore();
+      agentStore.addAgent({
+        'name': 'Bot',
+        'model': 'opus',
+        'tools': [],
+        'channels': [],
+      });
+
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        ttsService: MockTtsService(),
+        agentStore: agentStore,
+      );
+
+      await tester.pumpWidget(_buildApp(session));
+
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bot (OpenClaw)'), findsOneWidget);
+
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bot (OpenClaw)'), findsNothing);
+
+      session.dispose();
+    });
+  });
+}
