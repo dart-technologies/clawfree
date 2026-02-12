@@ -1,6 +1,6 @@
 # Handoff Guide
 
-Updated: Day 1 (Wed Feb 11)
+Updated: Day 2 (Tue Feb 11)
 
 ---
 
@@ -19,8 +19,13 @@ flutter run -d chrome --dart-define=DEMO_MODE=true
 flutter run -d "iPhone 17 Pro"
 
 # Tests
-flutter test        # 176 tests
+flutter test        # 333 tests
 flutter analyze     # 0 issues
+
+# Zero-to-One QA (full Docker stack)
+make stop && export ANTHROPIC_API_KEY=sk-ant-... && export GATEWAY_TOKEN=secret && make qa
+# Wait 10-20s, then: make health
+# Open http://localhost:8080 for onboarding flow
 ```
 
 ---
@@ -60,6 +65,20 @@ vc.continuousMode = true; // hands-free: auto-starts STT after TTS
 - macOS: minimum deployment target 11.0 for speech_to_text
 
 ---
+
+## Gateway Connectivity (NEW)
+
+Live gateway communication is wired end-to-end:
+
+- **`GatewayClient`** (`lib/src/core/gateway_client.dart`) — HTTP client for `/health`, `/agents`, `/onboard`, `/sessions` with auth headers, connection state tracking
+- **`HealthPoller`** (`lib/src/core/health_poller.dart`) — 15s periodic polling, maps `GatewayHealthResponse` to 5-section `HealthState`, fetches remote sessions in parallel
+- **`RemoteSession`** (`lib/src/core/remote_session.dart`) — model for connected devices; `iconForDeviceType()` maps form factors to Material icons; `defaultDemoSessions()` provides plausible placeholders when no gateway is connected
+- **`connect_gateway` action** — "Connect existing" onboarding shortcut: updates GatewayClient URL/token, skips to Home mode
+- **Agent sync** — on transition to Home mode, `ChatSession._syncAgentsFromGateway()` imports remote agents
+- **`main.dart`** creates `GatewayClient` for non-demo mode, registers in `ServiceLocator`, passes to `ChatSession`
+- **`ChatScreen`** creates `HealthPoller` when `gatewayClient` is available, starts polling on Home transition
+
+The "Connect Existing" path is available during onboarding — say "Connect existing" or "Link my gateway" to trigger the `connect_gateway` A2UI action.
 
 ## OpenClaw Integration Points
 

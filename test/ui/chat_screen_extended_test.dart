@@ -4,19 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:clawfree/src/core/agent_store.dart';
 import 'package:clawfree/src/core/chat_session.dart';
-import 'package:clawfree/src/ui/chat_screen.dart';
-import 'package:clawfree/src/ui/theme.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
-import 'package:clawfree/src/voice/stt_service.dart';
 
 import '../fixtures/mock_ai_client.dart';
-
-Widget _buildApp(ChatSession session, {SttService? sttService}) {
-  return MaterialApp(
-    theme: ClawfreeTheme.light,
-    home: ChatScreen(chatSession: session, sttService: sttService),
-  );
-}
+import '../test_helpers.dart';
 
 void main() {
   group('ChatScreen error + retry', () {
@@ -25,7 +16,7 @@ void main() {
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // runAsync runs real async; sendMessage retries up to _maxRetries (2)
       // so 3 total attempts, each with microtask flushes.
@@ -55,7 +46,7 @@ void main() {
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.runAsync(() async {
         await session.sendMessage('test');
@@ -75,7 +66,7 @@ void main() {
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.runAsync(() async {
         await session.sendMessage('trigger error');
@@ -98,7 +89,7 @@ void main() {
         aiClient: MockAiClient(responses: ['Just text']),
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.runAsync(() => session.sendMessage('Hello'));
       await tester.pump();
@@ -121,7 +112,7 @@ void main() {
         ttsService: MockTtsService(),
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byType(CupertinoTextField), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
@@ -139,7 +130,7 @@ void main() {
         ttsService: MockTtsService(),
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byType(TextField), findsOneWidget);
       expect(find.byType(CupertinoTextField), findsNothing);
@@ -157,7 +148,7 @@ void main() {
         ttsService: MockTtsService(),
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byType(CupertinoButton), findsOneWidget);
 
@@ -183,7 +174,7 @@ void main() {
         agentStore: agentStore,
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pumpAndSettle();
@@ -209,7 +200,7 @@ void main() {
         agentStore: agentStore,
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pumpAndSettle();
@@ -235,7 +226,7 @@ void main() {
         agentStore: agentStore,
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pumpAndSettle();
@@ -261,7 +252,7 @@ void main() {
         agentStore: agentStore,
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pumpAndSettle();
@@ -288,7 +279,7 @@ void main() {
         agentStore: agentStore,
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pumpAndSettle();

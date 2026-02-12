@@ -1,0 +1,32 @@
+# Local dev override — must NOT be in Docker build
+pubspec_overrides.yaml
+
+# Build artifacts
+build/
+.dart_tool/
+.packages
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Git
+.git/
+
+# CI/test
+coverage/
+test/
+
+# Docs
+docs/
+*.md
+!README.md
+
+# macOS
+.DS_Store
+
+# Environment secrets
+.env
+*.env.local
+infra/.env

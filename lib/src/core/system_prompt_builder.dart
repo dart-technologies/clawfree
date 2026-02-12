@@ -1,5 +1,6 @@
 import 'a2ui_surface_manager.dart';
 import 'agent_store.dart';
+import 'platform_config.dart';
 import 'prompt_library.dart';
 
 /// Builds the system prompt from A2UI schema, active surfaces, and saved agents.
@@ -8,47 +9,41 @@ class SystemPromptBuilder {
     required A2uiSurfaceManager surfaceManager,
     required AgentRepository agentRepository,
   })  : _surfaceManager = surfaceManager,
-        _agentRepository = agentRepository {
-    _baseSystemPrompt = PromptLibrary.systemPrompt(
-      a2uiSchema: _surfaceManager.buildSchemaJson(),
-      catalogRules: _surfaceManager.catalogRules,
-    );
-  }
+        _agentRepository = agentRepository;
 
   final A2uiSurfaceManager _surfaceManager;
   final AgentRepository _agentRepository;
 
-  late final String _baseSystemPrompt;
-
   /// Track active surface IDs for multi-turn refinement.
   final List<String> activeSurfaceIds = [];
 
-  /// Build the full system prompt including active surfaces and saved agents.
-  String build() {
-    final buf = StringBuffer(_baseSystemPrompt);
-
-    if (activeSurfaceIds.isNotEmpty) {
-      final surfaceContext =
-          activeSurfaceIds.map((id) => '- $id').join('\n');
-      buf.writeln('\n\n# Active Surfaces');
-      buf.writeln(
-          'The following surfaces are currently rendered. '
-          'Use updateComponents to modify them instead of creating new surfaces:');
-      buf.writeln(surfaceContext);
+  /// Build the full system prompt for the given [mode].
+  String build({
+    SessionMode mode = SessionMode.agentBuilder,
+    DeviceFormFactor? formFactor,
+  }) {
+    switch (mode) {
+      case SessionMode.onboarding:
+        return PromptLibrary.onboardingPrompt(
+          a2uiSchema: _surfaceManager.buildSchemaJson(),
+        ).deviceContext(formFactor).build();
+      case SessionMode.home:
+        return PromptLibrary.homePrompt(
+          a2uiSchema: _surfaceManager.buildSchemaJson(),
+          catalogRules: _surfaceManager.catalogRules,
+        )
+            .agentContext(_agentRepository.agents)
+            .deviceContext(formFactor)
+            .build();
+      case SessionMode.agentBuilder:
+        return PromptLibrary.systemPrompt(
+          a2uiSchema: _surfaceManager.buildSchemaJson(),
+          catalogRules: _surfaceManager.catalogRules,
+        )
+            .activeSurfaces(activeSurfaceIds)
+            .agentContext(_agentRepository.agents)
+            .deviceContext(formFactor)
+            .build();
     }
-
-    if (_agentRepository.agents.isNotEmpty) {
-      buf.writeln('\n\n# Saved Agents');
-      buf.writeln(
-          'The user has saved the following agents. '
-          'Use this info when generating dashboards or responding to queries:');
-      for (final agent in _agentRepository.agents) {
-        final tools = (agent['tools'] as List?)?.join(', ') ?? 'none';
-        buf.writeln(
-            '- ${agent['name']} (model: ${agent['model']}, tools: $tools)');
-      }
-    }
-
-    return buf.toString();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../voice/earcon_service.dart';
 import '../voice/stt_service.dart';
 
 /// Encapsulates the mic button + voice listening state for the input bar.
@@ -11,10 +12,12 @@ class VoiceInputWidget extends StatefulWidget {
     required this.enabled,
     required this.onTranscript,
     required this.onListeningChanged,
+    this.earconService,
   });
 
   final SttService sttService;
   final bool enabled;
+  final EarconService? earconService;
 
   /// Called with the final transcript when the user finishes speaking.
   final ValueChanged<String> onTranscript;
@@ -54,6 +57,7 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
   Future<void> _toggle() async {
     HapticFeedback.selectionClick();
     if (_isListening) {
+      widget.earconService?.playMicClose();
       await widget.sttService.stopListening();
       _pulseController.stop();
       _pulseController.reset();
@@ -66,6 +70,7 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
         }
       });
     } else {
+      widget.earconService?.playMicOpen();
       setState(() {
         _isListening = true;
         _interimTranscript = '';

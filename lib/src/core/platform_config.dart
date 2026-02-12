@@ -1,4 +1,20 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
+/// Device form factor for layout dispatch.
+enum DeviceFormFactor {
+  /// iPhone-class: < 600px width.
+  phone,
+
+  /// iPad-class: 600–1099px width on iOS, or narrow desktop web.
+  tablet,
+
+  /// macOS / large desktop browser: >= 1100px width or macOS native.
+  desktop,
+
+  /// watchOS target.
+  watch,
+}
 
 /// Centralizes platform detection and URL resolution.
 abstract final class PlatformConfig {
@@ -8,6 +24,24 @@ abstract final class PlatformConfig {
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
+  }
+
+  static bool get isMacOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+
+  static bool get isIOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  /// Determine the device form factor from screen width and platform.
+  static DeviceFormFactor formFactor(BuildContext context) {
+    // macOS native is always "desktop" regardless of window size.
+    if (isMacOS) return DeviceFormFactor.desktop;
+
+    final width = MediaQuery.sizeOf(context).width;
+
+    if (width < 600) return DeviceFormFactor.phone;
+    if (width < 1100) return DeviceFormFactor.tablet;
+    return DeviceFormFactor.desktop;
   }
 
   /// Resolve the API base URL:

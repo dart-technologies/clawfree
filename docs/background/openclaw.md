@@ -47,7 +47,7 @@ The protocol is extensible -- new RPC methods can be added (e.g., `genui.render`
 
 ## Agent Config Format
 
-Agents are defined in `~/.openclaw/openclaw.json` (JSON5). Minimal structure:
+Agents are defined in `~/.ghcr.io/openclaw/openclaw.json` (JSON5). Minimal structure:
 
 ```jsonc
 {
@@ -108,7 +108,7 @@ replaces the rendering layer with Flutter genUI.
 ```yaml
 services:
   openclaw:
-    image: openclaw/openclaw:latest
+    image: ghcr.io/openclaw/openclaw:latest
     ports:
       - "18789:18789"
     volumes:
@@ -120,7 +120,7 @@ services:
 **Run standalone:**
 
 ```bash
-docker run -p 18789:18789 -v ~/.openclaw:/root/.openclaw openclaw/openclaw
+docker run -p 18789:18789 -v ~/.openclaw:/root/.openclaw ghcr.io/openclaw/openclaw
 ```
 
 **Verify gateway is up:**

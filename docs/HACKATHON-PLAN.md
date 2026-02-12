@@ -1,8 +1,11 @@
 # clawfree: Hackathon Sprint Plan
 
 **Hackathon**: [Built with Opus 4.6](https://cerebralvalley.ai/e/claude-code-hackathon) (Cerebral Valley / Anthropic)
+
 **Deadline**: Mon Feb 16, 3:00 PM EST
+
 **Team genUIne**: [Mike](https://cerebralvalley.ai/u/michow) + [Roy](https://cerebralvalley.ai/u/roylin)
+
 **Repo**: [dart-technologies/clawfree](https://github.com/dart-technologies/clawfree)
 
 ---
@@ -168,7 +171,10 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 - [x] Infrastructure: Flutter + genUI v0.9, CORS proxy, Makefile
 - [x] genUI Core: AI client (SSE streaming), chat session, A2UI schema injection, multi-turn, self-correction, demo mode (12 cached responses), agent store, adaptive layout, animations, theming
 - [x] Architecture: ChatScreen (5 extracted widgets), ChatSession (InteractionRouter + PromptLibrary extracted), VoiceController + VoiceServiceFactory, centralized assets/icons
-- [x] Testing: 176 tests across 17 files (unit + widget + e2e integration)
+- [x] Testing: 333 tests across 30 files (unit + widget + e2e integration)
+- [x] Gateway: GatewayClient (HTTP /health, /agents, /onboard, /sessions), HealthPoller (15s periodic + session polling), connect_gateway action, agent sync on home transition
+- [x] Remote Sessions: Live device indicators from `/sessions` endpoint, demo fallback, self-filtering
+- [x] Deployment: Docker Compose prod stack (frontend + OpenClaw + Redis), Makefile qa/stop/health targets
 
 ### Voice + Interaction (Roy)
 - [ ] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory

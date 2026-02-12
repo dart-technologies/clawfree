@@ -2,6 +2,7 @@
 .dart_tool/
 .packages
 build/
+pubspec_overrides.yaml
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
@@ -55,7 +56,9 @@ pubspec.lock
 **/ios/Flutter/GeneratedPluginRegistrant.*
 **/ios/Pods/
 **/macos/Flutter/ephemeral
+**/macos/Flutter/GeneratedPluginRegistrant.swift
 **/macos/Pods/
+**/Podfile.lock
 
 # Web
 

@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:genui/genui.dart';
 
+import 'catalog.dart';
+
 /// Manages the genUI v0.9 surface lifecycle: SurfaceController + A2uiTransportAdapter.
 ///
 /// Decouples A2UI wiring from ChatSession so it can focus on conversation logic.
 class A2uiSurfaceManager {
   A2uiSurfaceManager() {
-    _catalog = CoreCatalogItems.asCatalog();
+    _catalog = getClawfreeCatalog();
     _surfaceController = SurfaceController(catalogs: [_catalog]);
     _transportAdapter = A2uiTransportAdapter();
 
