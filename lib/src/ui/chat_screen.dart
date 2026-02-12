@@ -89,6 +89,19 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
+                  IconButton(
+                    icon: Icon(
+                      _session.ttsEnabled
+                          ? Icons.volume_up
+                          : Icons.volume_off,
+                    ),
+                    tooltip: _session.ttsEnabled
+                        ? 'Disable TTS readback'
+                        : 'Enable TTS readback',
+                    onPressed: () {
+                      _session.ttsEnabled = !_session.ttsEnabled;
+                    },
+                  ),
                   _buildExportButton(),
                 ],
               ),

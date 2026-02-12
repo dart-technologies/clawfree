@@ -61,6 +61,17 @@ class ChatSession extends ChangeNotifier {
   bool _isProcessing = false;
   bool get isProcessing => _isProcessing;
 
+  /// Whether TTS readback is enabled for AI responses.
+  bool _ttsEnabled = true;
+  bool get ttsEnabled => _ttsEnabled;
+  set ttsEnabled(bool value) {
+    if (_ttsEnabled == value) return;
+    _ttsEnabled = value;
+    _streamProcessor.ttsEnabled = value;
+    if (!value) _streamProcessor.ttsService?.stop();
+    notifyListeners();
+  }
+
   bool _disposed = false;
   String? _lastPrompt;
 

@@ -21,6 +21,12 @@ class A2uiStreamProcessor {
   final A2uiSurfaceManager _surfaceManager;
   final TtsService? _ttsService;
 
+  /// Exposed so ChatSession can control TTS state.
+  TtsService? get ttsService => _ttsService;
+
+  /// Whether TTS readback is enabled (controlled by ChatSession).
+  bool ttsEnabled = true;
+
   /// Debounce interval for notifyListeners during streaming.
   static const _debounceInterval = Duration(milliseconds: 50);
 
@@ -79,9 +85,9 @@ class A2uiStreamProcessor {
     // Trim trailing whitespace left by JSON block extraction
     aiMessage.text = aiMessage.text?.trim();
 
-    // TTS readback of the full text portion
+    // TTS readback of the full text portion (when enabled)
     final spokenText = aiMessage.text ?? '';
-    if (spokenText.isNotEmpty && _ttsService != null) {
+    if (ttsEnabled && spokenText.isNotEmpty && _ttsService != null) {
       _ttsService.speak(spokenText);
     }
 
