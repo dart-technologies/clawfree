@@ -50,6 +50,12 @@ flutter run -d macos --dart-define=DEMO_MODE=true
 # macOS (direct API)
 flutter run -d macos --dart-define=ANTHROPIC_API_KEY=sk-ant-...
 
+# With Firebase + OpenClaw (full features)
+flutter run -d macos \
+  --dart-define=ANTHROPIC_API_KEY=sk-ant-... \
+  --dart-define=OPENCLAW_GATEWAY_URL=http://localhost:3000 \
+  --dart-define=FIREBASE_PROJECT_ID=your-project-id
+
 # Chrome (requires gateway)
 cd infra && docker compose up -d && cd ..
 flutter run -d chrome
@@ -124,8 +130,8 @@ infra/
 
 Built for the [Built with Opus 4.6](https://cerebralvalley.ai/e/claude-code-hackathon) hackathon (Feb 10-16, 2026).
 
-- [Michael Chow](https://cerebralvalley.ai/u/michow) -- Flutter genUI, infrastructure
-- [Roy Lin](https://cerebralvalley.ai/u/roylin) -- Voice interactions, OpenClaw integration
+- [Michael Chow](https://cerebralvalley.ai/u/michow) -- Flutter genUI engine, A2UI protocol, infrastructure, demo system
+- [Roy Lin](https://cerebralvalley.ai/u/roylin) -- Voice interactions (STT/TTS, continuous listening, hands-free mode), Firebase backend (Auth, Firestore, Storage), Apple Watch companion, OpenClaw service integration, UI animations
 
 ## License
 
