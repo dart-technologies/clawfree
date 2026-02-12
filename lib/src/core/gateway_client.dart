@@ -160,6 +160,21 @@ class GatewayClient extends ChangeNotifier {
     return [];
   }
 
+  /// POST `/agents` — create a new agent on the gateway.
+  Future<Map<String, dynamic>> createAgent(Map<String, dynamic> config) async {
+    final uri = Uri.parse('$_baseUrl/agents');
+    final response = await _httpClient
+        .post(uri, headers: _headers, body: jsonEncode(config))
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw GatewayException(
+        'Create agent failed: ${response.statusCode}',
+        statusCode: response.statusCode,
+      );
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// POST `/onboard` — trigger gateway onboarding.
   Future<Map<String, dynamic>> onboard({String? apiKey}) async {
     final uri = Uri.parse('$_baseUrl/onboard');

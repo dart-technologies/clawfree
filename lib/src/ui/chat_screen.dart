@@ -9,7 +9,9 @@ import '../core/health_poller.dart';
 import '../core/platform_config.dart';
 import '../core/prompt_library.dart';
 import '../core/remote_session.dart';
+import '../core/watch_sync_service.dart';
 import '../voice/stt_service.dart';
+import 'widgets/qr_scanner_dialog.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
 import 'health/health_indicators.dart';
@@ -50,6 +52,8 @@ class _ChatScreenState extends State<ChatScreen> {
   HealthPoller? _healthPoller;
   List<RemoteSession> _remoteSessions = [];
 
+  WatchSyncService? _watchSync;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +64,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_session.gatewayClient != null) {
       _healthPoller = HealthPoller(gatewayClient: _session.gatewayClient!);
       _healthPoller!.addListener(_onHealthChanged);
+      
+      _watchSync = WatchSyncService(
+        healthPoller: _healthPoller!,
+        agentStore: _session.agentStore,
+      );
+      _watchSync!.start();
+
       // Start polling immediately so vitals update as soon as possible.
       _healthPoller!.start();
     }
@@ -369,8 +380,9 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           content: SizedBox(
             width: qrSize + 40,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -413,8 +425,23 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
+            ),
           ),
           actions: [
+            if (PlatformConfig.hasCamera)
+              TextButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.of(context).push<String>(
+                    MaterialPageRoute(builder: (_) => const QrScannerDialog()),
+                  );
+                  if (result != null && ctx.mounted) {
+                    _handlePairingLink(result);
+                    Navigator.pop(ctx);
+                  }
+                },
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scan QR'),
+              ),
             TextButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: pairingUrl));
@@ -433,6 +460,26 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       },
     );
+  }
+
+  void _handlePairingLink(String link) {
+    try {
+      final pairing = PlatformConfig.parsePairingUri(Uri.parse(link));
+      if (pairing == null) return;
+
+      _session.gatewayClient?.updateBaseUrl(pairing.url);
+      if (pairing.token != null) {
+        _session.gatewayClient?.updateToken(pairing.token!);
+      }
+      _session.setMode(SessionMode.home);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Paired with gateway at ${pairing.url}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid pairing link: $e')),
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -454,6 +501,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _toggleVoice() {
     if (_isListening) {
       widget.sttService?.stopListening();
+      _watchSync?.updateListening(false);
       setState(() {
         _isListening = false;
         if (_interimTranscript.isNotEmpty) {
@@ -466,10 +514,12 @@ class _ChatScreenState extends State<ChatScreen> {
         _isListening = true;
         _interimTranscript = '';
       });
+      _watchSync?.updateListening(true);
       widget.sttService?.startListening(onResult: (transcript, isFinal) {
         setState(() => _interimTranscript = transcript);
         if (isFinal && transcript.isNotEmpty) {
           widget.sttService?.stopListening();
+          _watchSync?.updateListening(false);
           setState(() {
             _isListening = false;
             _interimTranscript = '';
@@ -503,6 +553,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _session.removeListener(_onSessionChanged);
     _healthPoller?.removeListener(_onHealthChanged);
     _healthPoller?.dispose();
+    _watchSync?.stop();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

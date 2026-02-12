@@ -1,4 +1,4 @@
-.PHONY: run demo test analyze build-macos build-web gateway gateway-down gateway-logs icons clean help
+.PHONY: run demo test analyze build-macos build-web build-android build-apk build-ios build-ios-dist gateway gateway-down gateway-logs icons clean help
 
 # Default target
 help: ## Show this help
@@ -42,10 +42,23 @@ build-macos: ## Build macOS release
 build-web: ## Build web release
 	flutter build web --release
 
-build-ios: ## Build iOS release
+build-ios: ## Build iOS release (no codesign)
 	flutter build ios --release --no-codesign
 
-build-watch: ## Build WatchOS companion (requires Xcode)
+build-ios-dist: ## Build iOS release for distribution
+	flutter build ios --release
+
+build-android: ## Build Android release (AAB)
+	flutter build appbundle --release
+
+build-apk: ## Build Android release (APK)
+	flutter build apk --release
+
+# ---------------------------------------------------------------------------
+# WatchOS Companion
+# ---------------------------------------------------------------------------
+
+build-watch: ## Build WatchOS companion
 	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build
 
 # ---------------------------------------------------------------------------

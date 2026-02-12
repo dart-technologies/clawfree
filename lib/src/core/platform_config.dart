@@ -32,6 +32,13 @@ abstract final class PlatformConfig {
   static bool get isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
+  /// Whether the platform is likely to have a camera for QR scanning.
+  /// Desktop platforms (macOS, Linux, Windows) typically lack one.
+  static bool get hasCamera =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android;
+
   /// Determine the device form factor from screen width and platform.
   static DeviceFormFactor formFactor(BuildContext context) {
     // macOS native is always "desktop" regardless of window size.
@@ -42,6 +49,21 @@ abstract final class PlatformConfig {
     if (width < 600) return DeviceFormFactor.phone;
     if (width < 1100) return DeviceFormFactor.tablet;
     return DeviceFormFactor.desktop;
+  }
+
+  /// Parse a pairing link (deep link or HTTP gateway URL) into its components.
+  /// Returns null if the URI is not a recognized pairing format.
+  static ({String url, String? token})? parsePairingUri(Uri uri) {
+    if (uri.scheme == 'clawfree' && uri.host == 'pair') {
+      final url = uri.queryParameters['url'];
+      if (url == null) return null;
+      return (url: url, token: uri.queryParameters['token']);
+    }
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final url = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+      return (url: url, token: null);
+    }
+    return null;
   }
 
   /// Resolve the API base URL:

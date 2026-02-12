@@ -114,7 +114,7 @@ flutter run -d chrome
 make help           # Show all targets
 make demo           # Run in demo mode (no API key)
 make run            # Run on macOS with API key
-make test           # Run all 256 tests
+make test           # Run all tests
 make analyze        # Run Dart analyzer (0 issues)
 make qa             # Launch Zero-to-One QA stack (Frontend + OpenClaw + Redis)
 make stop           # Stop all Docker services and clear volumes
@@ -143,7 +143,7 @@ docker compose -f infra/docker-compose.prod.yml logs -f openclaw  # 5. Monitor l
 ### Run Tests
 
 ```bash
-flutter test        # 256 tests
+flutter test        # 350+ tests
 flutter analyze     # 0 issues
 ```
 
@@ -153,9 +153,10 @@ flutter analyze     # 0 issues
 lib/src/
 ├── core/               # AI client, chat session, interaction router, prompt library
 │   ├── chat_session.dart        # Session state + generation
-│   ├── gateway_client.dart      # HTTP client for OpenClaw gateway (/health, /agents, /onboard)
+│   ├── gateway_client.dart      # HTTP client for OpenClaw gateway (/health, /agents, /sessions, /onboard, POST /agents)
 │   ├── health_poller.dart       # Periodic health polling → HealthState
 │   ├── interaction_router.dart  # A2UI event routing (sealed InteractionResult)
+│   ├── watch_sync_service.dart  # Apple Watch sync via MethodChannel + debounce
 │   ├── prompt_library.dart      # System prompt text (onboarding + connect-existing path)
 │   └── ...                      # AI client, surface manager, agent store, orchestrator
 ├── ui/
@@ -173,11 +174,11 @@ lib/src/
     ├── voice_controller.dart    # STT↔TTS coordination
     ├── voice_service_factory.dart # Service creation
     └── ...                      # STT/TTS interfaces + platform implementations
-test/                            # 256 tests (unit + widget + e2e)
+test/                            # 385+ tests (unit + widget + e2e)
 infra/
 ├── docker-compose.yml
 ├── .env.local                   # ANTHROPIC_API_KEY (gitignored)
-└── gateway/                     # Lightweight Node.js CORS proxy
+└── gateway/                     # Dual-proxy: Anthropic API + OpenClaw management
 ```
 
 ## Key Features
@@ -190,11 +191,14 @@ infra/
 - **Message animations** -- slide-up entrance, shimmer loading skeletons, voice pulse
 - **Error recovery** -- retry button on failures, error boundary for render crashes
 - **Demo mode** -- 12 cached responses covering creation, refinement, and dashboard flows
-- **Voice ready** -- STT/TTS interfaces with platform implementations
+- **Voice enabled** -- real STT/TTS on native platforms (iOS, macOS, Android); mocks on web/demo
 - **Agent store** -- in-memory CRUD with auto-save from form submissions, export with copy
 - **Live gateway health** -- periodic polling with 5-section health mapping (GWAY, LLM, CHAN, TOOL, VOX)
 - **Connect existing gateway** -- skip onboarding by linking to a running OpenClaw instance (URL + token)
 - **Agent sync** -- automatically imports agents from gateway on connect
+- **Remote agent creation** -- saved agents are deployed to OpenClaw gateway via POST /agents (fire-and-forget)
+- **QR pairing** -- scan a gateway QR code to pair iPhone, with deep link handling and gateway validation
+- **Apple Watch sync** -- real-time agent count, health level, and mic state pushed to WatchCompanion via WatchConnectivity
 
 ## Team genUIne
 

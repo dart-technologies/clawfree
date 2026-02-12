@@ -296,6 +296,109 @@ void main() {
     });
   });
 
+  group('GatewayClient.createAgent', () {
+    test('sends POST with config and returns response on 201', () async {
+      final mockHttp = _mockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/agents');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['name'], 'TestBot');
+        expect(body['model'], 'claude-opus-4-6');
+        return http.Response(
+          jsonEncode({'name': 'TestBot', 'id': 'agent-001', 'status': 'active'}),
+          201,
+        );
+      });
+      final client = GatewayClient(
+        baseUrl: 'http://localhost:18789',
+        httpClient: mockHttp,
+      );
+
+      final result = await client.createAgent({
+        'name': 'TestBot',
+        'model': 'claude-opus-4-6',
+        'tools': ['browser'],
+        'channels': ['telegram'],
+      });
+
+      expect(result['name'], 'TestBot');
+      expect(result['id'], 'agent-001');
+      client.dispose();
+    });
+
+    test('accepts 200 as success', () async {
+      final mockHttp = _mockClient((request) async {
+        return http.Response(
+          jsonEncode({'name': 'Bot', 'status': 'ok'}),
+          200,
+        );
+      });
+      final client = GatewayClient(
+        baseUrl: 'http://localhost:18789',
+        httpClient: mockHttp,
+      );
+
+      final result = await client.createAgent({'name': 'Bot'});
+      expect(result['status'], 'ok');
+      client.dispose();
+    });
+
+    test('throws on 400 Bad Request', () async {
+      final mockHttp = _mockClient((request) async {
+        return http.Response('Bad Request', 400);
+      });
+      final client = GatewayClient(
+        baseUrl: 'http://localhost:18789',
+        httpClient: mockHttp,
+      );
+
+      await expectLater(
+        () => client.createAgent({'name': ''}),
+        throwsA(isA<GatewayException>().having(
+          (e) => e.statusCode,
+          'statusCode',
+          400,
+        )),
+      );
+      client.dispose();
+    });
+
+    test('throws on 500 Server Error', () async {
+      final mockHttp = _mockClient((request) async {
+        return http.Response('Internal Server Error', 500);
+      });
+      final client = GatewayClient(
+        baseUrl: 'http://localhost:18789',
+        httpClient: mockHttp,
+      );
+
+      await expectLater(
+        () => client.createAgent({'name': 'Bot'}),
+        throwsA(isA<GatewayException>().having(
+          (e) => e.statusCode,
+          'statusCode',
+          500,
+        )),
+      );
+      client.dispose();
+    });
+
+    test('includes auth token in request', () async {
+      final mockHttp = _mockClient((request) async {
+        expect(request.headers['Authorization'], 'Bearer agent-token');
+        return http.Response(jsonEncode({'ok': true}), 201);
+      });
+      final client = GatewayClient(
+        baseUrl: 'http://localhost:18789',
+        token: 'agent-token',
+        httpClient: mockHttp,
+      );
+
+      await client.createAgent({'name': 'Bot'});
+      client.dispose();
+    });
+  });
+
   group('GatewayClient.updateBaseUrl', () {
     test('resets isConnected and notifies', () async {
       // First connect successfully

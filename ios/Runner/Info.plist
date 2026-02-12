@@ -41,9 +41,28 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Clawfree uses the camera to scan gateway QR codes for pairing.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Clawfree uses the microphone for hands-free AI agent interaction.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Clawfree uses speech recognition to process your voice commands.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>art.dart.clawfree</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>clawfree</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
