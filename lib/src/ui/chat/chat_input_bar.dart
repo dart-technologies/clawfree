@@ -3,10 +3,15 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../voice/audio_recorder_service.dart';
+import '../../voice/press_to_talk_button.dart';
 import '../../voice/stt_service.dart';
 import '../clawfree_icons.dart';
 import '../theme.dart';
 import '../voice_input_widget.dart';
+
+/// Callback with the recorded audio file path.
+typedef OnAudioFileRecorded = void Function(String filePath);
 
 /// Platform-adaptive input bar with text field, voice button, and send button.
 class ChatInputBar extends StatefulWidget {
@@ -14,12 +19,16 @@ class ChatInputBar extends StatefulWidget {
     super.key,
     required this.controller,
     this.sttService,
+    this.audioRecorder,
+    this.onAudioRecorded,
     required this.isProcessing,
     required this.onSend,
   });
 
   final TextEditingController controller;
   final SttService? sttService;
+  final AudioRecorderService? audioRecorder;
+  final OnAudioFileRecorded? onAudioRecorded;
   final bool isProcessing;
   final ValueChanged<String> onSend;
 
@@ -49,7 +58,22 @@ class _ChatInputBarState extends State<ChatInputBar> {
       ),
       child: Row(
         children: [
-          if (widget.sttService != null)
+          // Press-to-talk (audio file recording) takes priority if available
+          if (widget.audioRecorder != null && widget.onAudioRecorded != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: PressTalkButton(
+                recorder: widget.audioRecorder!,
+                onRecorded: widget.onAudioRecorded!,
+                onRecordingStateChanged: (recording) {
+                  setState(() => _isListening = recording);
+                },
+                enabled: !widget.isProcessing,
+                size: 44,
+              ),
+            )
+          // Fallback to STT widget if no recorder
+          else if (widget.sttService != null)
             VoiceInputWidget(
               sttService: widget.sttService!,
               enabled: !widget.isProcessing,

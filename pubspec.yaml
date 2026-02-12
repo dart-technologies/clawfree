@@ -43,6 +43,10 @@ dependencies:
   # Audio earcons
   audioplayers: ^6.1.0
 
+  # Audio recording (press-to-talk)
+  record: ^5.1.0
+  path_provider: ^2.1.0
+
   # Schema builder (used by catalog.dart for custom component schemas)
   json_schema_builder: ^0.1.3
 
