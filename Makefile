@@ -14,6 +14,9 @@ run: ## Run on macOS with API key from env
 demo: ## Run in demo mode (no API key needed)
 	flutter run -d macos --dart-define=DEMO_MODE=true
 
+demo-travel: ## Run demo mode and auto-trigger Tokyo travel flow
+	flutter run -d macos --dart-define=DEMO_MODE=true --dart-define=DEMO_SCENARIO=travel
+
 web: ## Run on Chrome (requires gateway)
 	flutter run -d chrome
 
@@ -39,6 +42,31 @@ build-macos: ## Build macOS release
 build-web: ## Build web release
 	flutter build web --release
 
+build-ios: ## Build iOS release
+	flutter build ios --release --no-codesign
+
+build-watch: ## Build WatchOS companion (requires Xcode)
+	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build
+
+# ---------------------------------------------------------------------------
+# Production & QA (Docker)
+# ---------------------------------------------------------------------------
+
+qa: ## Launch Zero-to-One QA stack (Frontend + OpenClaw + Redis)
+	docker compose -f infra/docker-compose.prod.yml up --build -d
+
+deploy: qa ## Alias for qa
+
+stop: ## Stop all Docker services and clear volumes
+	docker compose -f infra/docker-compose.prod.yml down -v
+
+health: ## Check full stack health (Gateway + Frontend)
+	@echo "--- Container Health ---"
+	@docker compose -f infra/docker-compose.prod.yml ps --format "table {{.Name}}\t{{.Status}}" 2>/dev/null || echo "No containers running. Run: make qa"
+	@echo ""
+	@echo "--- Frontend (http://localhost:8080) ---"
+	@curl -sf -o /dev/null -w "✅ HTTP %{http_code}\n" http://localhost:8080 || echo "❌ Offline"
+
 # ---------------------------------------------------------------------------
 # Gateway (Docker)
 # ---------------------------------------------------------------------------
@@ -52,8 +80,8 @@ gateway-down: ## Stop CORS gateway
 gateway-logs: ## Tail gateway logs
 	cd infra && docker compose logs -f gateway
 
-gateway-health: ## Check gateway health
-	@curl -sf http://localhost:18789/health | python3 -m json.tool || echo "Gateway not running"
+gateway-health: ## Check gateway health (via proxy or direct WebSocket)
+	@curl -sf http://localhost:8080/api/health | python3 -m json.tool || echo "Gateway not running (try direct: docker compose -f infra/docker-compose.prod.yml exec openclaw wget -qO- http://localhost:18789/health)"
 
 # ---------------------------------------------------------------------------
 # Assets

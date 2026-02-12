@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:clawfree/src/core/chat_session.dart';
-import 'package:clawfree/src/ui/chat_screen.dart';
-import 'package:clawfree/src/ui/theme.dart';
+import 'package:clawfree/src/core/prompt_library.dart';
 import 'package:clawfree/src/voice/stt_service.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
 
 import '../fixtures/mock_ai_client.dart';
-
-Widget _buildTestApp(ChatSession session, {SttService? sttService}) {
-  return MaterialApp(
-    theme: ClawfreeTheme.light,
-    home: ChatScreen(chatSession: session, sttService: sttService),
-  );
-}
+import '../test_helpers.dart';
 
 void main() {
   group('ChatScreen', () {
@@ -24,6 +17,8 @@ void main() {
         aiClient: MockAiClient(),
         ttsService: MockTtsService(),
       );
+      // Tests expect the standard chat UI, not onboarding.
+      session.setMode(SessionMode.agentBuilder);
     });
 
     tearDown(() {
@@ -32,7 +27,7 @@ void main() {
 
     testWidgets('shows empty state with suggestions',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Empty state
       expect(find.byIcon(Icons.mic), findsOneWidget);
@@ -44,7 +39,7 @@ void main() {
       // Suggestion chips
       expect(find.text('Create a GitHub automation agent'), findsOneWidget);
       expect(find.text('Show my agents'), findsOneWidget);
-      expect(find.text('Create a Telegram bot'), findsOneWidget);
+      expect(find.text('Plan a trip'), findsOneWidget);
 
       // Input bar
       expect(find.byType(TextField), findsOneWidget);
@@ -56,7 +51,7 @@ void main() {
 
     testWidgets('send button is enabled when not processing',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       final sendButton = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.send),
@@ -66,7 +61,7 @@ void main() {
 
     testWidgets('typing text and sending adds user message',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Type a message
       await tester.enterText(find.byType(TextField), 'Hello');
@@ -82,7 +77,7 @@ void main() {
 
     testWidgets('tapping suggestion chip sends message',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Tap a suggestion chip
       await tester.tap(find.text('Show my agents'));
@@ -100,20 +95,20 @@ void main() {
 
     testWidgets('initially shows no processing indicator',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('export button is shown', (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byIcon(Icons.download), findsOneWidget);
     });
 
     testWidgets('export button shows snackbar when no config',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pump();
@@ -132,6 +127,7 @@ void main() {
         aiClient: MockAiClient(),
         ttsService: MockTtsService(),
       );
+      session.setMode(SessionMode.agentBuilder);
       sttService = MockSttService();
     });
 
@@ -142,21 +138,21 @@ void main() {
 
     testWidgets('shows mic button when STT is provided',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session, sttService: sttService));
+      await tester.pumpWidget(buildChatTestApp(session, sttService: sttService));
 
       expect(find.byIcon(Icons.mic_none), findsOneWidget);
     });
 
     testWidgets('no mic button when STT is null',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       expect(find.byIcon(Icons.mic_none), findsNothing);
     });
 
     testWidgets('mic button toggles to listening state',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session, sttService: sttService));
+      await tester.pumpWidget(buildChatTestApp(session, sttService: sttService));
 
       // Tap mic button
       await tester.tap(find.byIcon(Icons.mic_none));
@@ -168,7 +164,7 @@ void main() {
 
     testWidgets('text field shows listening hint when listening',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildTestApp(session, sttService: sttService));
+      await tester.pumpWidget(buildChatTestApp(session, sttService: sttService));
 
       // Tap mic to start listening
       await tester.tap(find.byIcon(Icons.mic_none));

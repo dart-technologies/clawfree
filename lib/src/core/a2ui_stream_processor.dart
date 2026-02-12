@@ -21,8 +21,8 @@ class A2uiStreamProcessor {
   final A2uiSurfaceManager _surfaceManager;
   final TtsService? _ttsService;
 
-  /// Debounce interval for notifyListeners during streaming.
-  static const _debounceInterval = Duration(milliseconds: 50);
+  /// Debounce interval for notifyListeners during streaming (one frame at 60fps).
+  static const _debounceInterval = Duration(milliseconds: 16);
 
   /// Stream the AI response into [aiMessage], feeding chunks through A2UI.
   /// Returns the full concatenated response.
@@ -57,7 +57,7 @@ class A2uiStreamProcessor {
       final stream = _aiClient.sendStream(
         prompt,
         systemPrompt: systemPrompt,
-        history: List.of(history),
+        history: List.unmodifiable(history),
       );
 
       await for (final chunk in stream) {
@@ -68,7 +68,7 @@ class A2uiStreamProcessor {
       }
     } finally {
       // Flush pending async textStream events before cancelling.
-      for (var i = 0; i < 4; i++) {
+      for (var i = 0; i < 2; i++) {
         await Future<void>.delayed(Duration.zero);
       }
       debounce?.cancel();

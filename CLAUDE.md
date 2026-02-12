@@ -44,7 +44,7 @@ clawfree/
 ├── lib/
 │   ├── main.dart
 │   └── src/
-│       ├── core/            # AI client, chat session, interaction router, prompt library
+│       ├── core/            # AI client, chat session, gateway client, health poller, interaction router
 │       ├── voice/           # STT/TTS services, VoiceController, VoiceServiceFactory
 │       └── ui/
 │           ├── chat/        # Decomposed chat widgets (input bar, messages, surface panel)
@@ -58,7 +58,7 @@ clawfree/
 │   ├── HACKATHON-PLAN.md    # Sprint plan + TODO checklist
 │   ├── NEXT-STEPS.md        # Setup + handoff guide
 │   └── background/          # Concise reference primers
-├── test/                    # 176 tests (unit + widget + e2e)
+├── test/                    # 333 tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
 

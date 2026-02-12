@@ -70,6 +70,13 @@ void main() {
 
     testWidgets('demo mode starts without API key',
         (WidgetTester tester) async {
+      // Use phone-width viewport so ChatScreen renders the phone layout
+      // without overflow in the tablet split view.
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(const ClawfreeApp());
 
       // Toggle demo mode on

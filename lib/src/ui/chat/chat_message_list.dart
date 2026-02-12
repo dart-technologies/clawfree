@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:genui/genui.dart';
 
 import '../../core/message_item.dart';
@@ -46,15 +47,17 @@ class ChatMessageList extends StatelessWidget {
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
+        final stagger = Duration(milliseconds: 80 * (index % 5));
         return AnimatedMessageEntry(
           message: message,
-          child: _buildMessage(message),
+          delay: stagger,
+          child: _buildMessage(message, stagger),
         );
       },
     );
   }
 
-  Widget _buildMessage(MessageItem message) {
+  Widget _buildMessage(MessageItem message, [Duration stagger = Duration.zero]) {
     if (message.isSurface) {
       if (isDesktop) {
         return const SurfaceIndicator();
@@ -64,6 +67,7 @@ class ChatMessageList extends StatelessWidget {
         child: ChatSurfaceView(
           surfaceId: message.surfaceId!,
           surfaceHost: surfaceHost,
+          entranceDelay: stagger,
         ),
       );
     }
@@ -110,8 +114,8 @@ class _EmptyState extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: [
                 _chip('Create a GitHub automation agent'),
+                _chip('Plan a trip'),
                 _chip('Show my agents'),
-                _chip('Create a Telegram bot'),
               ],
             ),
           ],
@@ -123,7 +127,10 @@ class _EmptyState extends StatelessWidget {
   Widget _chip(String text) {
     return ActionChip(
       label: Text(text, style: const TextStyle(fontSize: 13)),
-      onPressed: () => onSend(text),
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onSend(text);
+      },
     );
   }
 }

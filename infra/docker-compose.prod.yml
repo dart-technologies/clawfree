@@ -1,0 +1,64 @@
+services:
+  # clawfree Flutter Web Frontend (Nginx + SPA + /api proxy)
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend.Dockerfile
+      args:
+        GATEWAY_TOKEN: ${GATEWAY_TOKEN:-}
+        DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      openclaw:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # OpenClaw Gateway (Official Image)
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    environment:
+      - OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN:-clawfree-secret-token}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - OPENCLAW_NON_INTERACTIVE=true
+      - OPENCLAW_INSTALL_DAEMON=true
+    ports:
+      - "18789:18789"
+    volumes:
+      - openclaw-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:18789/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Redis for OpenClaw state & agent persistence
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  openclaw-data:
+  redis-data:
+
+networks:
+  default:
+    name: clawfree-network

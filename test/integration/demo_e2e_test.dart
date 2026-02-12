@@ -3,23 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:clawfree/src/core/agent_store.dart';
 import 'package:clawfree/src/core/chat_session.dart';
 import 'package:clawfree/src/core/demo_ai_client.dart';
-import 'package:clawfree/src/ui/chat_screen.dart';
-import 'package:clawfree/src/ui/theme.dart';
 import 'package:clawfree/src/voice/stt_service.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
+
+import '../fixtures/mock_ai_client.dart';
+import '../test_helpers.dart';
 
 /// E2E integration tests exercising the full demo pipeline:
 /// DemoCacheAiClient -> ChatSession -> ChatScreen widget.
 ///
 /// These tests use real DemoCacheAiClient (not mocks) to verify that
 /// cached responses flow correctly through the entire system.
-
-Widget _buildApp(ChatSession session, {SttService? sttService}) {
-  return MaterialApp(
-    theme: ClawfreeTheme.light,
-    home: ChatScreen(chatSession: session, sttService: sttService),
-  );
-}
 
 void main() {
   group('E2E: Create agent flow', () {
@@ -71,7 +65,7 @@ void main() {
 
     testWidgets('ChatScreen displays user message and AI response',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Verify empty state
       expect(find.text('Say or type something to get started'), findsOneWidget);
@@ -97,7 +91,7 @@ void main() {
 
     testWidgets('suggestion chip triggers full demo flow',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Tap create suggestion chip
       await tester.tap(find.text('Create a GitHub automation agent'));
@@ -148,7 +142,7 @@ void main() {
 
     testWidgets('dashboard chip sends and receives demo response',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.text('Show my agents'));
       await tester.pump();
@@ -211,16 +205,16 @@ void main() {
 
     testWidgets('message list updates after sending via chip',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // Send via chip
-      await tester.tap(find.text('Create a Telegram bot'));
+      await tester.tap(find.text('Plan a trip'));
       await tester.pump(const Duration(seconds: 3));
 
       // User message should be present
       expect(
         session.messages.any(
-          (m) => m.isUser && m.text == 'Create a Telegram bot',
+          (m) => m.isUser && m.text == 'Plan a trip',
         ),
         isTrue,
       );
@@ -229,7 +223,7 @@ void main() {
 
   group('E2E: Error recovery', () {
     test('session handles error client gracefully', () async {
-      final failClient = _AlwaysFailClient();
+      final failClient = AlwaysFailClient();
       final session = ChatSession(
         aiClient: failClient,
         ttsService: MockTtsService(),
@@ -249,7 +243,7 @@ void main() {
     });
 
     test('session continues working after error recovery', () async {
-      final failOnce = _FailOnceClient();
+      final failOnce = FailOnceClient();
       final session = ChatSession(
         aiClient: failOnce,
         ttsService: MockTtsService(),
@@ -295,7 +289,7 @@ void main() {
 
     testWidgets('mic button starts listening and shows hint',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session, sttService: sttService));
+      await tester.pumpWidget(buildChatTestApp(session, sttService: sttService));
 
       // Mic button present
       expect(find.byIcon(Icons.mic_none), findsOneWidget);
@@ -314,7 +308,7 @@ void main() {
 
     testWidgets('export button works when no config exists',
         (WidgetTester tester) async {
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.byIcon(Icons.download));
       await tester.pump();
@@ -334,7 +328,7 @@ void main() {
         ttsService: MockTtsService(),
       );
 
-      await tester.pumpWidget(_buildApp(session));
+      await tester.pumpWidget(buildChatTestApp(session));
 
       // App bar
       expect(find.text('clawfree'), findsOneWidget);
@@ -345,8 +339,8 @@ void main() {
 
       // All 3 suggestion chips
       expect(find.text('Create a GitHub automation agent'), findsOneWidget);
+      expect(find.text('Plan a trip'), findsOneWidget);
       expect(find.text('Show my agents'), findsOneWidget);
-      expect(find.text('Create a Telegram bot'), findsOneWidget);
 
       // Input bar
       expect(find.byType(TextField), findsOneWidget);
@@ -359,6 +353,214 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
 
       session.dispose();
+    });
+  });
+
+  group('E2E: Tokyo Travel flow', () {
+    late DemoCacheAiClient demoClient;
+    late ChatSession session;
+
+    setUp(() {
+      demoClient = DemoCacheAiClient(chunkDelay: Duration.zero);
+      session = ChatSession(
+        aiClient: demoClient,
+        ttsService: MockTtsService(),
+      );
+    });
+
+    tearDown(() => session.dispose());
+
+    test('"trip" keyword triggers travel setup response', () async {
+      await session.sendMessage('Plan a trip');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('concierge'));
+    });
+
+    test('"trip" produces travel setup surface with city picker', () async {
+      await session.sendMessage('Plan a trip');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'trip should produce a surface');
+      expect(surfaces.first.surfaceId, 'travel-setup-001');
+    });
+
+    test('"travel" keyword triggers setup response', () async {
+      await session.sendMessage(
+          'Set up a travel agent for me, I\'m a total foodie');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'travel should produce a surface');
+      expect(surfaces.first.surfaceId, 'travel-setup-001');
+    });
+
+    test('"foodie plan" compound keyword triggers itinerary', () async {
+      await session.sendMessage('Show me the foodie plan for tokyo');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty);
+      expect(surfaces.first.surfaceId, 'tokyo-itin-001');
+    });
+
+    test('"artsy plan" compound keyword triggers artsy itinerary', () async {
+      await session.sendMessage('Show me the artsy plan for tokyo');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('art'));
+    });
+
+    test('"outdoorsy plan" compound keyword triggers nature itinerary',
+        () async {
+      await session.sendMessage('Show me the outdoorsy plan for tokyo');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('nature'));
+    });
+
+    test('multi-turn: persona picker then foodie itinerary', () async {
+      await session.sendMessage('Set up a travel agent');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      await session.sendMessage('Show me the foodie plan for tokyo');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      // Should have both surfaces
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces.length, greaterThanOrEqualTo(2));
+
+      final surfaceIds = surfaces.map((s) => s.surfaceId).toSet();
+      expect(surfaceIds, contains('travel-setup-001'));
+      expect(surfaceIds, contains('tokyo-itin-001'));
+    });
+
+    testWidgets('suggestion chip triggers travel flow',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(buildChatTestApp(session));
+
+      await tester.tap(find.text('Plan a trip'));
+      await tester.pump();
+
+      expect(
+        session.messages.any(
+          (m) => m.isUser && m.text == 'Plan a trip',
+        ),
+        isTrue,
+      );
+
+      await tester.pump(const Duration(seconds: 3));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+    });
+  });
+
+  group('E2E: Control Tower surfaces', () {
+    late ChatSession session;
+
+    setUp(() {
+      session = ChatSession(
+        aiClient: DemoCacheAiClient(chunkDelay: Duration.zero),
+        ttsService: MockTtsService(),
+      );
+    });
+
+    tearDown(() => session.dispose());
+
+    // Skill Library
+    test('"skill" keyword triggers skill library', () async {
+      await session.sendMessage('Show me the skill library');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('skill'));
+    });
+
+    test('"skills" produces a genUI surface', () async {
+      await session.sendMessage('Browse available skills');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'skills should produce a surface');
+      expect(surfaces.first.surfaceId, 'skill-library-001');
+    });
+
+    // Audit Trail
+    test('"audit" triggers audit log surface', () async {
+      await session.sendMessage('Show the audit log');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'audit should produce a surface');
+      expect(surfaces.first.surfaceId, 'audit-log-001');
+    });
+
+    // Analytics
+    test('"analytics" triggers analytics surface', () async {
+      await session.sendMessage('Show analytics dashboard');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'analytics should produce a surface');
+      expect(surfaces.first.surfaceId, 'analytics-001');
+    });
+
+    test('"performance" also triggers analytics', () async {
+      await session.sendMessage('Check performance metrics');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'performance should produce a surface');
+      expect(surfaces.first.surfaceId, 'analytics-001');
+    });
+
+    // Security
+    test('"security" triggers security surface', () async {
+      await session.sendMessage('Security overview');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'security should produce a surface');
+      expect(surfaces.first.surfaceId, 'security-001');
+    });
+
+    test('"compliance" also triggers security', () async {
+      await session.sendMessage('Show compliance status');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'compliance should produce a surface');
+      expect(surfaces.first.surfaceId, 'security-001');
+    });
+
+    // Help updated
+    test('"help" includes skill library mention', () async {
+      await session.sendMessage('help');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      final aiMessages =
+          session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('skill'));
     });
   });
 
@@ -405,51 +607,119 @@ void main() {
       final aiMessages = session.messages.where((m) => !m.isUser && !m.isSurface);
       expect(aiMessages, isNotEmpty);
     });
+
+    test('"browse" triggers skill library', () async {
+      await session.sendMessage('Browse what you can do');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty);
+      expect(surfaces.first.surfaceId, 'skill-library-001');
+    });
+
+    test('"metrics" triggers analytics', () async {
+      await session.sendMessage('Show me the metrics');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty);
+      expect(surfaces.first.surfaceId, 'analytics-001');
+    });
+
+    test('"threats" triggers security', () async {
+      await session.sendMessage('Any threats detected?');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty);
+      expect(surfaces.first.surfaceId, 'security-001');
+    });
+
+    test('"events" triggers audit log', () async {
+      await session.sendMessage('Show recent events');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty);
+      expect(surfaces.first.surfaceId, 'audit-log-001');
+    });
+  });
+
+  group('E2E: Surface creation from demo responses', () {
+    late ChatSession session;
+
+    setUp(() {
+      session = ChatSession(
+        aiClient: DemoCacheAiClient(chunkDelay: Duration.zero),
+        ttsService: MockTtsService(),
+      );
+    });
+
+    tearDown(() => session.dispose());
+
+    test('"create" produces a genUI surface', () async {
+      await session.sendMessage('Create an agent');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'create should produce a surface');
+      expect(surfaces.first.surfaceId, 'agent-form-001');
+    });
+
+    test('"pair" produces a genUI surface', () async {
+      await session.sendMessage('Pair a device');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'pair should produce a surface');
+      expect(surfaces.first.surfaceId, 'pair-qr-001');
+    });
+
+    test('"manage" produces a genUI surface', () async {
+      await session.sendMessage('Manage OpenClaw');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'manage should produce a surface');
+      expect(surfaces.first.surfaceId, 'manage-001');
+    });
+
+    test('"health" produces a genUI surface', () async {
+      await session.sendMessage('Check system health');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'health should produce a surface');
+      expect(surfaces.first.surfaceId, 'health-001');
+    });
+
+    test('"health" response uses Vitals terminology', () async {
+      await session.sendMessage('Check system health');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final aiMessages = session.messages.where((m) => !m.isUser && !m.isSurface);
+      expect(aiMessages, isNotEmpty);
+      final aiText = aiMessages.first.text ?? '';
+      expect(aiText.toLowerCase(), contains('vitals'));
+    });
+
+    test('"connect" produces a genUI surface', () async {
+      await session.sendMessage('Connect to my gateway');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'connect should produce a surface');
+      expect(surfaces.first.surfaceId, 'connect-gw-001');
+    });
+
+    test('"dashboard" produces a genUI surface', () async {
+      await session.sendMessage('Show my agents');
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      final surfaces = session.messages.where((m) => m.isSurface).toList();
+      expect(surfaces, isNotEmpty, reason: 'dashboard should produce a surface');
+      expect(surfaces.first.surfaceId, 'dashboard-001');
+    });
   });
 }
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
-
-/// Client that always throws on every call.
-class _AlwaysFailClient implements DemoCacheAiClient {
-  @override
-  Stream<String> sendStream(
-    String prompt, {
-    required String systemPrompt,
-    required List<Map<String, String>> history,
-  }) async* {
-    throw Exception('Always fails');
-  }
-
-  @override
-  void dispose() {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-/// Client that fails on the first call, then succeeds with plain text.
-class _FailOnceClient implements DemoCacheAiClient {
-  int _callCount = 0;
-
-  @override
-  Stream<String> sendStream(
-    String prompt, {
-    required String systemPrompt,
-    required List<Map<String, String>> history,
-  }) async* {
-    _callCount++;
-    if (_callCount == 1) {
-      throw Exception('First call fails');
-    }
-    yield 'Recovered successfully!';
-  }
-
-  @override
-  void dispose() {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}

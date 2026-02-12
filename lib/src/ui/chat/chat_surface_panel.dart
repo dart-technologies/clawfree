@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 
@@ -13,10 +15,21 @@ class ChatSurfacePanel extends StatelessWidget {
     super.key,
     required this.surfaceMessages,
     required this.surfaceHost,
+    this.activeSurfaceId,
   });
 
   final List<MessageItem> surfaceMessages;
   final SurfaceHost surfaceHost;
+  final String? activeSurfaceId;
+
+  MessageItem _resolveTarget() {
+    if (activeSurfaceId != null) {
+      final match =
+          surfaceMessages.where((m) => m.surfaceId == activeSurfaceId);
+      if (match.isNotEmpty) return match.first;
+    }
+    return surfaceMessages.last;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,17 +52,43 @@ class ChatSurfacePanel extends StatelessWidget {
       );
     }
 
-    final latest = surfaceMessages.last;
-    return SingleChildScrollView(
-      physics: ClawfreeTheme.isApple
-          ? const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            )
-          : null,
-      padding: const EdgeInsets.all(16),
-      child: ChatSurfaceView(
-        surfaceId: latest.surfaceId!,
-        surfaceHost: surfaceHost,
+    final latest = _resolveTarget();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overlayBase = isDark ? Colors.black : Colors.white;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                overlayBase.withValues(alpha: 0.10),
+                overlayBase.withValues(alpha: 0.05),
+              ],
+            ),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 0.5,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SingleChildScrollView(
+            physics: ClawfreeTheme.isApple
+                ? const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  )
+                : null,
+            padding: const EdgeInsets.all(16),
+            child: ChatSurfaceView(
+              surfaceId: latest.surfaceId!,
+              surfaceHost: surfaceHost,
+            ),
+          ),
+        ),
       ),
     );
   }

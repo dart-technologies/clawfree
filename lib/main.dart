@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
+import 'src/core/agent_store.dart';
 import 'src/core/ai_client.dart';
 import 'src/core/chat_session.dart';
 import 'src/core/demo_ai_client.dart';
+import 'src/core/gateway_client.dart';
+import 'src/core/local_network.dart';
 import 'src/core/platform_config.dart';
 import 'src/core/service_locator.dart';
+import 'src/core/shared_preferences_agent_store.dart';
 import 'src/ui/chat_screen.dart';
 import 'src/ui/clawfree_assets.dart';
 import 'src/ui/theme.dart';
+import 'src/voice/earcon_service.dart';
 import 'src/voice/stt_service.dart';
 import 'src/voice/tts_service.dart';
 import 'src/voice/voice_controller.dart';
@@ -81,7 +86,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   final _apiKeyController = TextEditingController(text: _apiKey);
   bool _useDemoMode = _demoMode;
 
-  void _start() {
+  Future<void> _start() async {
     final key = _apiKeyController.text.trim();
     if (key.isEmpty && !PlatformConfig.isWeb && !_useDemoMode) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,22 +105,54 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       );
     }
 
+    // Parallelize independent async init work.
+    final earconService = EarconService();
+    final agentStoreFuture = _useDemoMode
+        ? Future.value(AgentStore() as AgentRepository)
+        : SharedPreferencesAgentStore.create();
+    final earconFuture = earconService.init();
+
+    GatewayClient? gatewayClient;
+    if (!_useDemoMode) {
+      gatewayClient = GatewayClient(
+        baseUrl: PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl),
+        token: const String.fromEnvironment('GATEWAY_TOKEN', defaultValue: ''),
+      );
+    }
+
     final voice = VoiceServiceFactory.create(isDemo: _useDemoMode);
+
+    // Await both in parallel.
+    final results = await Future.wait([agentStoreFuture, earconFuture]);
+    final agentStore = results[0] as AgentRepository;
 
     sl.reset();
     sl.register<AiClient>(aiClient);
+    if (gatewayClient != null) {
+      sl.register<GatewayClient>(gatewayClient);
+    }
     sl.register<TtsService>(voice.tts);
     sl.register<SttService>(voice.stt);
+    sl.register<EarconService>(earconService);
     sl.register<VoiceController>(
-      VoiceController(stt: voice.stt, tts: voice.tts),
+      VoiceController(stt: voice.stt, tts: voice.tts, earcon: earconService),
     );
 
     _chatSession = ChatSession(
       aiClient: sl.get<AiClient>(),
       ttsService: sl.tryGet<TtsService>(),
+      agentStore: agentStore,
+      gatewayClient: gatewayClient,
     );
+
+    // Resolve LAN IP for scannable QR codes (non-blocking).
+    getLocalIpAddress().then((localIp) {
+      _chatSession?.pairingUrl = 'http://$localIp:18789/pair';
+    });
+
     _sttService = sl.tryGet<SttService>();
 
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChatScreen(
@@ -129,6 +166,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       _chatSession = null;
       _sttService?.dispose();
       _sttService = null;
+      sl.tryGet<GatewayClient>()?.dispose();
       sl.reset();
     });
   }

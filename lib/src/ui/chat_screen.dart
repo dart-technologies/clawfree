@@ -2,14 +2,20 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/chat_session.dart';
+import '../core/health_poller.dart';
+import '../core/platform_config.dart';
+import '../core/prompt_library.dart';
+import '../core/remote_session.dart';
 import '../voice/stt_service.dart';
-import 'chat/chat_input_bar.dart';
-import 'chat/chat_message_list.dart';
-import 'chat/chat_surface_panel.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
+import 'health/health_indicators.dart';
+import 'layouts/phone_layout.dart';
+import 'layouts/tablet_layout.dart';
+import 'layouts/watch_layout.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -33,10 +39,46 @@ class _ChatScreenState extends State<ChatScreen> {
 
   ChatSession get _session => widget.chatSession;
 
+  // Voice state for phone layout
+  bool _isListening = false;
+  String _interimTranscript = '';
+  bool _handsFreeEnabled = false;
+
+  // Health state — optimistic nominal default so vitals show green immediately.
+  // The HealthPoller overrides with live data when the REST endpoint is available.
+  HealthState _healthState = HealthState.nominal();
+  HealthPoller? _healthPoller;
+  List<RemoteSession> _remoteSessions = [];
+
   @override
   void initState() {
     super.initState();
-    _session.addListener(_scrollToBottom);
+    _session.addListener(_onSessionChanged);
+    _session.onPairingRequested = _showPairingModal;
+    _session.onNavigateBack = () => widget.onNavigateHome?.call();
+
+    if (_session.gatewayClient != null) {
+      _healthPoller = HealthPoller(gatewayClient: _session.gatewayClient!);
+      _healthPoller!.addListener(_onHealthChanged);
+      // Start polling immediately so vitals update as soon as possible.
+      _healthPoller!.start();
+    }
+  }
+
+  void _onHealthChanged() {
+    if (mounted) {
+      setState(() {
+        _healthState = _healthPoller!.state;
+        _remoteSessions = _healthPoller!.sessions;
+      });
+    }
+  }
+
+  void _onSessionChanged() {
+    _scrollToBottom();
+
+    // Ensure widget rebuilds for session state changes.
+    if (mounted) setState(() {});
   }
 
   @override
@@ -54,44 +96,7 @@ class _ChatScreenState extends State<ChatScreen> {
           listenable: _session,
           builder: (context, _) {
             return Scaffold(
-              appBar: AppBar(
-                leading: widget.onNavigateHome != null
-                    ? IconButton(
-                        icon: Icon(ClawfreeIcons.back),
-                        onPressed: widget.onNavigateHome,
-                        tooltip: 'Back to Home (\u2318[)',
-                      )
-                    : null,
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Hero(
-                      tag: 'app-icon',
-                      child: Image.asset(
-                          ClawfreeAssets.icon, width: 28, height: 28),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('clawfree'),
-                  ],
-                ),
-                actions: [
-                  if (_session.isProcessing)
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context)
-                              .appBarTheme
-                              .foregroundColor,
-                        ),
-                      ),
-                    ),
-                  _buildExportButton(),
-                ],
-              ),
+              appBar: _buildAppBar(context),
               body: SafeArea(
                 child: _buildAdaptiveLayout(context),
               ),
@@ -103,77 +108,185 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Layout
+  // App bar
   // ---------------------------------------------------------------------------
 
-  Widget _buildAdaptiveLayout(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 900;
-
-    if (isDesktop) {
-      return Row(
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      leading: widget.onNavigateHome != null
+          ? IconButton(
+              icon: Icon(ClawfreeIcons.back),
+              onPressed: widget.onNavigateHome,
+              tooltip: 'Back to Home (\u2318[)',
+            )
+          : null,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 400,
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildMessageList(
-                    maxBubbleWidth: 350,
-                    isDesktop: true,
-                  ),
+          Hero(
+            tag: 'app-icon',
+            child:
+                Image.asset(ClawfreeAssets.icon, width: 28, height: 28),
+          ),
+          const SizedBox(width: 8),
+          const Text('clawfree'),
+          if (_session.sessionMode == SessionMode.home) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color:
+                    Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Home',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onPrimaryContainer,
                 ),
-                _buildInputBar(),
-              ],
+              ),
             ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: ChatSurfacePanel(
-              surfaceMessages:
-                  _session.messages.where((m) => m.isSurface).toList(),
-              surfaceHost: _session.surfaceHost,
-            ),
-          ),
+          ],
         ],
-      );
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: _buildMessageList(
-            maxBubbleWidth: width * 0.8,
-            isDesktop: false,
+      ),
+      actions: [
+        if (_session.isProcessing)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color:
+                    Theme.of(context).appBarTheme.foregroundColor,
+              ),
+            ),
           ),
-        ),
-        _buildInputBar(),
+        _buildExportButton(),
       ],
     );
   }
 
-  Widget _buildMessageList({
-    required double maxBubbleWidth,
-    required bool isDesktop,
-  }) {
-    return ChatMessageList(
+  // ---------------------------------------------------------------------------
+  // Layout dispatch
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAdaptiveLayout(BuildContext context) {
+    final formFactor = PlatformConfig.formFactor(context);
+    _session.deviceFormFactor = formFactor;
+
+    switch (formFactor) {
+      case DeviceFormFactor.phone:
+        return _buildPhoneLayout();
+      case DeviceFormFactor.tablet:
+      case DeviceFormFactor.desktop:
+        return _buildTabletLayout(context);
+      case DeviceFormFactor.watch:
+        return _buildWatchLayout();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phone: "The Mobile Remote"
+  // ---------------------------------------------------------------------------
+
+  Widget _buildPhoneLayout() {
+    final isHome = _session.sessionMode == SessionMode.home;
+    final agents = _session.agentStore.agents;
+    final activeAgent =
+        agents.isNotEmpty ? agents.last['name'] as String? : null;
+
+    final effectiveSessions = _remoteSessions.isNotEmpty
+        ? _remoteSessions
+        : (_session.gatewayClient == null
+            ? defaultDemoSessions(DeviceFormFactor.phone)
+            : <RemoteSession>[]);
+
+    return PhoneLayout(
+      sessionMode: _session.sessionMode,
       messages: _session.messages,
-      scrollController: _scrollController,
+      activeSurfaceId: _session.activeSurfaceId,
       surfaceHost: _session.surfaceHost,
-      maxBubbleWidth: maxBubbleWidth,
-      isDesktop: isDesktop,
+      scrollController: _scrollController,
+      textController: _textController,
+      sttService: widget.sttService,
       isProcessing: _session.isProcessing,
+      healthState: _healthState,
+      isListening: _isListening,
+      interimTranscript: _interimTranscript,
+      isHomeDashboard: isHome,
+      activeAgentName: activeAgent,
+      handsFreeEnabled: _handsFreeEnabled,
+      remoteSessions: effectiveSessions,
       onSend: _send,
       onRetry: _session.retryLastMessage,
+      onToggleVoice: _toggleVoice,
+      onToggleHandsFree: _toggleHandsFree,
+      onQuickAction: _send,
+      onPairDevice: () => _showPairingModal(_session.pairingUrl),
     );
   }
 
-  Widget _buildInputBar() {
-    return ChatInputBar(
-      controller: _textController,
+  // ---------------------------------------------------------------------------
+  // Tablet/Desktop: "The Control Tower"
+  // ---------------------------------------------------------------------------
+
+  Widget _buildTabletLayout(BuildContext context) {
+    final agents = _session.agentStore.agents;
+    final agentNames =
+        agents.map((a) => a['name'] as String? ?? 'Untitled').toList();
+
+    final effectiveSessions = _remoteSessions.isNotEmpty
+        ? _remoteSessions
+        : (_session.gatewayClient == null
+            ? defaultDemoSessions(DeviceFormFactor.tablet)
+            : <RemoteSession>[]);
+
+    return TabletLayout(
+      messages: _session.messages,
+      activeSurfaceId: _session.activeSurfaceId,
+      surfaceHost: _session.surfaceHost,
+      scrollController: _scrollController,
+      textController: _textController,
       sttService: widget.sttService,
       isProcessing: _session.isProcessing,
+      healthState: _healthState,
+      agentNames: agentNames,
+      activeNodeName: 'Local Gateway',
+      gatewayVersion: 'v2026.2.9',
+      updateAvailable: false,
+      remoteSessions: effectiveSessions,
       onSend: _send,
+      onRetry: _session.retryLastMessage,
+      onSelectAgent: (name) => _send('Show agent $name'),
+      onQuickAction: _send,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Watch: "The Pulse Monitor"
+  // ---------------------------------------------------------------------------
+
+  Widget _buildWatchLayout() {
+    final agents = _session.agentStore.agents;
+    final agentNames =
+        agents.map((a) => a['name'] as String? ?? 'Untitled').toList();
+
+    return WatchLayout(
+      healthLevel: _healthState.overall,
+      activeAgentCount: agents.length,
+      pendingApprovals: const [], // populated by system_run events
+      agentNames: agentNames,
+      onStartSpeaking: _toggleVoice,
+      onApprove: (_) {},
+      onDeny: (_) {},
+      onPingAgent: (name) => _send('Check agent $name'),
     );
   }
 
@@ -186,6 +299,7 @@ class _ChatScreenState extends State<ChatScreen> {
       icon: const Icon(ClawfreeIcons.download),
       tooltip: 'Export agent config',
       onPressed: () {
+        HapticFeedback.lightImpact();
         final config = _session.exportAgentConfig();
         if (config != null) {
           final json = const JsonEncoder.withIndent('  ').convert(config);
@@ -232,6 +346,96 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // QR Pairing Modal
+  // ---------------------------------------------------------------------------
+
+  void _showPairingModal(String pairingUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        // Use up to 90% of screen width, capped at 400.
+        final screenWidth = MediaQuery.sizeOf(ctx).width;
+        final qrSize = (screenWidth * 0.65).clamp(200.0, 320.0);
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.qr_code_2,
+                  color: Theme.of(ctx).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text('Pair a Device'),
+            ],
+          ),
+          content: SizedBox(
+            width: qrSize + 40,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: QrImageView(
+                    data: pairingUrl,
+                    version: QrVersions.auto,
+                    size: qrSize,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.circle,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.circle,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SelectableText(
+                  pairingUrl,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Scan with your iPhone or Apple Watch to pair.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: pairingUrl));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Pairing link copied')),
+                );
+              },
+              icon: const Icon(ClawfreeIcons.copy, size: 16),
+              label: const Text('Copy Link'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -245,6 +449,39 @@ class _ChatScreenState extends State<ChatScreen> {
   void _send(String text) {
     HapticFeedback.lightImpact();
     _session.sendMessage(text);
+  }
+
+  void _toggleVoice() {
+    if (_isListening) {
+      widget.sttService?.stopListening();
+      setState(() {
+        _isListening = false;
+        if (_interimTranscript.isNotEmpty) {
+          _send(_interimTranscript);
+          _interimTranscript = '';
+        }
+      });
+    } else {
+      setState(() {
+        _isListening = true;
+        _interimTranscript = '';
+      });
+      widget.sttService?.startListening(onResult: (transcript, isFinal) {
+        setState(() => _interimTranscript = transcript);
+        if (isFinal && transcript.isNotEmpty) {
+          widget.sttService?.stopListening();
+          setState(() {
+            _isListening = false;
+            _interimTranscript = '';
+          });
+          _send(transcript);
+        }
+      });
+    }
+  }
+
+  void _toggleHandsFree() {
+    setState(() => _handsFreeEnabled = !_handsFreeEnabled);
   }
 
   void _scrollToBottom() {
@@ -261,7 +498,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _session.removeListener(_scrollToBottom);
+    _session.onNavigateBack = null;
+    _session.onPairingRequested = null;
+    _session.removeListener(_onSessionChanged);
+    _healthPoller?.removeListener(_onHealthChanged);
+    _healthPoller?.dispose();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

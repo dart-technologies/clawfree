@@ -70,21 +70,25 @@ class AnimatedMessageEntry extends StatelessWidget {
     super.key,
     required this.message,
     required this.child,
+    this.delay = Duration.zero,
   });
 
   final MessageItem message;
   final Widget child;
+
+  /// Optional stagger delay before the animation starts.
+  final Duration delay;
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       key: ValueKey(message.hashCode),
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 300) + delay,
+      curve: Curves.easeOutCubic,
       builder: (context, value, child) => Transform.translate(
-        offset: Offset(0, 16 * (1 - value)),
-        child: Opacity(opacity: value, child: child),
+        offset: Offset(0, 12 * (1 - value)),
+        child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
       ),
       child: child,
     );
@@ -95,7 +99,7 @@ class AnimatedMessageEntry extends StatelessWidget {
 // Private helpers
 // ---------------------------------------------------------------------------
 
-class _ErrorBubble extends StatelessWidget {
+class _ErrorBubble extends StatefulWidget {
   const _ErrorBubble({
     required this.message,
     required this.maxBubbleWidth,
@@ -109,14 +113,26 @@ class _ErrorBubble extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
+  State<_ErrorBubble> createState() => _ErrorBubbleState();
+}
+
+class _ErrorBubbleState extends State<_ErrorBubble> {
+  @override
+  void initState() {
+    super.initState();
+    // Haptic on error appearance
+    HapticFeedback.lightImpact();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final errorText = message.text ?? 'Unknown error';
+    final errorText = widget.message.text ?? 'Unknown error';
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+        constraints: BoxConstraints(maxWidth: widget.maxBubbleWidth),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(16),
@@ -133,7 +149,12 @@ class _ErrorBubble extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: isProcessing ? null : onRetry,
+              onPressed: widget.isProcessing
+                  ? null
+                  : () {
+                      HapticFeedback.mediumImpact();
+                      widget.onRetry?.call();
+                    },
               icon: const Icon(ClawfreeIcons.refresh, size: 16),
               label: const Text('Try again'),
               style: TextButton.styleFrom(
