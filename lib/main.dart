@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:logging/logging.dart';
 
+import 'firebase_options.dart';
 import 'src/core/ai_client.dart';
 import 'src/core/chat_session.dart';
 import 'src/core/demo_ai_client.dart';
@@ -19,8 +21,13 @@ const _apiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 const _gatewayUrl = String.fromEnvironment('GATEWAY_URL', defaultValue: '');
 const _demoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: false);
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase 初始化
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Global error boundary: show a friendly card instead of red screen.
   ErrorWidget.builder = (FlutterErrorDetails details) {
