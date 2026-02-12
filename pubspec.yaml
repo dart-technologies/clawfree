@@ -30,8 +30,12 @@ dependencies:
   # Charts
   fl_chart: ^0.69.0
 
-  # QR code rendering
+  # QR code rendering & scanning
   qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
+
+  # Deep linking
+  app_links: ^6.3.0
 
   # Persistence
   shared_preferences: ^2.5.0

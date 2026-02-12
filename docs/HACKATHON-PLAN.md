@@ -171,14 +171,16 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 - [x] Infrastructure: Flutter + genUI v0.9, CORS proxy, Makefile
 - [x] genUI Core: AI client (SSE streaming), chat session, A2UI schema injection, multi-turn, self-correction, demo mode (12 cached responses), agent store, adaptive layout, animations, theming
 - [x] Architecture: ChatScreen (5 extracted widgets), ChatSession (InteractionRouter + PromptLibrary extracted), VoiceController + VoiceServiceFactory, centralized assets/icons
-- [x] Testing: 333 tests across 30 files (unit + widget + e2e integration)
+- [x] Testing: 350+ tests across 35 files (unit + widget + e2e integration)
 - [x] Gateway: GatewayClient (HTTP /health, /agents, /onboard, /sessions), HealthPoller (15s periodic + session polling), connect_gateway action, agent sync on home transition
 - [x] Remote Sessions: Live device indicators from `/sessions` endpoint, demo fallback, self-filtering
 - [x] Deployment: Docker Compose prod stack (frontend + OpenClaw + Redis), Makefile qa/stop/health targets
+- [x] QR Pairing: In-app QR scanner (mobile_scanner v6), gateway /pair redirect, deep link handling (cold + warm start), gateway URL validation
+- [x] Watch Sync: WatchSyncService with debounce, MethodChannel bridge, updateApplicationContext, ConnectivityProvider, PulseMonitorView with health-adaptive pulse
 
 ### Voice + Interaction (Roy)
-- [ ] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory
-- [ ] Device-level mic permissions testing (iOS, macOS)
+- [ ] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory (auto on native, mock on web/demo)
+- [x] Device-level mic permissions (iOS Info.plist, macOS entitlements, Android manifest)
 - [ ] Continuous listening / hands-free mode (`VoiceController.continuousMode`)
 - [ ] Push-to-talk fallback
 - [ ] Voice → chat session integration (STT text → sendMessage)
@@ -188,8 +190,8 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 - [ ] Voice-only mode (no screen touch needed)
 
 ### Remaining Integration (Both)
-- [ ] Surface interaction → OpenClaw agent API (real agent creation)
-- [ ] OpenClaw gateway: agent persistence + management endpoints
+- [x] Surface interaction → OpenClaw agent API (`GatewayClient.createAgent` + fire-and-forget from router)
+- [x] OpenClaw gateway: agent persistence + management endpoints (dual-proxy: /agents, /sessions, /onboard → OpenClaw)
 
 ### Demo + Submission
 - [ ] Demo scenario 1: Voice agent builder (Watch + iPad)

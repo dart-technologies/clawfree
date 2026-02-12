@@ -241,6 +241,12 @@ class A2uiInteractionRouter {
     _agentStore.addAgent(config);
     genUiLogger.info('Agent saved: ${config['name']}');
 
+    // Deploy to remote gateway (fire-and-forget).
+    _gatewayClient?.createAgent(config).catchError((Object e) {
+      genUiLogger.warning('Remote agent creation failed: $e');
+      return <String, dynamic>{};
+    });
+
     final toolsStr = (config['tools'] as List).join(', ');
     final channelsStr = (config['channels'] as List).join(', ');
     final message = _feedbackService.success(

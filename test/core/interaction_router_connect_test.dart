@@ -125,4 +125,79 @@ void main() {
       gatewayClient.dispose();
     });
   });
+
+  group('copy_pairing_link action', () {
+    test('returns SystemActionResult with correct action name', () {
+      final router = A2uiInteractionRouter(
+        agentStore: AgentStore(),
+      );
+
+      final result = router.handle(_actionMessage('copy_pairing_link', {
+        'url': 'http://192.168.1.5:18789/pair',
+      }));
+
+      expect(result, isA<SystemActionResult>());
+      final sar = result as SystemActionResult;
+      expect(sar.action, 'copy_pairing_link');
+      expect(sar.message.text, contains('pairing'));
+    });
+
+    test('uses default URL when context url is empty', () {
+      final router = A2uiInteractionRouter(
+        agentStore: AgentStore(),
+      );
+
+      final result = router.handle(_actionMessage('copy_pairing_link', {}));
+
+      expect(result, isA<SystemActionResult>());
+      final sar = result as SystemActionResult;
+      expect(sar.action, 'copy_pairing_link');
+    });
+
+    test('returns message with QR code instruction', () {
+      final router = A2uiInteractionRouter(
+        agentStore: AgentStore(),
+      );
+
+      final result = router.handle(_actionMessage('copy_pairing_link', {
+        'url': 'http://10.0.0.1:18789/pair',
+      }));
+
+      expect(result, isA<SystemActionResult>());
+      final sar = result as SystemActionResult;
+      expect(sar.message.text, contains('QR'));
+    });
+  });
+
+  group('complete_onboarding action', () {
+    test('transitions to home mode', () {
+      final router = A2uiInteractionRouter(
+        agentStore: AgentStore(),
+      );
+
+      final result = router.handle(
+        _actionMessage('complete_onboarding', {}),
+      );
+
+      expect(result, isA<ModeSwitchResult>());
+      final msr = result as ModeSwitchResult;
+      expect(msr.targetMode, SessionMode.home);
+    });
+  });
+
+  group('switch_to_builder action', () {
+    test('transitions to agentBuilder mode', () {
+      final router = A2uiInteractionRouter(
+        agentStore: AgentStore(),
+      );
+
+      final result = router.handle(
+        _actionMessage('switch_to_builder', {}),
+      );
+
+      expect(result, isA<ModeSwitchResult>());
+      final msr = result as ModeSwitchResult;
+      expect(msr.targetMode, SessionMode.agentBuilder);
+    });
+  });
 }

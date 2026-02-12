@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
 import 'src/core/agent_store.dart';
@@ -8,11 +13,13 @@ import 'src/core/demo_ai_client.dart';
 import 'src/core/gateway_client.dart';
 import 'src/core/local_network.dart';
 import 'src/core/platform_config.dart';
+import 'src/core/prompt_library.dart';
 import 'src/core/service_locator.dart';
 import 'src/core/shared_preferences_agent_store.dart';
 import 'src/ui/chat_screen.dart';
 import 'src/ui/clawfree_assets.dart';
 import 'src/ui/theme.dart';
+import 'src/ui/widgets/qr_scanner_dialog.dart';
 import 'src/voice/earcon_service.dart';
 import 'src/voice/stt_service.dart';
 import 'src/voice/tts_service.dart';
@@ -83,17 +90,65 @@ class ClawfreeHome extends StatefulWidget {
 class _ClawfreeHomeState extends State<ClawfreeHome> {
   ChatSession? _chatSession;
   SttService? _sttService;
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   final _apiKeyController = TextEditingController(text: _apiKey);
   bool _useDemoMode = _demoMode;
 
-  Future<void> _start() async {
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+    // Handle cold-start deep link (app launched via URL).
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null && uri.scheme == 'clawfree' && uri.host == 'pair') {
+        _handleDeepLink(uri);
+      }
+    });
+    // Handle warm-start deep links (app already running).
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      if (uri.scheme == 'clawfree' && uri.host == 'pair') {
+        _handleDeepLink(uri);
+      }
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    final pairing = PlatformConfig.parsePairingUri(uri);
+    if (pairing == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Received pairing link for ${pairing.url}')),
+    );
+    if (_chatSession != null) {
+      _chatSession!.gatewayClient?.updateBaseUrl(pairing.url);
+      if (pairing.token != null) {
+        _chatSession!.gatewayClient?.updateToken(pairing.token!);
+      }
+      _chatSession!.setMode(SessionMode.home);
+    } else {
+      _start(injectedGateway: pairing.url, injectedToken: pairing.token);
+    }
+  }
+
+  Future<void> _start({String? injectedGateway, String? injectedToken}) async {
     final key = _apiKeyController.text.trim();
-    if (key.isEmpty && !PlatformConfig.isWeb && !_useDemoMode) {
+    if (key.isEmpty && !PlatformConfig.isWeb && !_useDemoMode && injectedGateway == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your Anthropic API key')),
       );
       return;
     }
+
+    final effectiveUrl = injectedGateway ??
+        PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl);
+    final effectiveToken = injectedToken ??
+        const String.fromEnvironment('GATEWAY_TOKEN', defaultValue: '');
 
     final AiClient aiClient;
     if (_useDemoMode) {
@@ -101,7 +156,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     } else {
       aiClient = AnthropicAiClient(
         apiKey: key,
-        baseUrl: PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl),
+        baseUrl: effectiveUrl,
       );
     }
 
@@ -115,8 +170,8 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     GatewayClient? gatewayClient;
     if (!_useDemoMode) {
       gatewayClient = GatewayClient(
-        baseUrl: PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl),
-        token: const String.fromEnvironment('GATEWAY_TOKEN', defaultValue: ''),
+        baseUrl: effectiveUrl,
+        token: effectiveToken,
       );
     }
 
@@ -146,9 +201,13 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     );
 
     // Resolve LAN IP for scannable QR codes (non-blocking).
-    getLocalIpAddress().then((localIp) {
-      _chatSession?.pairingUrl = 'http://$localIp:18789/pair';
-    });
+    if (injectedGateway == null) {
+      getLocalIpAddress().then((localIp) {
+        _chatSession?.pairingUrl = 'http://$localIp:18789/pair';
+      });
+    } else {
+      _chatSession?.setMode(SessionMode.home);
+    }
 
     _sttService = sl.tryGet<SttService>();
 
@@ -274,13 +333,31 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                       ),
                     ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _start,
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(_useDemoMode ? 'Start Demo' : 'Start'),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _start,
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(_useDemoMode ? 'Start Demo' : 'Start'),
+                        ),
+                      ),
+                      if (!_useDemoMode && PlatformConfig.hasCamera) ...[
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          onPressed: () async {
+                            final result = await Navigator.of(context).push<String>(
+                              MaterialPageRoute(builder: (_) => const QrScannerDialog()),
+                            );
+                            if (result != null && mounted) {
+                              _handleQrResult(result);
+                            }
+                          },
+                          icon: const Icon(Icons.qr_code_scanner),
+                          tooltip: 'Scan Gateway QR',
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 12),
                   // Demo mode toggle
@@ -324,8 +401,57 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     );
   }
 
+  Future<void> _handleQrResult(String data) async {
+    try {
+      final uri = Uri.parse(data);
+      final pairing = PlatformConfig.parsePairingUri(uri);
+      if (pairing == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unrecognized QR code format')),
+        );
+        return;
+      }
+      // Deep links carry a pre-validated gateway URL + token.
+      if (uri.scheme == 'clawfree') {
+        _handleDeepLink(uri);
+        return;
+      }
+      // Raw HTTP URL — validate that it's a clawfree gateway.
+      if (!await _validateGateway(pairing.url)) return;
+      _start(injectedGateway: pairing.url);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid QR: $e')),
+      );
+    }
+  }
+
+  /// Probes [url]/health and confirms the response contains the expected
+  /// service identifier. Returns false (with user feedback) on failure.
+  Future<bool> _validateGateway(String url) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$url/health'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['service'] == 'clawfree-gateway') return true;
+      }
+    } catch (_) {
+      // fall through to error below
+    }
+    if (!mounted) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not verify clawfree gateway at $url')),
+    );
+    return false;
+  }
+
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _chatSession?.dispose();
     _sttService?.dispose();
     _apiKeyController.dispose();
