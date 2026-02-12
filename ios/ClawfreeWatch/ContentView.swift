@@ -3,12 +3,13 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var sessionManager = WatchSessionManager.shared
     @StateObject private var recorder = AudioRecorder()
+    @State private var showTextInput = false
 
     var body: some View {
         VStack(spacing: 12) {
             if sessionManager.messages.isEmpty {
                 Spacer()
-                Text("點擊麥克風開始")
+                Text("點擊麥克風或鍵盤開始")
                     .foregroundColor(.gray)
                     .font(.caption)
                 Spacer()
@@ -23,7 +24,7 @@ struct ContentView: View {
                         }
                         .padding(.horizontal, 4)
                     }
-                    .onChange(of: sessionManager.messages.count) { _ in
+                    .onChange(of: sessionManager.messages.count) {
                         if let last = sessionManager.messages.last {
                             withAnimation {
                                 proxy.scrollTo(last.id, anchor: .bottom)
@@ -33,13 +34,23 @@ struct ContentView: View {
                 }
             }
 
-            // Recording button
-            Button(action: toggleRecording) {
-                Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundColor(recorder.isRecording ? .red : .orange)
+            HStack(spacing: 16) {
+                // Recording button
+                Button(action: toggleRecording) {
+                    Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                        .font(.system(size: 36))
+                        .foregroundColor(recorder.isRecording ? .red : .orange)
+                }
+                .buttonStyle(.plain)
+
+                // Text input button (for simulator testing)
+                Button(action: { showTextInput = true }) {
+                    Image(systemName: "keyboard")
+                        .font(.system(size: 36))
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if !sessionManager.isConnected {
                 Text("iPhone 未連線")
@@ -48,6 +59,9 @@ struct ContentView: View {
             }
         }
         .navigationTitle("Clawfree")
+        .sheet(isPresented: $showTextInput) {
+            TextInputView(sessionManager: sessionManager)
+        }
     }
 
     private func toggleRecording() {
@@ -65,6 +79,37 @@ struct ContentView: View {
         } else {
             recorder.startRecording()
         }
+    }
+}
+
+/// Text input view for simulator testing (no mic available)
+struct TextInputView: View {
+    @ObservedObject var sessionManager: WatchSessionManager
+    @State private var text = ""
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("傳送文字指令")
+                .font(.headline)
+
+            TextField("輸入指令...", text: $text)
+                .textFieldStyle(.plain)
+
+            Button("傳送") {
+                guard !text.isEmpty else { return }
+                sessionManager.sendTextCommand(text)
+                text = ""
+                dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            .disabled(text.isEmpty)
+
+            Button("取消") { dismiss() }
+                .foregroundColor(.gray)
+        }
+        .padding()
     }
 }
 

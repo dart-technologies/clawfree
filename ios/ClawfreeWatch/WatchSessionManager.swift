@@ -15,6 +15,62 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    // MARK: - 傳送文字指令到 iPhone（模擬器測試用）
+
+    func sendTextCommand(_ text: String) {
+        let userMsg = WatchMessage(
+            id: UUID().uuidString,
+            text: text,
+            isUser: true,
+            timestamp: Date()
+        )
+        DispatchQueue.main.async {
+            self.messages.append(userMsg)
+        }
+
+        guard WCSession.default.activationState == .activated else {
+            print("[Watch] WCSession not activated, cannot send text command")
+            return
+        }
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(
+                ["type": "textCommand", "text": text, "timestamp": Date().timeIntervalSince1970],
+                replyHandler: { reply in
+                    if let replyText = reply["aiReply"] as? String {
+                        DispatchQueue.main.async {
+                            self.messages.append(WatchMessage(
+                                id: UUID().uuidString,
+                                text: replyText,
+                                isUser: false,
+                                timestamp: Date()
+                            ))
+                        }
+                    }
+                },
+                errorHandler: { error in
+                    print("[Watch] sendTextCommand error: \(error)")
+                    DispatchQueue.main.async {
+                        self.messages.append(WatchMessage(
+                            id: UUID().uuidString,
+                            text: "❌ 傳送失敗",
+                            isUser: false,
+                            timestamp: Date()
+                        ))
+                    }
+                }
+            )
+        } else {
+            // Fallback: use userInfo transfer (queued, delivered later)
+            WCSession.default.transferUserInfo([
+                "type": "textCommand",
+                "text": text,
+                "timestamp": Date().timeIntervalSince1970
+            ])
+            print("[Watch] iPhone not reachable, queued via transferUserInfo")
+        }
+    }
+
     // MARK: - 傳送語音資料到 iPhone
 
     func sendVoiceData(_ audioData: Data) {

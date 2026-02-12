@@ -113,8 +113,42 @@ class WatchSessionHandler: NSObject, WCSessionDelegate, FlutterStreamHandler {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        // Notification that voice is incoming
-        print("[iPhone] Received watch message: \(message)")
+        handleWatchMessage(message, replyHandler: nil)
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        handleWatchMessage(message, replyHandler: replyHandler)
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        handleWatchMessage(userInfo, replyHandler: nil)
+    }
+
+    private func handleWatchMessage(_ message: [String: Any], replyHandler: (([String: Any]) -> Void)?) {
+        let type = message["type"] as? String ?? ""
+        print("[iPhone] Received watch message type=\(type): \(message)")
+
+        switch type {
+        case "textCommand":
+            if let text = message["text"] as? String {
+                DispatchQueue.main.async {
+                    self.eventSink?([
+                        "type": "textCommand",
+                        "text": text,
+                        "timestamp": message["timestamp"] ?? Date().timeIntervalSince1970
+                    ])
+                }
+                // Send acknowledgment reply if handler available
+                replyHandler?(["status": "received", "aiReply": "收到指令：\(text)"])
+            }
+
+        case "voiceNotification":
+            // Voice file will arrive separately via file transfer
+            replyHandler?(["status": "ok"])
+
+        default:
+            replyHandler?(["status": "unknown_type"])
+        }
     }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
