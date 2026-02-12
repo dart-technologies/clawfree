@@ -14,7 +14,6 @@
 		52DA0C0264A5100EAF969D32 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 84A74114E9B294836B357621 /* Assets.xcassets */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		74EA57DE41DC5877CBB00399 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B7E4D6D8D14DC2D9C94565B /* Pods_RunnerTests.framework */; };
-		89F8818067C851313B546534 /* ClawfreeWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = BBD8FBBDCCA256008B823992 /* ClawfreeWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		95C8EC05017C316C949DBEC0 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 295C450D6880FEEDBB3F159F /* AudioRecorder.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -34,13 +33,6 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
-		A92E7DC1A1BEA594762E242D /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7D53A8EF54C74C50F68EE924;
-			remoteInfo = ClawfreeWatch;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,17 +44,6 @@
 			files = (
 			);
 			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F8C087A3145A8660AB628291 /* Embed Watch Content */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
-			dstSubfolderSpec = 16;
-			files = (
-				89F8818067C851313B546534 /* ClawfreeWatch.app in Embed Watch Content */,
-			);
-			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -283,12 +264,10 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				AAAE1D2FA7F620764976FCBD /* [CP] Embed Pods Frameworks */,
-				F8C087A3145A8660AB628291 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				95C58C01870EEA20B39383D6 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -496,12 +475,6 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
-		};
-		95C58C01870EEA20B39383D6 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ClawfreeWatch;
-			target = 7D53A8EF54C74C50F68EE924 /* ClawfreeWatch */;
-			targetProxy = A92E7DC1A1BEA594762E242D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

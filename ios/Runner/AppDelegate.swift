@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import WatchConnectivity
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -9,12 +8,6 @@ import WatchConnectivity
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-
-    // Setup WatchConnectivity ↔ Flutter bridge
-    if let controller = window?.rootViewController as? FlutterViewController {
-      WatchSessionHandler.shared.setup(with: controller)
-    }
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
