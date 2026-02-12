@@ -89,7 +89,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
     return bar;
   }
 
-  /// Hands-free bar: large centered mic button with waveform-like indicator.
+  /// Hands-free bar: large centered mic button with animated waveform ring.
   Widget _buildHandsFreeBar() {
     return Center(
       child: Padding(
@@ -112,20 +112,23 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 ),
               ),
             if (widget.sttService != null)
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: VoiceInputWidget(
-                  sttService: widget.sttService!,
-                  voiceController: widget.voiceController,
-                  enabled: !widget.isProcessing,
-                  onTranscript: widget.onSend,
-                  onListeningChanged: (listening) {
-                    setState(() {
-                      _isListening = listening;
-                      if (!listening) _interimTranscript = '';
-                    });
-                  },
+              _HandsFreeWaveformRing(
+                isListening: _isListening,
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: VoiceInputWidget(
+                    sttService: widget.sttService!,
+                    voiceController: widget.voiceController,
+                    enabled: !widget.isProcessing,
+                    onTranscript: widget.onSend,
+                    onListeningChanged: (listening) {
+                      setState(() {
+                        _isListening = listening;
+                        if (!listening) _interimTranscript = '';
+                      });
+                    },
+                  ),
                 ),
               ),
           ],
@@ -203,4 +206,100 @@ class _ChatInputBarState extends State<ChatInputBar> {
       onPressed: widget.isProcessing ? null : _submit,
     );
   }
+}
+
+/// Animated concentric rings that pulse outward when listening in hands-free mode.
+class _HandsFreeWaveformRing extends StatefulWidget {
+  const _HandsFreeWaveformRing({
+    required this.isListening,
+    required this.child,
+  });
+
+  final bool isListening;
+  final Widget child;
+
+  @override
+  State<_HandsFreeWaveformRing> createState() =>
+      _HandsFreeWaveformRingState();
+}
+
+class _HandsFreeWaveformRingState extends State<_HandsFreeWaveformRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    if (widget.isListening) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_HandsFreeWaveformRing old) {
+    super.didUpdateWidget(old);
+    if (widget.isListening && !old.isListening) {
+      _controller.repeat();
+    } else if (!widget.isListening && old.isListening) {
+      _controller.stop();
+      _controller.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: widget.isListening
+              ? _WaveformRingPainter(
+                  progress: _controller.value,
+                  color: Theme.of(context).colorScheme.primary,
+                )
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _WaveformRingPainter extends CustomPainter {
+  _WaveformRingPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
+    for (var i = 0; i < 3; i++) {
+      final ringProgress = (progress + i * 0.33) % 1.0;
+      final radius = maxRadius * (0.6 + 0.4 * ringProgress);
+      final opacity = (1.0 - ringProgress).clamp(0.0, 0.5);
+      final paint = Paint()
+        ..color = color.withValues(alpha: opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformRingPainter old) =>
+      old.progress != progress || old.color != color;
 }

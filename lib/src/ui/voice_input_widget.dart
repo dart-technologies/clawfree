@@ -172,9 +172,28 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
             builder: (context, child) {
               final scale =
                   _isListening ? 1.0 + 0.15 * _pulseController.value : 1.0;
+              final glowOpacity =
+                  _isListening ? 0.3 + 0.4 * _pulseController.value : 0.0;
               return Transform.scale(
                 scale: scale,
-                child: child,
+                child: Container(
+                  decoration: _isListening
+                      ? BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .error
+                                  .withValues(alpha: glowOpacity),
+                              blurRadius: 16,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        )
+                      : null,
+                  child: child,
+                ),
               );
             },
             child: AnimatedContainer(

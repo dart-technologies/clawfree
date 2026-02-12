@@ -12,12 +12,14 @@ class ChatMessageBubble extends StatelessWidget {
     required this.message,
     required this.maxBubbleWidth,
     this.isProcessing = false,
+    this.isSpeaking = false,
     this.onRetry,
   });
 
   final MessageItem message;
   final double maxBubbleWidth;
   final bool isProcessing;
+  final bool isSpeaking;
   final VoidCallback? onRetry;
 
   @override
@@ -37,26 +39,42 @@ class ChatMessageBubble extends StatelessWidget {
 
     final bubble = Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-        decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(
-            ClawfreeTheme.isApple ? 18 : 16,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser && isSpeaking)
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 8),
+              child: _TtsSpeakingIndicator(),
+            ),
+          Flexible(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(
+                  ClawfreeTheme.isApple ? 18 : 16,
+                ),
+              ),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isUser
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
           ),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isUser
-                ? Theme.of(context).colorScheme.onPrimary
-                : Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
+        ],
       ),
     );
 
@@ -94,6 +112,51 @@ class AnimatedMessageEntry extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
+
+/// Animated speaker icon shown next to AI bubbles during TTS playback.
+class _TtsSpeakingIndicator extends StatefulWidget {
+  const _TtsSpeakingIndicator();
+
+  @override
+  State<_TtsSpeakingIndicator> createState() => _TtsSpeakingIndicatorState();
+}
+
+class _TtsSpeakingIndicatorState extends State<_TtsSpeakingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: 0.4 + 0.6 * _controller.value,
+          child: Icon(
+            Icons.volume_up,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      },
+    );
+  }
+}
 
 class _ErrorBubble extends StatelessWidget {
   const _ErrorBubble({
