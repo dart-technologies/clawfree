@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 
 import '../../core/message_item.dart';
-import '../clawfree_icons.dart';
+import '../clawfree_assets.dart';
 import '../theme.dart';
 import 'chat_message_bubble.dart';
 import 'chat_surface_panel.dart';
@@ -77,6 +77,7 @@ class ChatMessageList extends StatelessWidget {
   }
 }
 
+/// Empty state with animated lobster icon and suggestion chips.
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onSend});
 
@@ -84,46 +85,162 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              ClawfreeIcons.mic,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) => Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: child,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Say or type something to get started',
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Lobster icon with subtle glow
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ClawfreeTheme.lobsterOrange.withValues(alpha: 0.08),
+                ),
+                child: Image.asset(
+                  ClawfreeAssets.icon,
+                  width: 64,
+                  height: 64,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _chip('Create a GitHub automation agent'),
-                _chip('Show my agents'),
-                _chip('Create a Telegram bot'),
-              ],
-            ),
-          ],
+              const SizedBox(height: 20),
+              Text(
+                'What would you like to build?',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Say or type something to get started',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  _SuggestionChip(
+                    icon: Icons.smart_toy_outlined,
+                    label: 'Create a GitHub automation agent',
+                    onTap: () => onSend('Create a GitHub automation agent'),
+                  ),
+                  _SuggestionChip(
+                    icon: Icons.dashboard_outlined,
+                    label: 'Show my agents',
+                    onTap: () => onSend('Show my agents'),
+                  ),
+                  _SuggestionChip(
+                    icon: Icons.send_outlined,
+                    label: 'Create a Telegram bot',
+                    onTap: () => onSend('Create a Telegram bot'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _chip(String text) {
-    return ActionChip(
-      label: Text(text, style: const TextStyle(fontSize: 13)),
-      onPressed: () => onSend(text),
+/// Branded suggestion chip with icon, hover effect, and smooth transition.
+class _SuggestionChip extends StatefulWidget {
+  const _SuggestionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_SuggestionChip> createState() => _SuggestionChipState();
+}
+
+class _SuggestionChipState extends State<_SuggestionChip> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: ClawfreeTheme.hoverDuration,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? ClawfreeTheme.lobsterOrange.withValues(alpha: 0.1)
+                : (isDark ? ClawfreeTheme.darkCard : Colors.white),
+            borderRadius: BorderRadius.circular(ClawfreeTheme.radiusFull),
+            border: Border.all(
+              color: _isHovered
+                  ? ClawfreeTheme.lobsterOrange.withValues(alpha: 0.4)
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.08)),
+            ),
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: _isHovered ? 0.06 : 0.02),
+                  blurRadius: _isHovered ? 8 : 4,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                size: 16,
+                color: _isHovered
+                    ? ClawfreeTheme.lobsterOrange
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _isHovered
+                      ? ClawfreeTheme.lobsterOrange
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

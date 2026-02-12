@@ -40,48 +40,54 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final bar = Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: ClawfreeTheme.isApple
-            ? Theme.of(context).colorScheme.surface.withValues(alpha: 0.85)
-            : Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -1),
+        color: isDark
+            ? ClawfreeTheme.darkSurface.withValues(alpha: 0.92)
+            : Colors.white.withValues(alpha: 0.92),
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.06),
           ),
-        ],
+        ),
       ),
-      child: widget.handsFreeMode
-          ? _buildHandsFreeBar()
-          : Row(
-              children: [
-                if (widget.sttService != null)
-                  VoiceInputWidget(
-                    sttService: widget.sttService!,
-                    voiceController: widget.voiceController,
-                    enabled: !widget.isProcessing,
-                    onTranscript: widget.onSend,
-                    onListeningChanged: (listening) {
-                      setState(() {
-                        _isListening = listening;
-                        if (!listening) _interimTranscript = '';
-                      });
-                    },
-                  ),
-                Expanded(child: _buildInputField()),
-                const SizedBox(width: 8),
-                _buildSendButton(),
-              ],
-            ),
+      child: SafeArea(
+        top: false,
+        child: widget.handsFreeMode
+            ? _buildHandsFreeBar()
+            : Row(
+                children: [
+                  if (widget.sttService != null)
+                    VoiceInputWidget(
+                      sttService: widget.sttService!,
+                      voiceController: widget.voiceController,
+                      enabled: !widget.isProcessing,
+                      onTranscript: widget.onSend,
+                      onListeningChanged: (listening) {
+                        setState(() {
+                          _isListening = listening;
+                          if (!listening) _interimTranscript = '';
+                        });
+                      },
+                    ),
+                  Expanded(child: _buildInputField()),
+                  const SizedBox(width: 8),
+                  _buildSendButton(),
+                ],
+              ),
+      ),
     );
 
+    // Frosted glass effect on Apple platforms
     if (ClawfreeTheme.isApple) {
       return ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: bar,
         ),
       );
@@ -106,7 +112,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       : 'Listening...',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontStyle: FontStyle.italic,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: ClawfreeTheme.lobsterOrange,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -154,14 +160,18 @@ class _ChatInputBarState extends State<ChatInputBar> {
       return CupertinoTextField(
         controller: widget.controller,
         placeholder: hintText,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(ClawfreeTheme.radiusXL),
         ),
         enabled: enabled,
         onSubmitted: (_) => _submit(),
         textInputAction: TextInputAction.send,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       );
     }
 
@@ -169,41 +179,61 @@ class _ChatInputBarState extends State<ChatInputBar> {
       controller: widget.controller,
       decoration: InputDecoration(
         hintText: hintText,
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        // Uses theme's inputDecorationTheme (rounded, filled)
       ),
       enabled: enabled,
       onSubmitted: (_) => _submit(),
       textInputAction: TextInputAction.send,
+      style: const TextStyle(fontSize: 15),
     );
   }
 
   Widget _buildSendButton() {
+    final canSend = !widget.isProcessing;
+
     if (ClawfreeTheme.isApple) {
       return Tooltip(
         message: 'Send message (\u2318Enter)',
         child: CupertinoButton(
           padding: EdgeInsets.zero,
           minimumSize: const Size(36, 36),
-          onPressed: widget.isProcessing ? null : _submit,
-          child: Icon(
-            ClawfreeIcons.send,
-            size: 32,
-            color: widget.isProcessing
-                ? CupertinoColors.systemGrey
-                : Theme.of(context).colorScheme.primary,
+          onPressed: canSend ? _submit : null,
+          child: AnimatedContainer(
+            duration: ClawfreeTheme.hoverDuration,
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: canSend
+                  ? ClawfreeTheme.lobsterOrange
+                  : ClawfreeTheme.lobsterOrange.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              CupertinoIcons.arrow_up,
+              size: 20,
+              color: Colors.white,
+            ),
           ),
         ),
       );
     }
 
-    return IconButton.filled(
-      icon: Icon(ClawfreeIcons.send),
-      tooltip: 'Send message (\u2318Enter)',
-      onPressed: widget.isProcessing ? null : _submit,
+    return Tooltip(
+      message: 'Send message (\u2318Enter)',
+      child: AnimatedContainer(
+        duration: ClawfreeTheme.hoverDuration,
+        decoration: BoxDecoration(
+          color: canSend
+              ? ClawfreeTheme.lobsterOrange
+              : ClawfreeTheme.lobsterOrange.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(ClawfreeIcons.send, size: 20),
+          color: Colors.white,
+          onPressed: canSend ? _submit : null,
+        ),
+      ),
     );
   }
 }
@@ -263,7 +293,7 @@ class _HandsFreeWaveformRingState extends State<_HandsFreeWaveformRing>
           painter: widget.isListening
               ? _WaveformRingPainter(
                   progress: _controller.value,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: ClawfreeTheme.lobsterOrange,
                 )
               : null,
           child: Padding(

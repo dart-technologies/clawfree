@@ -44,6 +44,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.0
+
+flutter_native_splash:
+  color: "#1A1A1A"
+  color_dark: "#1A1A1A"
+  image: assets/icon.png
+  android_12:
+    color: "#1A1A1A"
+    color_dark: "#1A1A1A"
+    image: assets/icon.png
+  ios: true
+  web: false
 
 flutter:
   uses-material-design: true

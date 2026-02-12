@@ -10,6 +10,7 @@ import 'src/core/platform_config.dart';
 import 'src/core/service_locator.dart';
 import 'src/ui/chat_screen.dart';
 import 'src/ui/clawfree_assets.dart';
+import 'src/ui/splash_screen.dart';
 import 'src/ui/theme.dart';
 import 'src/voice/stt_service.dart';
 import 'src/voice/tts_service.dart';
@@ -70,8 +71,30 @@ class ClawfreeApp extends StatelessWidget {
       darkTheme: ClawfreeTheme.dark,
       themeAnimationDuration: const Duration(milliseconds: 400),
       themeAnimationCurve: Curves.easeInOut,
-      home: const ClawfreeHome(),
+      home: const _SplashGate(),
     );
+  }
+}
+
+/// Shows the animated splash screen, then transitions to the home screen.
+class _SplashGate extends StatefulWidget {
+  const _SplashGate();
+
+  @override
+  State<_SplashGate> createState() => _SplashGateState();
+}
+
+class _SplashGateState extends State<_SplashGate> {
+  bool _splashDone = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_splashDone) {
+      return SplashScreen(
+        onComplete: () => setState(() => _splashDone = true),
+      );
+    }
+    return const ClawfreeHome();
   }
 }
 
@@ -144,8 +167,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   @override
   Widget build(BuildContext context) {
     final isWeb = PlatformConfig.isWeb;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? ClawfreeTheme.darkBg : ClawfreeTheme.lightBg,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -155,8 +180,8 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
             curve: Curves.easeOutCubic,
             builder: (context, value, child) => Opacity(
               opacity: value,
-              child: Transform.scale(
-                scale: 0.85 + 0.15 * value,
+              child: Transform.translate(
+                offset: Offset(0, 20 * (1 - value)),
                 child: child,
               ),
             ),
@@ -173,86 +198,123 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                       height: 120,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  const SizedBox(height: 20),
+                  Text(
                     'clawfree',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Hands-free AI agent creation',
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: isDark ? Colors.white38 : Colors.black45,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
                   if (!isWeb && !_useDemoMode)
                     TextField(
                       controller: _apiKeyController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Anthropic API Key',
                         hintText: 'sk-ant-...',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.key),
+                        prefixIcon: const Icon(Icons.key_outlined),
+                        // Uses theme's inputDecorationTheme
                       ),
                       obscureText: true,
                       onSubmitted: (_) => _start(),
                     ),
                   if (isWeb && !_useDemoMode)
-                    Text(
-                      'Using gateway at ${PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (_useDemoMode)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .tertiaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        color: isDark
+                            ? ClawfreeTheme.darkCard
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(
+                            ClawfreeTheme.radiusM),
                         border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .tertiary
-                              .withValues(alpha: 0.4),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.06),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.play_circle,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onTertiaryContainer),
+                          Icon(
+                            Icons.cloud_outlined,
+                            size: 18,
+                            color: ClawfreeTheme.teal,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Demo mode: using cached responses (no API key needed)',
+                              'Gateway: ${PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl)}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Theme.of(context)
                                     .colorScheme
-                                    .onTertiaryContainer,
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  const SizedBox(height: 16),
+                  if (_useDemoMode)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: ClawfreeTheme.teal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(
+                            ClawfreeTheme.radiusM),
+                        border: Border.all(
+                          color: ClawfreeTheme.teal.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.play_circle_outline,
+                            color: ClawfreeTheme.teal,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Demo mode — cached responses, no API key needed',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? ClawfreeTheme.teal
+                                    : ClawfreeTheme.teal.withValues(
+                                        alpha: 0.85),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
+                    height: 52,
                     child: FilledButton.icon(
                       onPressed: _start,
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(_useDemoMode ? 'Start Demo' : 'Start'),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                      label: Text(
+                        _useDemoMode ? 'Start Demo' : 'Start',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   // Demo mode toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -279,9 +341,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                       'Or pass via: --dart-define=ANTHROPIC_API_KEY=sk-ant-...',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
+                        color: isDark ? Colors.white24 : Colors.black26,
                       ),
                     ),
                   ],

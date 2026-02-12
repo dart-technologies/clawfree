@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../voice/stt_service.dart';
 import '../voice/voice_controller.dart';
+import 'theme.dart';
 
 /// Encapsulates the mic button + voice listening state for the input bar.
 ///
@@ -197,7 +198,7 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
               );
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: ClawfreeTheme.hoverDuration,
               width: 44,
               height: 44,
               decoration: BoxDecoration(

@@ -37,6 +37,34 @@ class ChatMessageBubble extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // User bubble: brand orange; AI bubble: subtle surface card
+    final bubbleColor = isUser
+        ? ClawfreeTheme.lobsterOrange
+        : isDark
+            ? ClawfreeTheme.darkCard
+            : Colors.white;
+
+    final textColor = isUser
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
+
+    // Directional border radius for a modern chat look
+    final borderRadius = isUser
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(ClawfreeTheme.radiusL),
+            topRight: Radius.circular(ClawfreeTheme.radiusL),
+            bottomLeft: Radius.circular(ClawfreeTheme.radiusL),
+            bottomRight: Radius.circular(4),
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(4),
+            topRight: Radius.circular(ClawfreeTheme.radiusL),
+            bottomLeft: Radius.circular(ClawfreeTheme.radiusL),
+            bottomRight: Radius.circular(ClawfreeTheme.radiusL),
+          );
+
     final bubble = Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
@@ -47,29 +75,47 @@ class ChatMessageBubble extends StatelessWidget {
         children: [
           if (!isUser && isSpeaking)
             const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
+              padding: EdgeInsets.only(left: 4, bottom: 12),
               child: _TtsSpeakingIndicator(),
             ),
           Flexible(
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
               padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               constraints: BoxConstraints(maxWidth: maxBubbleWidth),
               decoration: BoxDecoration(
-                color: isUser
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(
-                  ClawfreeTheme.isApple ? 18 : 16,
-                ),
+                color: bubbleColor,
+                borderRadius: borderRadius,
+                boxShadow: [
+                  if (!isDark)
+                    BoxShadow(
+                      color: (isUser
+                              ? ClawfreeTheme.lobsterOrange
+                              : Colors.black)
+                          .withValues(alpha: isUser ? 0.15 : 0.04),
+                      blurRadius: isUser ? 8 : 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  if (isDark && !isUser)
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                ],
+                border: (!isUser && isDark)
+                    ? Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
+                      )
+                    : null,
               ),
               child: Text(
                 text,
                 style: TextStyle(
-                  color: isUser
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : Theme.of(context).colorScheme.onSurface,
+                  color: textColor,
+                  fontSize: 15,
+                  height: 1.45,
                 ),
               ),
             ),
@@ -98,10 +144,10 @@ class AnimatedMessageEntry extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       key: ValueKey(message.hashCode),
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 300),
+      duration: ClawfreeTheme.transitionDuration,
       curve: Curves.easeOut,
       builder: (context, value, child) => Transform.translate(
-        offset: Offset(0, 16 * (1 - value)),
+        offset: Offset(0, 12 * (1 - value)),
         child: Opacity(opacity: value, child: child),
       ),
       child: child,
@@ -150,7 +196,7 @@ class _TtsSpeakingIndicatorState extends State<_TtsSpeakingIndicator>
           child: Icon(
             Icons.volume_up,
             size: 16,
-            color: Theme.of(context).colorScheme.primary,
+            color: ClawfreeTheme.lobsterOrange,
           ),
         );
       },
@@ -177,22 +223,36 @@ class _ErrorBubble extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         constraints: BoxConstraints(maxWidth: maxBubbleWidth),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ClawfreeTheme.radiusL),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              errorText,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onErrorContainer,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  ClawfreeIcons.error,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    errorText,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             TextButton.icon(
