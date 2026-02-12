@@ -5,7 +5,9 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     @Published var activeAgentCount: Int = 0
     @Published var healthLevel: String = "nominal"
     @Published var isListening: Bool = false
-    
+    @Published var lastAiReply: String?
+    @Published var isReachable: Bool = false
+
     var healthColor: Color {
         switch healthLevel {
         case "nominal": return .green
@@ -14,9 +16,10 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         default: return .gray
         }
     }
-    
+
     var statusLabel: String {
         if isListening { return "Listening..." }
+        if !isReachable { return "iPhone not reachable" }
         switch healthLevel {
         case "nominal": return "System Nominal"
         case "degraded": return "Degraded"
@@ -24,7 +27,7 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         default: return "Connecting..."
         }
     }
-    
+
     override init() {
         super.init()
         if WCSession.isSupported() {
@@ -33,11 +36,47 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
             session.activate()
         }
     }
-    
-    @Published var lastAiReply: String?
+
+    /// Send a voice command text to the iPhone app.
+    func sendVoiceCommand(_ text: String) {
+        guard WCSession.default.activationState == .activated else { return }
+
+        let payload: [String: Any] = [
+            "type": "voice_command",
+            "text": text,
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: { reply in
+                DispatchQueue.main.async {
+                    if let ack = reply["status"] as? String, ack == "ok" {
+                        // acknowledged
+                    }
+                }
+            }, errorHandler: { error in
+                print("sendMessage error: \(error.localizedDescription)")
+                // Fall back to transferUserInfo for background delivery
+                WCSession.default.transferUserInfo(payload)
+            })
+        } else {
+            // Background delivery
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
+
+    // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        // Handle activation
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+        }
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            self.isReachable = session.isReachable
+        }
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {

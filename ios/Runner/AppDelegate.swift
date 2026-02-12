@@ -85,6 +85,33 @@ import WatchConnectivity
       ]
       WatchEventStreamHandler.shared.send(event)
   }
+
+  /// Receives real-time messages from the Watch (voice commands as text).
+  func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+      if let type = message["type"] as? String, type == "voice_command",
+         let text = message["text"] as? String {
+          let event: [String: Any] = [
+              "type": "voice_command",
+              "text": text,
+              "timestamp": message["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000),
+          ]
+          WatchEventStreamHandler.shared.send(event)
+      }
+      replyHandler(["status": "ok"])
+  }
+
+  /// Receives background user info transfers from the Watch.
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+      if let type = userInfo["type"] as? String, type == "voice_command",
+         let text = userInfo["text"] as? String {
+          let event: [String: Any] = [
+              "type": "voice_command",
+              "text": text,
+              "timestamp": userInfo["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000),
+          ]
+          WatchEventStreamHandler.shared.send(event)
+      }
+  }
 }
 
 // MARK: - EventChannel stream handler

@@ -17,6 +17,7 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		B1A2C3D4E5F607890ABCDEF0 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A2C3D4E5F607890ABCDEF1 /* SpeechRecognizer.swift */; };
 		C56A177890516E7D4121D5F3 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8361AA685F6881606A0A38D5 /* Pods_Runner.framework */; };
 		EF3AD48EABC896CC6728E963 /* WatchCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDC3EC12FC19D81BE9A2C52 /* WatchCompanionApp.swift */; };
 		F0A22B58AED3C11E4BC89E5B /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D6664F43BA05FFC3058054D9 /* Pods_RunnerTests.framework */; };
@@ -57,7 +58,7 @@
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		4ECFCEB1F8047B9579A1D484 /* ConnectivityProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectivityProvider.swift; sourceTree = "<group>"; };
-		5731CB3D7A8BF86FF55E0F2B /* WatchCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = WatchCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
+		5731CB3D7A8BF86FF55E0F2B /* WatchCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		591AC1907D28C932A3C99091 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -72,6 +73,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A71CF57D486DE99BC1A984C5 /* PulseMonitorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PulseMonitorView.swift; sourceTree = "<group>"; };
+		B1A2C3D4E5F607890ABCDEF1 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		D6664F43BA05FFC3058054D9 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0F2F43C2BC8F51A224D0568 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -155,7 +157,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
-				5731CB3D7A8BF86FF55E0F2B /* WatchCompanion */,
+				5731CB3D7A8BF86FF55E0F2B /* WatchCompanion.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -197,10 +199,12 @@
 			isa = PBXGroup;
 			children = (
 				A71CF57D486DE99BC1A984C5 /* PulseMonitorView.swift */,
+				B1A2C3D4E5F607890ABCDEF1 /* SpeechRecognizer.swift */,
 				7BDC3EC12FC19D81BE9A2C52 /* WatchCompanionApp.swift */,
 				4ECFCEB1F8047B9579A1D484 /* ConnectivityProvider.swift */,
 			);
 			name = WatchCompanion;
+			path = WatchCompanion;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -239,8 +243,8 @@
 			);
 			name = WatchCompanion;
 			productName = WatchCompanion;
-			productReference = 5731CB3D7A8BF86FF55E0F2B /* WatchCompanion */;
-			productType = "com.apple.product-type.application.watchapp";
+			productReference = 5731CB3D7A8BF86FF55E0F2B /* WatchCompanion.app */;
+			productType = "com.apple.product-type.application";
 		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
 			isa = PBXNativeTarget;
@@ -254,6 +258,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				8D7810F8D27A232F400F6BF0 /* [CP] Embed Pods Frameworks */,
+				BD395FD180F44C18246DDC3E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -425,6 +430,23 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
+		BD395FD180F44C18246DDC3E /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -433,6 +455,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1BF4F30798C8C819712A0780 /* PulseMonitorView.swift in Sources */,
+				B1A2C3D4E5F607890ABCDEF0 /* SpeechRecognizer.swift in Sources */,
 				EF3AD48EABC896CC6728E963 /* WatchCompanionApp.swift in Sources */,
 				06F0DBF70E0ADB63A59DE84C /* ConnectivityProvider.swift in Sources */,
 			);
@@ -496,6 +519,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = art.dart.clawfree.watch;
+				PRODUCT_NAME = ClawfreeWatch;
 				SDKROOT = watchos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -637,6 +661,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = art.dart.clawfree.watch;
+				PRODUCT_NAME = ClawfreeWatch;
 				SDKROOT = watchos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -810,6 +835,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = art.dart.clawfree.watch;
+				PRODUCT_NAME = ClawfreeWatch;
 				SDKROOT = watchos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;

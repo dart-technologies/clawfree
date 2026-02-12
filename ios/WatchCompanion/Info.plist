@@ -20,16 +20,13 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>WKWatchKitApp</key>
-	<true/>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-	</array>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>art.dart.clawfree</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Clawfree needs the microphone for voice commands to your AI agent.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Clawfree uses speech recognition to convert your voice to text commands.</string>
 </dict>
 </plist>
