@@ -1,4 +1,5 @@
 import 'ai_client.dart';
+import 'demo_scenarios.dart';
 
 /// A demo AI client that replays pre-recorded Opus responses without network.
 /// Useful for live demo reliability and offline testing.
@@ -48,6 +49,12 @@ class DemoCacheAiClient implements AiClient {
   /// Order matters: entries are checked in insertion order via [contains],
   /// so refinement keywords come before broad creation keywords.
   static final Map<String, String> defaultResponses = {
+    // Hackathon demo scenarios (most specific first)
+    'show my agents': DemoScenarios.dashboardResponse,
+    'test gitdigest': DemoScenarios.agentTestResponse,
+    'change the name': DemoScenarios.agentRefinementResponse,
+    'gitdigest': DemoScenarios.agentRefinementResponse,
+    'summarizes my github': DemoScenarios.agentCreationResponse,
     // Refinement (check before broad keywords)
     'rename': _renameAgentResponse,
     'add': _addToolResponse,

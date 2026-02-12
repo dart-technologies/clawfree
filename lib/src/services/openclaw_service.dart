@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:dio/dio.dart';
+import '../core/demo_scenarios.dart';
 
 /// Service to communicate with OpenClaw Gateway (OpenAI-compatible chat completions).
 class OpenClawService {
@@ -131,6 +132,20 @@ class OpenClawService {
   Future<String> _smartMockResponse(String text) async {
     final lower = text.toLowerCase();
     await Future.delayed(Duration(milliseconds: 1500 + Random().nextInt(1500)));
+
+    // --- Hackathon demo scenarios ---
+    if (_containsAny(lower, ['create', 'build']) && _containsAny(lower, ['bot', 'agent', 'telegram'])) {
+      return DemoScenarios.agentCreationResponse;
+    }
+    if (_containsAny(lower, ['change', 'rename', 'gitdigest'])) {
+      return DemoScenarios.agentRefinementResponse;
+    }
+    if (_containsAny(lower, ['show', 'list', 'dashboard']) && _containsAny(lower, ['agent', 'agents'])) {
+      return DemoScenarios.dashboardResponse;
+    }
+    if (_containsAny(lower, ['test']) && _containsAny(lower, ['gitdigest', 'agent', 'bot'])) {
+      return DemoScenarios.agentTestResponse;
+    }
 
     if (_containsAny(lower, ['調研', '研究', '分析', '方案', '比較', '評估', 'research', 'analyze', 'compare'])) {
       return '🦞 **ChatClaw AI — 調研啟動**\n\n'
