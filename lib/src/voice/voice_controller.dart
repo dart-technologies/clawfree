@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 import 'stt_service.dart';
 import 'tts_service.dart';
 
 /// Coordinates STT and TTS lifecycle to prevent conflicts.
-class VoiceController {
+class VoiceController extends ChangeNotifier {
   VoiceController({
     required SttService stt,
     required TtsService tts,
@@ -16,10 +18,20 @@ class VoiceController {
   TtsService get tts => _tts;
 
   /// When true, STT auto-starts after TTS finishes speaking.
-  bool continuousMode = false;
+  bool _continuousMode = false;
+  bool get continuousMode => _continuousMode;
+  set continuousMode(bool value) {
+    if (_continuousMode == value) return;
+    _continuousMode = value;
+    notifyListeners();
+  }
+
+  /// Callback stored for continuous-mode auto-restart.
+  SttResultCallback? _onResultCallback;
 
   /// Start listening for speech, pausing TTS if it's speaking.
   Future<void> startListening({required SttResultCallback onResult}) async {
+    _onResultCallback = onResult;
     if (_tts.isSpeaking) {
       await _tts.stop();
     }
@@ -33,14 +45,17 @@ class VoiceController {
 
   /// Speak text via TTS. If [continuousMode] is on, starts STT after speech.
   Future<void> speak(String text, {SttResultCallback? onResult}) async {
+    if (onResult != null) _onResultCallback = onResult;
     await _tts.speak(text);
-    if (continuousMode && onResult != null) {
-      await _stt.startListening(onResult: onResult);
+    if (_continuousMode && _onResultCallback != null) {
+      await _stt.startListening(onResult: _onResultCallback!);
     }
   }
 
+  @override
   void dispose() {
     _stt.dispose();
     _tts.dispose();
+    super.dispose();
   }
 }

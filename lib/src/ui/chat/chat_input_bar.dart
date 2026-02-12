@@ -4,24 +4,31 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../voice/stt_service.dart';
+import '../../voice/voice_controller.dart';
 import '../clawfree_icons.dart';
 import '../theme.dart';
 import '../voice_input_widget.dart';
 
 /// Platform-adaptive input bar with text field, voice button, and send button.
+///
+/// When [handsFreeMode] is true, only the voice widget is shown (no text field).
 class ChatInputBar extends StatefulWidget {
   const ChatInputBar({
     super.key,
     required this.controller,
     this.sttService,
+    this.voiceController,
     required this.isProcessing,
     required this.onSend,
+    this.handsFreeMode = false,
   });
 
   final TextEditingController controller;
   final SttService? sttService;
+  final VoiceController? voiceController;
   final bool isProcessing;
   final ValueChanged<String> onSend;
+  final bool handsFreeMode;
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -47,25 +54,28 @@ class _ChatInputBarState extends State<ChatInputBar> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          if (widget.sttService != null)
-            VoiceInputWidget(
-              sttService: widget.sttService!,
-              enabled: !widget.isProcessing,
-              onTranscript: widget.onSend,
-              onListeningChanged: (listening) {
-                setState(() {
-                  _isListening = listening;
-                  if (!listening) _interimTranscript = '';
-                });
-              },
+      child: widget.handsFreeMode
+          ? _buildHandsFreeBar()
+          : Row(
+              children: [
+                if (widget.sttService != null)
+                  VoiceInputWidget(
+                    sttService: widget.sttService!,
+                    voiceController: widget.voiceController,
+                    enabled: !widget.isProcessing,
+                    onTranscript: widget.onSend,
+                    onListeningChanged: (listening) {
+                      setState(() {
+                        _isListening = listening;
+                        if (!listening) _interimTranscript = '';
+                      });
+                    },
+                  ),
+                Expanded(child: _buildInputField()),
+                const SizedBox(width: 8),
+                _buildSendButton(),
+              ],
             ),
-          Expanded(child: _buildInputField()),
-          const SizedBox(width: 8),
-          _buildSendButton(),
-        ],
-      ),
     );
 
     if (ClawfreeTheme.isApple) {
@@ -77,6 +87,51 @@ class _ChatInputBarState extends State<ChatInputBar> {
       );
     }
     return bar;
+  }
+
+  /// Hands-free bar: large centered mic button with waveform-like indicator.
+  Widget _buildHandsFreeBar() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isListening)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _interimTranscript.isNotEmpty
+                      ? _interimTranscript
+                      : 'Listening...',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (widget.sttService != null)
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: VoiceInputWidget(
+                  sttService: widget.sttService!,
+                  voiceController: widget.voiceController,
+                  enabled: !widget.isProcessing,
+                  onTranscript: widget.onSend,
+                  onListeningChanged: (listening) {
+                    setState(() {
+                      _isListening = listening;
+                      if (!listening) _interimTranscript = '';
+                    });
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _submit() {

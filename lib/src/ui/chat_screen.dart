@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../core/chat_session.dart';
 import '../voice/stt_service.dart';
+import '../voice/voice_controller.dart';
 import 'chat/chat_input_bar.dart';
 import 'chat/chat_message_list.dart';
 import 'chat/chat_surface_panel.dart';
@@ -16,11 +17,13 @@ class ChatScreen extends StatefulWidget {
     super.key,
     required this.chatSession,
     this.sttService,
+    this.voiceController,
     this.onNavigateHome,
   });
 
   final ChatSession chatSession;
   final SttService? sttService;
+  final VoiceController? voiceController;
   final VoidCallback? onNavigateHome;
 
   @override
@@ -30,6 +33,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  bool _handsFreeMode = false;
 
   ChatSession get _session => widget.chatSession;
 
@@ -37,6 +41,18 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _session.addListener(_scrollToBottom);
+  }
+
+  void _toggleHandsFree() {
+    setState(() {
+      _handsFreeMode = !_handsFreeMode;
+    });
+    // Enable continuous mode when entering hands-free.
+    final vc = widget.voiceController;
+    if (vc != null) {
+      vc.continuousMode = _handsFreeMode;
+    }
+    HapticFeedback.mediumImpact();
   }
 
   @override
@@ -54,6 +70,12 @@ class _ChatScreenState extends State<ChatScreen> {
           listenable: _session,
           builder: (context, _) {
             return Scaffold(
+              backgroundColor: _handsFreeMode
+                  ? Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.3)
+                  : null,
               appBar: AppBar(
                 leading: widget.onNavigateHome != null
                     ? IconButton(
@@ -71,7 +93,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ClawfreeAssets.icon, width: 28, height: 28),
                     ),
                     const SizedBox(width: 8),
-                    const Text('clawfree'),
+                    Text(_handsFreeMode ? 'clawfree 🎙️' : 'clawfree'),
                   ],
                 ),
                 actions: [
@@ -88,6 +110,20 @@ class _ChatScreenState extends State<ChatScreen> {
                               .foregroundColor,
                         ),
                       ),
+                    ),
+                  // Hands-free toggle button
+                  if (widget.sttService != null)
+                    IconButton(
+                      icon: Icon(
+                        _handsFreeMode ? Icons.headset_mic : Icons.headset_off,
+                        color: _handsFreeMode
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      tooltip: _handsFreeMode
+                          ? 'Exit hands-free mode'
+                          : 'Enter hands-free mode',
+                      onPressed: _toggleHandsFree,
                     ),
                   IconButton(
                     icon: Icon(
@@ -185,8 +221,10 @@ class _ChatScreenState extends State<ChatScreen> {
     return ChatInputBar(
       controller: _textController,
       sttService: widget.sttService,
+      voiceController: widget.voiceController,
       isProcessing: _session.isProcessing,
       onSend: _send,
+      handsFreeMode: _handsFreeMode,
     );
   }
 

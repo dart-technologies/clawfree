@@ -128,6 +128,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
         builder: (_) => ChatScreen(
           chatSession: _chatSession!,
           sttService: _sttService,
+          voiceController: sl.tryGet<VoiceController>(),
           onNavigateHome: () => Navigator.of(context).pop(),
         ),
       ),
