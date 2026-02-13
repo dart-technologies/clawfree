@@ -22,7 +22,7 @@
 	<string>1</string>
 	<key>WKApplication</key>
 	<true/>
-	<key>WKAppCompanionId</key>
+	<key>WKCompanionAppBundleIdentifier</key>
 	<string>art.dart.clawfree</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Clawfree needs the microphone for voice commands to your AI agent.</string>

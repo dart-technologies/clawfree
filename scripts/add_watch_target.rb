@@ -40,9 +40,16 @@ Dir.glob('ios/WatchCompanion/*.swift').each do |file_path|
   watch_target.add_file_references([file_ref])
 end
 
-# Add dependency: iOS app depends on Watch app
-# In modern Xcode (WatchOS 7+), the Watch app is a separate target but "Embedded" in the host app.
-# However, for simpler setup via xcodeproj, we'll ensure the IDs and paths align.
+# Add dependency: iOS app depends on Watch app (watchOS 7+, standalone Watch app)
+ios_target.add_dependency(watch_target)
+
+# Add "Embed Watch Content" copy files build phase
+embed_phase = ios_target.new_copy_files_build_phase('Embed Watch Content')
+embed_phase.dst_subfolder_spec = '16'  # Products Directory
+embed_phase.dst_path = '$(CONTENTS_FOLDER_PATH)/Watch'
+
+build_file = embed_phase.add_file_reference(watch_target.product_reference)
+build_file.settings = { 'ATTRIBUTES' => ['RemoveHeadersOnCopy'] }
 
 # Create scheme
 scheme = Xcodeproj::XCScheme.new
