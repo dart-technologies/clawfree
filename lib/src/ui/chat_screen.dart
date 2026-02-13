@@ -122,11 +122,19 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _initWatchBridge() {
+    // Configure relay with gateway URL so iPad can participate
+    final gatewayUrl = _session.gatewayClient?.baseUrl;
+    if (gatewayUrl != null) {
+      WatchBridge.configure(gatewayUrl: gatewayUrl);
+    }
+
     try {
       _watchSub = WatchBridge.onVoiceReceived.listen((event) {
         if (event.isTextCommand && event.text!.isNotEmpty) {
           // Watch sent recognized text — feed directly into chat
           _send(event.text!);
+          // Also broadcast to relay so iPad sees it
+          WatchBridge.broadcastToRelay(event);
         }
         // File-based events could be transcribed here in the future
       });
