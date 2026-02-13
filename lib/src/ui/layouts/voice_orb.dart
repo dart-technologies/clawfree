@@ -21,6 +21,7 @@ class VoiceOrb extends StatefulWidget {
   const VoiceOrb({
     super.key,
     required this.isListening,
+    this.isSpeaking = false,
     this.interimTranscript = '',
     this.onTap,
     this.size = 120,
@@ -28,6 +29,9 @@ class VoiceOrb extends StatefulWidget {
   });
 
   final bool isListening;
+
+  /// Whether TTS is currently speaking (drives speaking animation).
+  final bool isSpeaking;
   final String interimTranscript;
   final VoidCallback? onTap;
   final double size;
@@ -66,7 +70,9 @@ class _VoiceOrbState extends State<VoiceOrb>
       upperBound: 1.0,
       value: 1.0,
     );
-    if (widget.isListening) _controller.repeat(reverse: true);
+    if (widget.isListening || widget.isSpeaking) {
+      _controller.repeat(reverse: true);
+    }
     _loadShader();
   }
 
@@ -87,15 +93,22 @@ class _VoiceOrbState extends State<VoiceOrb>
   @override
   void didUpdateWidget(VoiceOrb old) {
     super.didUpdateWidget(old);
-    if (widget.isListening && !old.isListening) {
+    final wasActive = old.isListening || old.isSpeaking;
+    final isActive = widget.isListening || widget.isSpeaking;
+
+    if (isActive && !wasActive) {
       _controller.repeat(reverse: true);
-      // Start haptic heartbeat — 750ms matches a calm heartbeat rhythm
+    } else if (!isActive && wasActive) {
+      _controller.stop();
+      _controller.reset();
+    }
+
+    // Haptic heartbeat only while listening (not speaking)
+    if (widget.isListening && !old.isListening) {
       _hapticTimer = Timer.periodic(const Duration(milliseconds: 750), (_) {
         HapticFeedback.lightImpact();
       });
     } else if (!widget.isListening && old.isListening) {
-      _controller.stop();
-      _controller.reset();
       _hapticTimer?.cancel();
       _hapticTimer = null;
     }
@@ -128,7 +141,11 @@ class _VoiceOrbState extends State<VoiceOrb>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final baseColor = widget.isListening ? cs.error : cs.primary;
+    final baseColor = widget.isListening
+        ? cs.error
+        : widget.isSpeaking
+            ? cs.tertiary
+            : cs.primary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -142,7 +159,8 @@ class _VoiceOrbState extends State<VoiceOrb>
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
-                final pulse = widget.isListening ? _controller.value : 0.0;
+                final active = widget.isListening || widget.isSpeaking;
+                final pulse = active ? _controller.value : 0.0;
                 // Apply spring easing to pulse rings
                 const spring = SpringCurve(damping: 0.5, stiffness: 6.0);
                 final springPulse = spring.transform(pulse.clamp(0.0, 1.0));
@@ -154,7 +172,7 @@ class _VoiceOrbState extends State<VoiceOrb>
                     alignment: Alignment.center,
                     children: [
                       // Outer pulse ring
-                      if (widget.isListening)
+                      if (active)
                         Container(
                           width: widget.size + 40 * springPulse,
                           height: widget.size + 40 * springPulse,
@@ -168,7 +186,7 @@ class _VoiceOrbState extends State<VoiceOrb>
                           ),
                         ),
                       // Middle pulse ring
-                      if (widget.isListening)
+                      if (active)
                         Container(
                           width: widget.size + 20 * springPulse,
                           height: widget.size + 20 * springPulse,
@@ -180,8 +198,8 @@ class _VoiceOrbState extends State<VoiceOrb>
                             ),
                           ),
                         ),
-                      // Shader blob or waveform fallback (only when listening)
-                      if (widget.isListening)
+                      // Shader blob or waveform fallback (when active)
+                      if (active)
                         _shader != null
                             ? CustomPaint(
                                 size: Size(
@@ -215,7 +233,7 @@ class _VoiceOrbState extends State<VoiceOrb>
                             color: baseColor.withValues(alpha: 0.6),
                             width: 2.5,
                           ),
-                          boxShadow: widget.isListening
+                          boxShadow: active
                               ? [
                                   // Triple-layered glow bloom
                                   BoxShadow(
@@ -240,7 +258,11 @@ class _VoiceOrbState extends State<VoiceOrb>
                               : null,
                         ),
                         child: Icon(
-                          widget.isListening ? Icons.mic : Icons.mic_none,
+                          widget.isListening
+                              ? Icons.mic
+                              : widget.isSpeaking
+                                  ? Icons.volume_up
+                                  : Icons.mic_none,
                           size: widget.size * 0.4,
                           color: baseColor,
                         ),
@@ -260,9 +282,15 @@ class _VoiceOrbState extends State<VoiceOrb>
                 ? (widget.interimTranscript.isNotEmpty
                     ? widget.interimTranscript
                     : 'Listening\u2026')
-                : 'Tap or say "Hey clawfree"',
+                : widget.isSpeaking
+                    ? 'Speaking\u2026'
+                    : 'Tap or say "Hey clawfree"',
             key: ValueKey(
-                widget.isListening ? widget.interimTranscript : 'idle'),
+                widget.isListening
+                    ? widget.interimTranscript
+                    : widget.isSpeaking
+                        ? 'speaking'
+                        : 'idle'),
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,

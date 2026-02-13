@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -9,8 +10,12 @@ import '../core/health_poller.dart';
 import '../core/platform_config.dart';
 import '../core/prompt_library.dart';
 import '../core/remote_session.dart';
+import '../core/service_locator.dart';
+import '../core/watch_bridge.dart';
 import '../core/watch_sync_service.dart';
 import '../voice/stt_service.dart';
+import '../voice/tts_service.dart';
+import '../voice/voice_controller.dart';
 import 'widgets/qr_scanner_dialog.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
@@ -43,8 +48,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Voice state for phone layout
   bool _isListening = false;
+  bool _isSpeaking = false;
   String _interimTranscript = '';
   bool _handsFreeEnabled = false;
+
+  // TTS polling timer for speaking state
+  Timer? _ttsPollTimer;
+  StreamSubscription<WatchVoiceEvent>? _watchSub;
 
   // Health state — optimistic nominal default so vitals show green immediately.
   // The HealthPoller overrides with live data when the REST endpoint is available.
@@ -74,6 +84,38 @@ class _ChatScreenState extends State<ChatScreen> {
       // Start polling immediately so vitals update as soon as possible.
       _healthPoller!.start();
     }
+
+    // Poll TTS speaking state to drive VoiceOrb animation
+    _ttsPollTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      final tts = sl.tryGet<TtsService>();
+      if (tts != null && mounted) {
+        final speaking = tts.isSpeaking;
+        if (speaking != _isSpeaking) {
+          setState(() => _isSpeaking = speaking);
+          // Auto-restart listening after TTS finishes in hands-free mode
+          if (!speaking && _handsFreeEnabled && !_isListening) {
+            _startListening();
+          }
+        }
+      }
+    });
+
+    // Listen for Watch voice events
+    _initWatchBridge();
+  }
+
+  void _initWatchBridge() {
+    try {
+      _watchSub = WatchBridge.onVoiceReceived.listen((event) {
+        if (event.isTextCommand && event.text!.isNotEmpty) {
+          // Watch sent recognized text — feed directly into chat
+          _send(event.text!);
+        }
+        // File-based events could be transcribed here in the future
+      });
+    } catch (_) {
+      // Watch bridge not available on this platform
+    }
   }
 
   void _onHealthChanged() {
@@ -87,6 +129,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onSessionChanged() {
     _scrollToBottom();
+
+    // Send AI text replies to Watch if connected
+    if (_session.messages.isNotEmpty) {
+      final last = _session.messages.last;
+      if (!last.isUser && !last.isSurface && !_session.isProcessing && last.text != null) {
+        WatchBridge.sendReplyToWatch(last.text!).catchError((_) => null);
+      }
+    }
 
     // Ensure widget rebuilds for session state changes.
     if (mounted) setState(() {});
@@ -230,6 +280,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isProcessing: _session.isProcessing,
       healthState: _healthState,
       isListening: _isListening,
+      isSpeaking: _isSpeaking,
       interimTranscript: _interimTranscript,
       isHomeDashboard: isHome,
       activeAgentName: activeAgent,
@@ -499,39 +550,78 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _toggleVoice() {
+    // If TTS is speaking, stop it first
+    final tts = sl.tryGet<TtsService>();
+    if (_isSpeaking && tts != null) {
+      tts.stop();
+      setState(() => _isSpeaking = false);
+      return;
+    }
+
     if (_isListening) {
-      widget.sttService?.stopListening();
-      _watchSync?.updateListening(false);
-      setState(() {
-        _isListening = false;
-        if (_interimTranscript.isNotEmpty) {
-          _send(_interimTranscript);
-          _interimTranscript = '';
-        }
-      });
+      _stopListening(sendTranscript: true);
     } else {
+      _startListening();
+    }
+  }
+
+  void _startListening() {
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
       setState(() {
         _isListening = true;
         _interimTranscript = '';
       });
       _watchSync?.updateListening(true);
-      widget.sttService?.startListening(onResult: (transcript, isFinal) {
-        setState(() => _interimTranscript = transcript);
-        if (isFinal && transcript.isNotEmpty) {
-          widget.sttService?.stopListening();
-          _watchSync?.updateListening(false);
-          setState(() {
-            _isListening = false;
-            _interimTranscript = '';
-          });
-          _send(transcript);
-        }
+      vc.startListening(onResult: _onSttResult);
+    } else {
+      // Fallback to raw SttService
+      setState(() {
+        _isListening = true;
+        _interimTranscript = '';
       });
+      _watchSync?.updateListening(true);
+      widget.sttService?.startListening(onResult: _onSttResult);
+    }
+  }
+
+  void _stopListening({bool sendTranscript = false}) {
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
+      vc.stopListening();
+    } else {
+      widget.sttService?.stopListening();
+    }
+    _watchSync?.updateListening(false);
+    setState(() {
+      _isListening = false;
+      if (sendTranscript && _interimTranscript.isNotEmpty) {
+        _send(_interimTranscript);
+      }
+      _interimTranscript = '';
+    });
+  }
+
+  void _onSttResult(String transcript, bool isFinal) {
+    if (!mounted) return;
+    setState(() => _interimTranscript = transcript);
+    if (isFinal && transcript.isNotEmpty) {
+      _stopListening();
+      _send(transcript);
     }
   }
 
   void _toggleHandsFree() {
-    setState(() => _handsFreeEnabled = !_handsFreeEnabled);
+    final newValue = !_handsFreeEnabled;
+    setState(() => _handsFreeEnabled = newValue);
+
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
+      vc.setHandsFreeMode(
+        enabled: newValue,
+        onCommand: newValue ? _onSttResult : null,
+      );
+    }
   }
 
   void _scrollToBottom() {
@@ -554,6 +644,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _healthPoller?.removeListener(_onHealthChanged);
     _healthPoller?.dispose();
     _watchSync?.stop();
+    _ttsPollTimer?.cancel();
+    _watchSub?.cancel();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

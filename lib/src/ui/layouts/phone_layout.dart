@@ -29,6 +29,7 @@ class PhoneLayout extends StatelessWidget {
     required this.isProcessing,
     required this.healthState,
     required this.isListening,
+    this.isSpeaking = false,
     required this.interimTranscript,
     required this.isHomeDashboard,
     required this.activeAgentName,
@@ -53,6 +54,7 @@ class PhoneLayout extends StatelessWidget {
   final bool isProcessing;
   final HealthState healthState;
   final bool isListening;
+  final bool isSpeaking;
   final String interimTranscript;
   final bool isHomeDashboard;
   final String? activeAgentName;
@@ -102,6 +104,7 @@ class PhoneLayout extends StatelessWidget {
                 children: [
                   VoiceOrb(
                     isListening: isListening,
+                    isSpeaking: isSpeaking,
                     interimTranscript: interimTranscript,
                     onTap: onToggleVoice,
                     accentColor: _accentForMode(context),
