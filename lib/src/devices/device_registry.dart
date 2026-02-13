@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../core/watch_bridge.dart';
 import '../services/openclaw_client.dart';
 
 /// Status of a connected device.
@@ -60,7 +61,9 @@ class ConnectedDevice {
 
 /// Tracks connected devices via OpenClaw Gateway polling.
 ///
-/// No Firebase — uses HTTP polling against the gateway.
+/// Falls back to local-only mode when the gateway doesn't support
+/// `/v1/devices` (404). In local-only mode, tracks self + Watch
+/// reachability via [WatchBridge].
 class DeviceRegistry extends ChangeNotifier {
   DeviceRegistry({
     required OpenClawClient client,
@@ -74,6 +77,13 @@ class DeviceRegistry extends ChangeNotifier {
   final Map<String, ConnectedDevice> _devices = {};
   String? _selfDeviceId;
 
+  /// When true, the gateway doesn't support `/v1/devices` and we
+  /// only track local devices (self + Watch via WCSession).
+  bool _localOnly = false;
+
+  /// Whether the registry is in local-only mode (gateway has no devices API).
+  bool get isLocalOnly => _localOnly;
+
   /// All known devices.
   List<ConnectedDevice> get devices => _devices.values.toList();
 
@@ -82,6 +92,9 @@ class DeviceRegistry extends ChangeNotifier {
       _devices.values.where((d) => !d.isSelf).toList();
 
   /// Register this device and start polling.
+  ///
+  /// If the gateway returns 404 for device registration, switches to
+  /// local-only mode — tracking self + Watch reachability only.
   Future<void> registerAndStart({
     required String deviceId,
     required String deviceName,
@@ -95,6 +108,13 @@ class DeviceRegistry extends ChangeNotifier {
         deviceName: deviceName,
         deviceType: deviceType,
       );
+    } on OpenClawException catch (e) {
+      if (e.statusCode == 404) {
+        debugPrint('[DeviceRegistry] Gateway has no /v1/devices API — local-only mode');
+        _localOnly = true;
+      } else {
+        debugPrint('[DeviceRegistry] Registration failed: $e');
+      }
     } catch (e) {
       debugPrint('[DeviceRegistry] Registration failed: $e');
     }
@@ -110,7 +130,7 @@ class DeviceRegistry extends ChangeNotifier {
     );
     notifyListeners();
 
-    // Start polling
+    // Start polling (gateway devices or Watch reachability)
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(pollInterval, (_) => _poll());
     _poll();
@@ -130,6 +150,11 @@ class DeviceRegistry extends ChangeNotifier {
   }
 
   Future<void> _poll() async {
+    if (_localOnly) {
+      await _pollWatchReachability();
+      return;
+    }
+
     try {
       final deviceList = await _client.fetchDevices();
       final newIds = <String>{};
@@ -163,8 +188,44 @@ class DeviceRegistry extends ChangeNotifier {
       }
 
       notifyListeners();
+    } on OpenClawException catch (e) {
+      if (e.statusCode == 404) {
+        debugPrint('[DeviceRegistry] /v1/devices returned 404 — switching to local-only');
+        _localOnly = true;
+        await _pollWatchReachability();
+      } else {
+        debugPrint('[DeviceRegistry] Poll failed: $e');
+      }
     } catch (e) {
       debugPrint('[DeviceRegistry] Poll failed: $e');
+    }
+  }
+
+  /// In local-only mode, check Watch reachability via WCSession
+  /// and add/update the Watch device entry accordingly.
+  static const _watchDeviceId = 'apple-watch-local';
+
+  Future<void> _pollWatchReachability() async {
+    try {
+      final reachable = await WatchBridge.isWatchReachable;
+      final existing = _devices[_watchDeviceId];
+
+      if (reachable) {
+        _devices[_watchDeviceId] = ConnectedDevice(
+          deviceId: _watchDeviceId,
+          deviceName: 'Apple Watch',
+          deviceType: 'watch',
+          status: DeviceStatus.online,
+          lastSeen: DateTime.now(),
+        );
+      } else if (existing != null) {
+        _devices[_watchDeviceId] = existing.copyWith(
+          status: DeviceStatus.offline,
+        );
+      }
+      notifyListeners();
+    } catch (_) {
+      // WatchBridge not available on this platform
     }
   }
 

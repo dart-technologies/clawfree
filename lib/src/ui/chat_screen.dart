@@ -13,9 +13,12 @@ import '../core/remote_session.dart';
 import '../core/service_locator.dart';
 import '../core/watch_bridge.dart';
 import '../core/watch_sync_service.dart';
+import '../devices/device_registry.dart';
+import '../services/openclaw_client.dart';
 import '../voice/stt_service.dart';
 import '../voice/tts_service.dart';
 import '../voice/voice_controller.dart';
+import 'settings/devices_page.dart';
 import 'widgets/qr_scanner_dialog.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
@@ -63,6 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<RemoteSession> _remoteSessions = [];
 
   WatchSyncService? _watchSync;
+  DeviceRegistry? _deviceRegistry;
 
   @override
   void initState() {
@@ -83,6 +87,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // Start polling immediately so vitals update as soon as possible.
       _healthPoller!.start();
+    }
+
+    // Initialize device registry for tracking connected devices.
+    if (_session.gatewayClient != null) {
+      final openClawClient = OpenClawClient(
+        baseUrl: _session.gatewayClient!.baseUrl,
+      );
+      _deviceRegistry = DeviceRegistry(client: openClawClient);
+      _deviceRegistry!.registerAndStart(
+        deviceId: 'self-iphone',
+        deviceName: 'iPhone',
+        deviceType: 'phone',
+      );
     }
 
     // Poll TTS speaking state to drive VoiceOrb animation
@@ -292,6 +309,7 @@ class _ChatScreenState extends State<ChatScreen> {
       onToggleHandsFree: _toggleHandsFree,
       onQuickAction: _send,
       onPairDevice: () => _showPairingModal(_session.pairingUrl),
+      onViewDevices: _deviceRegistry != null ? _navigateToDevices : null,
     );
   }
 
@@ -534,6 +552,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // Devices
+  // ---------------------------------------------------------------------------
+
+  void _navigateToDevices() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DevicesPage(registry: _deviceRegistry!),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -644,6 +674,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _healthPoller?.removeListener(_onHealthChanged);
     _healthPoller?.dispose();
     _watchSync?.stop();
+    _deviceRegistry?.dispose();
     _ttsPollTimer?.cancel();
     _watchSub?.cancel();
     _textController.dispose();

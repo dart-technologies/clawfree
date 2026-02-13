@@ -42,6 +42,7 @@ class PhoneLayout extends StatelessWidget {
     required this.onToggleHandsFree,
     required this.onQuickAction,
     this.onPairDevice,
+    this.onViewDevices,
     this.sessionMode = SessionMode.home,
     this.activeSurfaceId,
     this.remoteSessions = const [],
@@ -67,6 +68,7 @@ class PhoneLayout extends StatelessWidget {
   final VoidCallback onToggleHandsFree;
   final ValueChanged<String> onQuickAction;
   final VoidCallback? onPairDevice;
+  final VoidCallback? onViewDevices;
   final String? activeSurfaceId;
   final List<RemoteSession> remoteSessions;
 
@@ -165,6 +167,7 @@ class PhoneLayout extends StatelessWidget {
           handsFreeEnabled: handsFreeEnabled,
           onToggleHandsFree: onToggleHandsFree,
           onPairDevice: onPairDevice,
+          onViewDevices: onViewDevices,
         ),
       ],
     );
@@ -335,12 +338,14 @@ class _QuickActionGrid extends StatelessWidget {
     required this.handsFreeEnabled,
     required this.onToggleHandsFree,
     this.onPairDevice,
+    this.onViewDevices,
   });
 
   final ValueChanged<String> onQuickAction;
   final bool handsFreeEnabled;
   final VoidCallback onToggleHandsFree;
   final VoidCallback? onPairDevice;
+  final VoidCallback? onViewDevices;
 
   @override
   Widget build(BuildContext context) {
@@ -383,9 +388,15 @@ class _QuickActionGrid extends StatelessWidget {
                 },
               ),
               _QuickActionItem(
-                icon: Icons.extension,
-                label: 'Skills',
-                onTap: () => onQuickAction('Show skill library'),
+                icon: Icons.devices,
+                label: 'Devices',
+                onTap: () {
+                  if (onViewDevices != null) {
+                    onViewDevices!();
+                  } else {
+                    onQuickAction('Show connected devices');
+                  }
+                },
               ),
             ],
           ),
