@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -35,6 +37,11 @@ class ChatMessageBubble extends StatelessWidget {
       );
     }
 
+    final cs = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(
+      ClawfreeTheme.isApple ? 18 : 16,
+    );
+
     final bubble = Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -42,19 +49,31 @@ class ChatMessageBubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         constraints: BoxConstraints(maxWidth: maxBubbleWidth),
         decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(
-            ClawfreeTheme.isApple ? 18 : 16,
-          ),
+          // AI messages get a subtle gradient; user messages stay solid
+          gradient: isUser
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    cs.surfaceContainerHighest,
+                    cs.surfaceContainerHighest.withValues(alpha: 0.85),
+                  ],
+                ),
+          color: isUser ? cs.primary : null,
+          borderRadius: radius,
+          border: isUser
+              ? null
+              : Border.all(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  width: 0.5,
+                ),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: isUser
-                ? Theme.of(context).colorScheme.onPrimary
-                : Theme.of(context).colorScheme.onSurface,
+            color: isUser ? cs.onPrimary : cs.onSurface,
+            height: 1.4,
           ),
         ),
       ),
@@ -164,6 +183,76 @@ class _ErrorBubbleState extends State<_ErrorBubble> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Three bouncing dots typing indicator for AI responses.
+class TypingIndicator extends StatefulWidget {
+  const TypingIndicator({super.key, this.color});
+
+  final Color? color;
+
+  @override
+  State<TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dotColor =
+        widget.color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(3, (i) {
+              final delay = i * 0.2;
+              final t = ((_controller.value - delay) % 1.0).clamp(0.0, 1.0);
+              final bounce = math.sin(t * math.pi);
+              return Transform.translate(
+                offset: Offset(0, -4 * bounce),
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
+                  decoration: BoxDecoration(
+                    color: dotColor.withValues(alpha: 0.4 + 0.6 * bounce),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            }),
+          ),
         ),
       ),
     );

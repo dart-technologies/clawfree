@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:genui/genui.dart';
@@ -219,13 +221,17 @@ class _ConnectivityBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.7),
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: Colors.white.withValues(alpha: 0.06),
             width: 0.5,
           ),
         ),
@@ -269,6 +275,8 @@ class _ConnectivityBar extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    ),
       ),
     );
   }
@@ -440,7 +448,7 @@ class _SuggestionChip extends StatelessWidget {
   }
 }
 
-class _QuickActionItem extends StatelessWidget {
+class _QuickActionItem extends StatefulWidget {
   const _QuickActionItem({
     required this.icon,
     required this.label,
@@ -452,28 +460,81 @@ class _QuickActionItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_QuickActionItem> createState() => _QuickActionItemState();
+}
+
+class _QuickActionItemState extends State<_QuickActionItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleController;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.9,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
+    final primary = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTapDown: (_) {
+        _scaleController.reverse();
+        setState(() => _pressed = true);
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+      onTapUp: (_) {
+        _scaleController.forward();
+        setState(() => _pressed = false);
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      onTapCancel: () {
+        _scaleController.forward();
+        setState(() => _pressed = false);
+      },
+      child: ScaleTransition(
+        scale: _scaleController,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _pressed
+                ? [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 28, color: primary),
+              const SizedBox(height: 4),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
