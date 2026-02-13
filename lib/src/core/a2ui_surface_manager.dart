@@ -14,7 +14,7 @@ class A2uiSurfaceManager {
     _transportAdapter = A2uiTransportAdapter();
 
     // Wire transport -> engine
-    _transportAdapter.messageStream.listen(
+    _transportAdapter.incomingMessages.listen(
       _surfaceController.handleMessage,
       onError: (Object error) {
         genUiLogger.warning('A2UI parse error: $error');
@@ -47,7 +47,7 @@ class A2uiSurfaceManager {
   Stream<String> get surfaceAdded => _surfaceAddedController.stream;
 
   /// The text stream (non-A2UI portions of the response).
-  Stream<String> get textStream => _transportAdapter.textStream;
+  Stream<String> get textStream => _transportAdapter.incomingText;
 
   /// Feed a chunk of the AI response into the A2UI pipeline.
   void addChunk(String chunk) => _transportAdapter.addChunk(chunk);
