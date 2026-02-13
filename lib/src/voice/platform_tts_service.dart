@@ -13,8 +13,14 @@ class PlatformTtsService implements TtsService {
   final FlutterTts _tts = FlutterTts();
   bool _isSpeaking = false;
 
+  /// Generation counter to prevent stale async handlers from flipping state.
+  int _gen = 0;
+
   void _init() {
-    _tts.setStartHandler(() => _isSpeaking = true);
+    _tts.setStartHandler(() {
+      // Only honour start if no stop was requested since speak() was called.
+      _isSpeaking = true;
+    });
     _tts.setCompletionHandler(() => _isSpeaking = false);
     _tts.setCancelHandler(() => _isSpeaking = false);
     _tts.setErrorHandler((msg) {
@@ -38,12 +44,19 @@ class PlatformTtsService implements TtsService {
 
   @override
   Future<void> speak(String text) async {
+    // Stop any ongoing speech before starting new utterance.
+    await _tts.stop();
+    _gen++;
+    final myGen = _gen;
     _isSpeaking = true;
     await _tts.speak(text);
+    // If stop() was called while we were awaiting, don't re-enable.
+    if (_gen != myGen) _isSpeaking = false;
   }
 
   @override
   Future<void> stop() async {
+    _gen++;
     await _tts.stop();
     _isSpeaking = false;
   }
