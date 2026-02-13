@@ -16,7 +16,7 @@ dependencies:
   genui:
     git:
       url: https://github.com/flutter/genui.git
-      ref: 172d13703f88f0242a464c4eedeaaeb562b9f82b
+      ref: feature/v0.9-migration
       path: packages/genui
 
   # AI client
