@@ -15,6 +15,9 @@ import '../core/service_locator.dart';
 import '../core/watch_bridge.dart';
 import '../core/watch_sync_service.dart';
 import '../devices/device_registry.dart';
+import '../services/device_role.dart';
+import '../services/local_sync_client.dart';
+import '../services/local_sync_server.dart';
 import '../services/openclaw_client.dart';
 import '../voice/stt_service.dart';
 import '../voice/tts_service.dart';
@@ -71,6 +74,12 @@ class _ChatScreenState extends State<ChatScreen> {
   DeviceRegistry? _deviceRegistry;
   final _inputCoordinator = InputCoordinator();
 
+  // Local sync for multi-device broadcast
+  final _roleDetector = DeviceRoleDetector();
+  LocalSyncServer? _syncServer;
+  LocalSyncClient? _syncClient;
+  StreamSubscription<SyncEvent>? _syncSub;
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +116,9 @@ class _ChatScreenState extends State<ChatScreen> {
       deviceName: 'iPhone',
       deviceType: 'phone',
     );
+
+    // Initialize local sync based on device role
+    _initLocalSync();
 
     // Listen to input coordinator for UI rebuilds
     _inputCoordinator.addListener(_onCoordinatorChanged);
@@ -172,11 +184,12 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onSessionChanged() {
     _scrollToBottom();
 
-    // Send AI text replies to Watch if connected
+    // Send AI text replies to Watch and sync devices
     if (_session.messages.isNotEmpty) {
       final last = _session.messages.last;
       if (!last.isUser && !last.isSurface && !_session.isProcessing && last.text != null) {
         WatchBridge.sendReplyToWatch(last.text!).catchError((_) => null);
+        _syncServer?.broadcastAiResponse(last.text!);
       }
     }
 
@@ -269,6 +282,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       actions: [
+        if (_syncDeviceCount > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Chip(
+              avatar: const Icon(Icons.devices, size: 16),
+              label: Text('$_syncDeviceCount'),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
         if (_session.isProcessing)
           Padding(
             padding: const EdgeInsets.all(12),
@@ -612,6 +634,53 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // Local Sync
+  // ---------------------------------------------------------------------------
+
+  void _initLocalSync() {
+    // Defer role detection until after first frame (needs MediaQuery).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final role = _roleDetector.detect(context);
+      debugPrint('[ChatScreen] Device sync role: $role');
+      if (role == SyncRole.host) {
+        _syncServer = LocalSyncServer();
+        _syncServer!.addListener(() {
+          if (mounted) setState(() {});
+        });
+        _syncServer!.start();
+      } else {
+        // Client mode — connect if host IP is known
+        final ip = _roleDetector.hostIp;
+        if (ip != null) {
+          _startSyncClient(ip);
+        }
+      }
+    });
+  }
+
+  void _startSyncClient(String hostIp) {
+    _syncClient = LocalSyncClient(serverUrl: 'ws://$hostIp:8765');
+    _syncClient!.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _syncSub = _syncClient!.events.listen((event) {
+      if (event.type == 'user_message') {
+        _session.sendMessage(event.text);
+      }
+      // ai_response events update via the normal ChatSession flow
+    });
+    _syncClient!.connect();
+  }
+
+  /// Number of connected sync devices (for UI badge).
+  int get _syncDeviceCount {
+    if (_syncServer != null) return _syncServer!.clientCount;
+    if (_syncClient != null && _syncClient!.isConnected) return 1;
+    return 0;
+  }
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -627,6 +696,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final immediate = _inputCoordinator.submit(source, text);
     if (immediate != null) {
       _session.sendMessage(immediate);
+      // Broadcast to connected sync devices
+      final srcName = source == InputSource.watch
+          ? 'watch'
+          : source == InputSource.phone
+              ? 'voice'
+              : 'keyboard';
+      _syncServer?.broadcastUserMessage(immediate, source: srcName);
     }
   }
 
@@ -749,6 +825,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _deviceRegistry?.dispose();
     _ttsPollTimer?.cancel();
     _watchSub?.cancel();
+    _syncSub?.cancel();
+    _syncServer?.dispose();
+    _syncClient?.dispose();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
