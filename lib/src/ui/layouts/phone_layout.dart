@@ -71,7 +71,7 @@ class PhoneLayout extends StatelessWidget {
   Color _accentForMode(BuildContext context) {
     return switch (sessionMode) {
       SessionMode.onboarding => const Color(0xFF9C27B0),
-      SessionMode.home => const Color(0xFF2196F3),
+      SessionMode.home => const Color(0xFF00BFA5),
       SessionMode.agentBuilder => Theme.of(context).colorScheme.primary,
     };
   }
@@ -116,6 +116,42 @@ class PhoneLayout extends StatelessWidget {
                     maxWidth: width - 32,
                     activeSurfaceId: activeSurfaceId,
                   ),
+                  if (messages.where((m) => m.isSurface).isEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'What would you like to build?',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _SuggestionChip(
+                          label: '🤖 Create an agent',
+                          onTap: () => onQuickAction('Create a new agent'),
+                        ),
+                        _SuggestionChip(
+                          label: '⌚ Pair Apple Watch',
+                          onTap: () {
+                            if (onPairDevice != null) {
+                              onPairDevice!();
+                            } else {
+                              onQuickAction('Pair a device');
+                            }
+                          },
+                        ),
+                        _SuggestionChip(
+                          label: '📊 Show analytics',
+                          onTap: () => onQuickAction('Show analytics'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -378,6 +414,28 @@ class _QuickActionGrid extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 13)),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      side: BorderSide(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
     );
   }
 }

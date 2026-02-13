@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import '../core/platform_config.dart';
 
 class ClawfreeTheme {
-  static const _primaryColor = Color(0xFF0066CC);
-  static const _accentColor = Color(0xFFFF6600);
+  // Brand colors
+  static const lobsterOrange = Color(0xFFFF6B35);
+  static const teal = Color(0xFF00BFA5);
+  static const darkBg = Color(0xFF1A1A1A);
+  static const darkSurface = Color(0xFF242424);
+  static const darkSurfaceHigh = Color(0xFF2A2A2A);
+
+  static const _primaryColor = lobsterOrange;
+  static const _accentColor = teal;
 
   /// Whether the current platform uses Apple (Cupertino) design language.
   static bool get isApple => PlatformConfig.isApple;
@@ -60,27 +67,46 @@ class ClawfreeTheme {
       seedColor: _primaryColor,
       secondary: _accentColor,
       brightness: Brightness.dark,
+      surface: darkBg,
+      onSurface: const Color(0xFFE0E0E0),
     );
 
     final base = ThemeData.from(colorScheme: colorScheme);
     return base.copyWith(
-      appBarTheme: isApple
-          ? AppBarTheme(
-              backgroundColor: colorScheme.surface.withValues(alpha: 0.95),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-            )
-          : null,
-      cardTheme: isApple
-          ? CardThemeData(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: colorScheme.outlineVariant),
-              ),
-            )
-          : null,
+      scaffoldBackgroundColor: darkBg,
+      appBarTheme: AppBarTheme(
+        backgroundColor: darkBg.withValues(alpha: 0.95),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: Colors.white.withValues(alpha: 0.08),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkSurfaceHigh,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _primaryColor, width: 1.5),
+        ),
+      ),
       textTheme: base.textTheme.merge(_textThemeOverrides(colorScheme)),
     );
   }

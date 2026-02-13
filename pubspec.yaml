@@ -30,9 +30,10 @@ dependencies:
   # Charts
   fl_chart: ^0.69.0
 
-  # QR code rendering & scanning
+  # QR code rendering
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.0
+  # mobile_scanner removed — MLKit lacks arm64 simulator slices.
+  # QR scanning uses URL-input fallback on simulators.
 
   # Deep linking
   app_links: ^6.3.0
@@ -52,6 +53,11 @@ dependencies:
 
   # Utilities
   logging: ^1.3.0
+
+dependency_overrides:
+  # record_linux 0.7.2 is incompatible with record_platform_interface 1.5.0
+  # (missing startStream). Pin to a compatible version.
+  record_linux: 1.3.0
 
 dev_dependencies:
   flutter_test:
