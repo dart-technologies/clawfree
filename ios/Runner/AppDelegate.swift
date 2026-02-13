@@ -9,14 +9,14 @@ import WatchConnectivity
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    
+
     // Watch Connectivity Setup
     if WCSession.isSupported() {
         let session = WCSession.default
         session.delegate = self
         session.activate()
     }
-    
+
     // Flutter platform channels
     let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
     let messenger = controller.binaryMessenger
@@ -40,7 +40,9 @@ import WatchConnectivity
              let text = args["text"] as? String,
              WCSession.default.activationState == .activated,
              WCSession.default.isReachable {
-              WCSession.default.sendMessage(["aiReply": text], replyHandler: nil, errorHandler: nil)
+              WCSession.default.sendMessage(["aiReply": text], replyHandler: nil, errorHandler: { error in
+                  print("[Watch] sendReply error: \(error.localizedDescription)")
+              })
           }
           result(nil)
 
@@ -65,7 +67,13 @@ import WatchConnectivity
 
   // MARK: - WCSessionDelegate
 
-  func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+  func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+      if let error = error {
+          print("[Watch] activation error: \(error.localizedDescription)")
+      } else {
+          print("[Watch] activated, state=\(activationState.rawValue), paired=\(session.isPaired), reachable=\(session.isReachable)")
+      }
+  }
   func sessionDidBecomeInactive(_ session: WCSession) {}
   func sessionDidDeactivate(_ session: WCSession) {
       session.activate()
@@ -87,7 +95,28 @@ import WatchConnectivity
   }
 
   /// Receives real-time messages from the Watch (voice commands as text).
+  /// This variant handles messages sent WITH a replyHandler.
   func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+      print("[Watch] didReceiveMessage (replyHandler): \(message)")
+      handleWatchVoiceCommand(message)
+      replyHandler(["status": "ok"])
+  }
+
+  /// Receives real-time messages from the Watch WITHOUT a replyHandler.
+  /// Fallback for messages sent without expecting a reply.
+  func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+      print("[Watch] didReceiveMessage (no reply): \(message)")
+      handleWatchVoiceCommand(message)
+  }
+
+  /// Receives background user info transfers from the Watch.
+  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+      print("[Watch] didReceiveUserInfo: \(userInfo)")
+      handleWatchVoiceCommand(userInfo)
+  }
+
+  /// Common handler for voice commands from Watch (any delivery method).
+  private func handleWatchVoiceCommand(_ message: [String: Any]) {
       if let type = message["type"] as? String, type == "voice_command",
          let text = message["text"] as? String {
           let event: [String: Any] = [
@@ -97,42 +126,59 @@ import WatchConnectivity
           ]
           WatchEventStreamHandler.shared.send(event)
       }
-      replyHandler(["status": "ok"])
-  }
-
-  /// Receives background user info transfers from the Watch.
-  func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
-      if let type = userInfo["type"] as? String, type == "voice_command",
-         let text = userInfo["text"] as? String {
-          let event: [String: Any] = [
-              "type": "voice_command",
-              "text": text,
-              "timestamp": userInfo["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000),
-          ]
-          WatchEventStreamHandler.shared.send(event)
-      }
   }
 }
 
-// MARK: - EventChannel stream handler
+// MARK: - EventChannel stream handler with buffering
 
 class WatchEventStreamHandler: NSObject, FlutterStreamHandler {
     static let shared = WatchEventStreamHandler()
     private var eventSink: FlutterEventSink?
 
+    /// Buffer for events received before Flutter connects.
+    /// Prevents silent event loss when the app is woken from background.
+    private var pendingEvents: [[String: Any]] = []
+    private let lock = NSLock()
+
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        lock.lock()
         self.eventSink = events
+        // Flush any buffered events
+        let buffered = pendingEvents
+        pendingEvents.removeAll()
+        lock.unlock()
+
+        for event in buffered {
+            print("[Watch] flushing buffered event: \(event)")
+            events(event)
+        }
         return nil
     }
 
     func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        lock.lock()
         self.eventSink = nil
+        lock.unlock()
         return nil
     }
 
     func send(_ event: [String: Any]) {
-        DispatchQueue.main.async {
-            self.eventSink?(event)
+        DispatchQueue.main.async { [self] in
+            lock.lock()
+            if let sink = eventSink {
+                lock.unlock()
+                print("[Watch] sending event to Flutter: \(event)")
+                sink(event)
+            } else {
+                // Buffer the event — Flutter hasn't connected yet
+                print("[Watch] buffering event (no sink): \(event)")
+                pendingEvents.append(event)
+                // Cap buffer to prevent unbounded growth
+                if pendingEvents.count > 50 {
+                    pendingEvents.removeFirst()
+                }
+                lock.unlock()
+            }
         }
     }
 }
