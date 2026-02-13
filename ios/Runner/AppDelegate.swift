@@ -46,6 +46,19 @@ import WatchConnectivity
           }
           result(nil)
 
+      case "pingWatch":
+          if WCSession.default.activationState == .activated,
+             WCSession.default.isPaired,
+             WCSession.default.isReachable {
+              WCSession.default.sendMessage(["type": "ping"], replyHandler: { _ in
+                  result(true)
+              }, errorHandler: { _ in
+                  result(false)
+              })
+          } else {
+              result(false)
+          }
+
       case "isWatchReachable":
           let reachable = WCSession.default.activationState == .activated
                        && WCSession.default.isPaired

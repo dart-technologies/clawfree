@@ -8,6 +8,40 @@ import '../services/openclaw_client.dart';
 /// Status of a connected device.
 enum DeviceStatus { online, offline, speaking }
 
+/// Watch-specific connection state (more granular than DeviceStatus).
+enum WatchConnectionState { connected, disconnected, searching }
+
+/// Watch-specific activity status.
+enum WatchActivityStatus { idle, listening, speaking }
+
+/// Aggregated watch state exposed by [DeviceRegistry].
+class WatchState {
+  const WatchState({
+    this.connectionState = WatchConnectionState.disconnected,
+    this.activityStatus = WatchActivityStatus.idle,
+    this.lastSyncTime,
+    this.relayEnabled = true,
+  });
+
+  final WatchConnectionState connectionState;
+  final WatchActivityStatus activityStatus;
+  final DateTime? lastSyncTime;
+  final bool relayEnabled;
+
+  WatchState copyWith({
+    WatchConnectionState? connectionState,
+    WatchActivityStatus? activityStatus,
+    DateTime? lastSyncTime,
+    bool? relayEnabled,
+  }) =>
+      WatchState(
+        connectionState: connectionState ?? this.connectionState,
+        activityStatus: activityStatus ?? this.activityStatus,
+        lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+        relayEnabled: relayEnabled ?? this.relayEnabled,
+      );
+}
+
 /// A device connected to the OpenClaw Gateway.
 class ConnectedDevice {
   const ConnectedDevice({
@@ -66,11 +100,11 @@ class ConnectedDevice {
 /// reachability via [WatchBridge].
 class DeviceRegistry extends ChangeNotifier {
   DeviceRegistry({
-    required OpenClawClient client,
+    OpenClawClient? client,
     this.pollInterval = const Duration(seconds: 10),
   }) : _client = client;
 
-  final OpenClawClient _client;
+  final OpenClawClient? _client;
   final Duration pollInterval;
 
   Timer? _pollTimer;
@@ -80,6 +114,12 @@ class DeviceRegistry extends ChangeNotifier {
   /// When true, the gateway doesn't support `/v1/devices` and we
   /// only track local devices (self + Watch via WCSession).
   bool _localOnly = false;
+
+  /// Watch-specific state.
+  WatchState _watchState = const WatchState();
+
+  /// Current watch state (connection, activity, last sync, relay toggle).
+  WatchState get watchState => _watchState;
 
   /// Whether the registry is in local-only mode (gateway has no devices API).
   bool get isLocalOnly => _localOnly;
@@ -102,21 +142,26 @@ class DeviceRegistry extends ChangeNotifier {
   }) async {
     _selfDeviceId = deviceId;
 
-    try {
-      await _client.registerDevice(
-        deviceId: deviceId,
-        deviceName: deviceName,
-        deviceType: deviceType,
-      );
-    } on OpenClawException catch (e) {
-      if (e.statusCode == 404) {
-        debugPrint('[DeviceRegistry] Gateway has no /v1/devices API — local-only mode');
-        _localOnly = true;
-      } else {
+    if (_client == null) {
+      debugPrint('[DeviceRegistry] No gateway client — local-only mode');
+      _localOnly = true;
+    } else {
+      try {
+        await _client.registerDevice(
+          deviceId: deviceId,
+          deviceName: deviceName,
+          deviceType: deviceType,
+        );
+      } on OpenClawException catch (e) {
+        if (e.statusCode == 404) {
+          debugPrint('[DeviceRegistry] Gateway has no /v1/devices API — local-only mode');
+          _localOnly = true;
+        } else {
+          debugPrint('[DeviceRegistry] Registration failed: $e');
+        }
+      } catch (e) {
         debugPrint('[DeviceRegistry] Registration failed: $e');
       }
-    } catch (e) {
-      debugPrint('[DeviceRegistry] Registration failed: $e');
     }
 
     // Add self immediately
@@ -134,6 +179,36 @@ class DeviceRegistry extends ChangeNotifier {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(pollInterval, (_) => _poll());
     _poll();
+  }
+
+  /// Update watch activity status (called when InputCoordinator changes).
+  void updateWatchActivity(WatchActivityStatus activity) {
+    _watchState = _watchState.copyWith(activityStatus: activity);
+    notifyListeners();
+  }
+
+  /// Toggle gateway relay broadcasting for watch events.
+  void toggleWatchRelay(bool enabled) {
+    _watchState = _watchState.copyWith(relayEnabled: enabled);
+    notifyListeners();
+  }
+
+  /// Ping the watch and return true if acknowledged.
+  Future<bool> pingWatch() async {
+    _watchState = _watchState.copyWith(
+      connectionState: WatchConnectionState.searching,
+    );
+    notifyListeners();
+
+    final reachable = await WatchBridge.pingWatch();
+    _watchState = _watchState.copyWith(
+      connectionState: reachable
+          ? WatchConnectionState.connected
+          : WatchConnectionState.disconnected,
+      lastSyncTime: reachable ? DateTime.now() : _watchState.lastSyncTime,
+    );
+    notifyListeners();
+    return reachable;
   }
 
   /// Update self status (e.g. when recording).
@@ -156,7 +231,7 @@ class DeviceRegistry extends ChangeNotifier {
     }
 
     try {
-      final deviceList = await _client.fetchDevices();
+      final deviceList = await _client!.fetchDevices();
       final newIds = <String>{};
 
       for (final json in deviceList) {
@@ -218,9 +293,18 @@ class DeviceRegistry extends ChangeNotifier {
           status: DeviceStatus.online,
           lastSeen: DateTime.now(),
         );
-      } else if (existing != null) {
-        _devices[_watchDeviceId] = existing.copyWith(
-          status: DeviceStatus.offline,
+        _watchState = _watchState.copyWith(
+          connectionState: WatchConnectionState.connected,
+          lastSyncTime: DateTime.now(),
+        );
+      } else {
+        if (existing != null) {
+          _devices[_watchDeviceId] = existing.copyWith(
+            status: DeviceStatus.offline,
+          );
+        }
+        _watchState = _watchState.copyWith(
+          connectionState: WatchConnectionState.disconnected,
         );
       }
       notifyListeners();

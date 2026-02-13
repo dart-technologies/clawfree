@@ -7,6 +7,7 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     @Published var isListening: Bool = false
     @Published var lastAiReply: String?
     @Published var isReachable: Bool = false
+    @Published var isPhoneActive: Bool = false
 
     var healthColor: Color {
         switch healthLevel {
@@ -31,15 +32,24 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     override init() {
         super.init()
         if WCSession.isSupported() {
+            print("[Watch] WCSession supported, activating...")
             let session = WCSession.default
             session.delegate = self
             session.activate()
+        } else {
+            print("[Watch] WCSession NOT supported on this device")
         }
     }
 
     /// Send a voice command text to the iPhone app.
     func sendVoiceCommand(_ text: String) {
-        guard WCSession.default.activationState == .activated else { return }
+        let state = WCSession.default.activationState
+        print("[Watch→Phone] sendVoiceCommand('\(text)') state=\(state.rawValue) reachable=\(WCSession.default.isReachable)")
+
+        guard state == .activated else {
+            print("[Watch→Phone] BLOCKED: WCSession not activated (state=\(state.rawValue))")
+            return
+        }
 
         let payload: [String: Any] = [
             "type": "voice_command",
@@ -48,19 +58,15 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         ]
 
         if WCSession.default.isReachable {
+            print("[Watch→Phone] Sending via sendMessage (reachable)")
             WCSession.default.sendMessage(payload, replyHandler: { reply in
-                DispatchQueue.main.async {
-                    if let ack = reply["status"] as? String, ack == "ok" {
-                        // acknowledged
-                    }
-                }
+                print("[Watch→Phone] ACK received: \(reply)")
             }, errorHandler: { error in
-                print("sendMessage error: \(error.localizedDescription)")
-                // Fall back to transferUserInfo for background delivery
+                print("[Watch→Phone] sendMessage FAILED: \(error.localizedDescription), falling back to transferUserInfo")
                 WCSession.default.transferUserInfo(payload)
             })
         } else {
-            // Background delivery
+            print("[Watch→Phone] Not reachable, using transferUserInfo")
             WCSession.default.transferUserInfo(payload)
         }
     }
@@ -68,12 +74,14 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        print("[Watch] activation complete: state=\(activationState.rawValue) reachable=\(session.isReachable) error=\(error?.localizedDescription ?? "none")")
         DispatchQueue.main.async {
             self.isReachable = session.isReachable
         }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
+        print("[Watch] reachability changed: \(session.isReachable)")
         DispatchQueue.main.async {
             self.isReachable = session.isReachable
         }
@@ -84,14 +92,16 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
             self.activeAgentCount = applicationContext["activeAgentCount"] as? Int ?? 0
             self.healthLevel = applicationContext["healthLevel"] as? String ?? "nominal"
             self.isListening = applicationContext["isListening"] as? Bool ?? false
+            self.isPhoneActive = applicationContext["isPhoneActive"] as? Bool ?? false
         }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        print("[Watch] didReceiveMessage: \(message)")
         DispatchQueue.main.async {
             if let reply = message["aiReply"] as? String {
+                print("[Watch] Got AI reply: \(reply.prefix(80))...")
                 self.lastAiReply = reply
-                // Auto-speak AI replies on Watch
                 WatchTTSService.shared.speak(reply)
             }
         }
