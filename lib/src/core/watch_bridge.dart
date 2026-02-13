@@ -78,14 +78,15 @@ class WatchBridge {
   /// communication channel.
   static void configure({required String gatewayUrl}) {
     _gatewayBaseUrl = gatewayUrl;
+    debugPrint('[WatchBridge] configure(gatewayUrl=$gatewayUrl)');
 
     if (kIsWeb) return;
 
     if (Platform.isIOS) {
-      // Detect iPhone vs iPad — iPhone has WCSession, iPad doesn't
+      debugPrint('[WatchBridge] iOS detected, probing WCSession...');
       _checkDeviceAndStartRelay();
     } else if (Platform.isMacOS) {
-      // macOS doesn't support WCSession — always use gateway relay
+      debugPrint('[WatchBridge] macOS detected, using relay mode');
       _useRelay = true;
       _startRelaySubscription();
     }
@@ -93,16 +94,16 @@ class WatchBridge {
 
   static Future<void> _checkDeviceAndStartRelay() async {
     try {
-      await _methodChannel.invokeMethod<bool>('isWatchReachable');
-      // If the method channel works, we're on iPhone (WCSession available)
+      final reachable = await _methodChannel.invokeMethod<bool>('isWatchReachable');
+      debugPrint('[WatchBridge] WCSession available (iPhone), reachable=$reachable, using direct mode');
       _useRelay = false;
-      // iPhone also subscribes to relay for iPad→Watch forwarding
       _startIPhoneRelayListener();
     } on MissingPluginException {
-      // WCSession not available — we're on iPad or unsupported platform
+      debugPrint('[WatchBridge] MissingPluginException — iPad or no WCSession, using relay');
       _useRelay = true;
       _startRelaySubscription();
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      debugPrint('[WatchBridge] PlatformException: $e — using relay');
       _useRelay = true;
       _startRelaySubscription();
     }
@@ -184,9 +185,12 @@ class WatchBridge {
   /// On iPad: from gateway relay SSE stream.
   static Stream<WatchVoiceEvent> get onVoiceReceived {
     if (_useRelay && _relayController != null) {
+      debugPrint('[WatchBridge] onVoiceReceived: using relay stream');
       return _relayController!.stream;
     }
+    debugPrint('[WatchBridge] onVoiceReceived: using EventChannel (direct WCSession)');
     return _eventChannel.receiveBroadcastStream().map((event) {
+      debugPrint('[WatchBridge] EventChannel received: $event');
       return WatchVoiceEvent.fromMap(event as Map<dynamic, dynamic>);
     });
   }
@@ -196,6 +200,7 @@ class WatchBridge {
   /// On iPhone: direct via WCSession MethodChannel.
   /// On iPad: POST to gateway relay, iPhone picks it up and forwards to Watch.
   static Future<void> sendReplyToWatch(String text) async {
+    debugPrint('[WatchBridge] sendReplyToWatch: "${text.length > 80 ? '${text.substring(0, 80)}...' : text}" relay=$_useRelay');
     if (_useRelay) {
       await _postToRelay({
         'type': 'ai_reply',
@@ -217,6 +222,21 @@ class WatchBridge {
       ...event.toJson(),
       'source': 'iphone',
     });
+  }
+
+  /// Whether this bridge is using gateway relay (iPad) vs direct WCSession (iPhone).
+  static bool get isRelayMode => _useRelay;
+
+  /// Sends a ping to the Watch and returns true if acknowledged.
+  /// Only works in direct (iPhone) mode — relay mode always returns false.
+  static Future<bool> pingWatch() async {
+    if (_useRelay) return false;
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('pingWatch');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Returns `true` if the paired Watch is currently reachable.

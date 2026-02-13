@@ -54,7 +54,19 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
     super.dispose();
   }
 
+  bool _toggling = false;
+
   Future<void> _toggle() async {
+    if (_toggling) return; // prevent rapid double-tap
+    _toggling = true;
+    try {
+      await _doToggle();
+    } finally {
+      _toggling = false;
+    }
+  }
+
+  Future<void> _doToggle() async {
     HapticFeedback.selectionClick();
     if (_isListening) {
       widget.earconService?.playMicClose();
@@ -70,6 +82,19 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
         }
       });
     } else {
+      // Check availability BEFORE updating UI state
+      final available = await widget.sttService.isAvailable;
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Speech recognition unavailable. Check microphone permissions in Settings.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
       widget.earconService?.playMicOpen();
       setState(() {
         _isListening = true;
@@ -79,6 +104,7 @@ class _VoiceInputWidgetState extends State<VoiceInputWidget>
       _pulseController.repeat(reverse: true);
       await widget.sttService.startListening(
         onResult: (transcript, isFinal) {
+          if (!mounted) return;
           setState(() => _interimTranscript = transcript);
           if (isFinal && transcript.isNotEmpty) {
             widget.sttService.stopListening();

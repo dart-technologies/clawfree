@@ -152,7 +152,8 @@ void main() {
       expect(data.containsKey('activeAgentCount'), isTrue);
       expect(data.containsKey('healthLevel'), isTrue);
       expect(data.containsKey('isListening'), isTrue);
-      expect(data.length, 3);
+      expect(data.containsKey('isPhoneActive'), isTrue);
+      expect(data.length, 4);
     });
 
     test('agent count reflects current store state', () async {
