@@ -14,8 +14,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7F3BF77656EE7313A966832E"
-               BuildableName = "WatchCompanion"
+               BlueprintIdentifier = "WC000010000000000000000A"
+               BuildableName = "WatchCompanion.app"
                BlueprintName = "WatchCompanion"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
