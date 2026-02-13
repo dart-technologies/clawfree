@@ -91,6 +91,8 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             if let reply = message["aiReply"] as? String {
                 self.lastAiReply = reply
+                // Auto-speak AI replies on Watch
+                WatchTTSService.shared.speak(reply)
             }
         }
     }

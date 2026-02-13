@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PulseMonitorView: View {
     @StateObject private var connectivity = ConnectivityProvider()
+    @StateObject private var tts = WatchTTSService.shared
     @State private var pulseAmount: CGFloat = 1.0
     @State private var showDictation = false
     @State private var dictatedText: String = ""
@@ -17,62 +18,99 @@ struct PulseMonitorView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 6) {
-                // Agent Count Header
-                Text("\(connectivity.activeAgentCount) Agent\(connectivity.activeAgentCount == 1 ? "" : "s") Active")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
+            ScrollView {
+                VStack(spacing: 8) {
+                    // Agent Count Header
+                    Text("\(connectivity.activeAgentCount) Agent\(connectivity.activeAgentCount == 1 ? "" : "s") Active")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
 
-                // Heartbeat Ring + Mic Button
-                ZStack {
-                    // Outer Pulse
-                    Circle()
-                        .stroke(connectivity.healthColor.opacity(0.3), lineWidth: 2)
-                        .scaleEffect(pulseAmount)
-                        .opacity(2.0 - pulseAmount)
+                    // Heartbeat Ring + Mic Button
+                    ZStack {
+                        // Outer Pulse
+                        Circle()
+                            .stroke(connectivity.healthColor.opacity(0.3), lineWidth: 2)
+                            .scaleEffect(pulseAmount)
+                            .opacity(2.0 - pulseAmount)
 
-                    // Main Ring
-                    Circle()
-                        .stroke(connectivity.healthColor, lineWidth: 5)
-                        .frame(width: 70, height: 70)
+                        // Main Ring
+                        Circle()
+                            .stroke(connectivity.healthColor, lineWidth: 5)
+                            .frame(width: 60, height: 60)
 
-                    // Mic Icon
-                    VStack(spacing: 2) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(connectivity.healthColor)
+                        // Mic / Speaker Icon
+                        VStack(spacing: 2) {
+                            Image(systemName: tts.isSpeaking ? "speaker.wave.2.fill" : "mic.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(connectivity.healthColor)
 
-                        Text("Tap to speak")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(connectivity.healthColor)
+                            Text(tts.isSpeaking ? "Speaking..." : "Tap to speak")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundColor(connectivity.healthColor)
+                        }
                     }
-                }
-                .frame(width: 90, height: 90)
-                .onTapGesture {
-                    showDictation = true
-                }
-                .onChange(of: connectivity.healthLevel) { _ in
-                    restartPulse()
-                }
-                .onAppear {
-                    restartPulse()
-                }
+                    .frame(width: 80, height: 80)
+                    .onTapGesture {
+                        if tts.isSpeaking {
+                            tts.stop()
+                        } else {
+                            showDictation = true
+                        }
+                    }
+                    .onChange(of: connectivity.healthLevel) { _ in
+                        restartPulse()
+                    }
+                    .onAppear {
+                        restartPulse()
+                    }
 
-                // Last AI reply
-                if let reply = connectivity.lastAiReply {
-                    Text(reply)
-                        .font(.system(size: 11))
-                        .foregroundColor(.cyan)
-                        .lineLimit(3)
+                    // AI Reply bubble
+                    if let reply = connectivity.lastAiReply {
+                        VStack(spacing: 6) {
+                            Text(reply)
+                                .font(.system(size: 12))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.cyan.opacity(0.2))
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            // Action buttons
+                            HStack(spacing: 12) {
+                                // Reply button — continue dictation conversation
+                                Button(action: {
+                                    showDictation = true
+                                }) {
+                                    Label("Reply", systemImage: "mic.fill")
+                                        .font(.system(size: 11, weight: .medium))
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.cyan)
+
+                                // Replay TTS
+                                Button(action: {
+                                    WatchTTSService.shared.speak(reply)
+                                }) {
+                                    Image(systemName: "speaker.wave.2")
+                                        .font(.system(size: 11))
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.secondary)
+                            }
+                        }
                         .padding(.horizontal, 4)
-                }
+                    }
 
-                // Status Label
-                Text(connectivity.statusLabel)
-                    .font(.system(size: 10))
-                    .foregroundColor(connectivity.healthColor)
+                    // Status Label
+                    Text(connectivity.statusLabel)
+                        .font(.system(size: 10))
+                        .foregroundColor(connectivity.healthColor)
+                }
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
             .sheet(isPresented: $showDictation) {
                 DictationInputView(
                     text: $dictatedText,
@@ -95,7 +133,7 @@ struct PulseMonitorView: View {
     }
 }
 
-/// A simple dictation input view using watchOS's built-in dictation on TextField.
+/// 語音輸入 — 使用 watchOS 內建 dictation（TextField 上的麥克風按鈕）。
 struct DictationInputView: View {
     @Binding var text: String
     var onSubmit: (String) -> Void
