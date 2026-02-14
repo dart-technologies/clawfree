@@ -30,6 +30,7 @@ import 'src/voice/voice_service_factory.dart';
 const _apiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 const _gatewayUrl = String.fromEnvironment('GATEWAY_URL', defaultValue: '');
 const _demoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: false);
+const _autoDemo = bool.fromEnvironment('AUTO_DEMO', defaultValue: false);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,6 +102,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    // Auto-start in demo mode when built with DEMO_MODE=true
+    if (_demoMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+    }
   }
 
   void _initDeepLinks() {
@@ -119,7 +124,32 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     });
   }
 
+  Future<void> _runAutoDemo() async {
+    final session = _chatSession;
+    if (session == null) return;
+    const demoMessages = [
+      'Create a trip planner agent',
+      'Plan a 3 day trip to Tokyo',
+      'Add a sushi making class on day 2',
+    ];
+    for (final msg in demoMessages) {
+      await Future.delayed(const Duration(seconds: 5));
+      if (_chatSession == null) return; // disposed
+      session.sendMessage(msg);
+      await Future.delayed(const Duration(seconds: 4));
+    }
+  }
+
   void _handleDeepLink(Uri uri) {
+    // Demo input: clawfree://demo?text=hello
+    if (uri.host == 'demo' && uri.queryParameters.containsKey('text')) {
+      final text = uri.queryParameters['text']!;
+      if (_chatSession != null) {
+        _chatSession!.sendMessage(text);
+      }
+      return;
+    }
+
     final pairing = PlatformConfig.parsePairingUri(uri);
     if (pairing == null) return;
 
@@ -213,6 +243,12 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     _sttService = sl.tryGet<SttService>();
 
     if (!mounted) return;
+
+    // Auto-demo: send a sequence of demo messages with delays
+    if (_autoDemo && _chatSession != null) {
+      _runAutoDemo();
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChatScreen(
