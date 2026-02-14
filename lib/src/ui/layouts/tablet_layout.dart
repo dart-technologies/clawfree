@@ -73,8 +73,9 @@ class TabletLayout extends StatelessWidget {
           child: Row(
             children: [
               // Left sidebar
-              SizedBox(
+              Container(
                 width: 220,
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 child: _Sidebar(
                   activeNodeName: activeNodeName,
                   agentNames: agentNames,
@@ -330,7 +331,7 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
-class _SidebarItem extends StatelessWidget {
+class _SidebarItem extends StatefulWidget {
   const _SidebarItem({
     required this.icon,
     required this.label,
@@ -344,43 +345,59 @@ class _SidebarItem extends StatelessWidget {
   final bool isActive;
 
   @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        color: isActive ? cs.primaryContainer.withValues(alpha: 0.3) : null,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isActive ? cs.primary : cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isActive ? cs.primary : cs.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: InkWell(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: widget.isActive
+              ? cs.primaryContainer.withValues(alpha: 0.3)
+              : _hovered
+                  ? cs.onSurface.withValues(alpha: 0.05)
+                  : null,
+          child: Row(
+            children: [
+              Icon(
+                widget.icon,
+                size: 18,
+                color: widget.isActive ? cs.primary : cs.onSurfaceVariant,
               ),
-            ),
-            if (isActive)
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: healthColor(HealthLevel.nominal),
-                  shape: BoxShape.circle,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w400,
+                    color: widget.isActive ? cs.primary : cs.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-          ],
+              if (widget.isActive)
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: healthColor(HealthLevel.nominal),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

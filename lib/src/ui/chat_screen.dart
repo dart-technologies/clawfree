@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,11 +7,23 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/chat_session.dart';
 import '../core/health_poller.dart';
+import '../core/input_coordinator.dart';
 import '../core/platform_config.dart';
 import '../core/prompt_library.dart';
 import '../core/remote_session.dart';
+import '../core/service_locator.dart';
+import '../core/watch_bridge.dart';
 import '../core/watch_sync_service.dart';
+import '../devices/device_registry.dart';
+import '../services/device_role.dart';
+import '../services/local_sync_client.dart';
+import '../services/local_sync_server.dart';
+import '../services/openclaw_client.dart';
 import '../voice/stt_service.dart';
+import '../voice/tts_service.dart';
+import '../voice/voice_controller.dart';
+import 'settings/devices_page.dart';
+import 'settings/watch_management_panel.dart';
 import 'widgets/qr_scanner_dialog.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
@@ -43,8 +56,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Voice state for phone layout
   bool _isListening = false;
+  bool _isSpeaking = false;
   String _interimTranscript = '';
   bool _handsFreeEnabled = false;
+
+  // TTS polling timer for speaking state
+  Timer? _ttsPollTimer;
+  StreamSubscription<WatchVoiceEvent>? _watchSub;
 
   // Health state — optimistic nominal default so vitals show green immediately.
   // The HealthPoller overrides with live data when the REST endpoint is available.
@@ -53,6 +71,14 @@ class _ChatScreenState extends State<ChatScreen> {
   List<RemoteSession> _remoteSessions = [];
 
   WatchSyncService? _watchSync;
+  DeviceRegistry? _deviceRegistry;
+  final _inputCoordinator = InputCoordinator();
+
+  // Local sync for multi-device broadcast
+  final _roleDetector = DeviceRoleDetector();
+  LocalSyncServer? _syncServer;
+  LocalSyncClient? _syncClient;
+  StreamSubscription<SyncEvent>? _syncSub;
 
   @override
   void initState() {
@@ -68,11 +94,77 @@ class _ChatScreenState extends State<ChatScreen> {
       _watchSync = WatchSyncService(
         healthPoller: _healthPoller!,
         agentStore: _session.agentStore,
+        inputCoordinator: _inputCoordinator,
       );
       _watchSync!.start();
 
       // Start polling immediately so vitals update as soon as possible.
       _healthPoller!.start();
+    }
+
+    // Initialize device registry for tracking connected devices.
+    // Works with or without gateway — falls back to local-only mode.
+    OpenClawClient? openClawClient;
+    if (_session.gatewayClient != null) {
+      openClawClient = OpenClawClient(
+        baseUrl: _session.gatewayClient!.baseUrl,
+      );
+    }
+    _deviceRegistry = DeviceRegistry(client: openClawClient);
+    _deviceRegistry!.registerAndStart(
+      deviceId: 'self-iphone',
+      deviceName: 'iPhone',
+      deviceType: 'phone',
+    );
+
+    // Initialize local sync based on device role
+    _initLocalSync();
+
+    // Listen to input coordinator for UI rebuilds
+    _inputCoordinator.addListener(_onCoordinatorChanged);
+
+    // Poll TTS speaking state to drive VoiceOrb animation
+    _ttsPollTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      final tts = sl.tryGet<TtsService>();
+      if (tts != null && mounted) {
+        final speaking = tts.isSpeaking;
+        if (speaking != _isSpeaking) {
+          setState(() => _isSpeaking = speaking);
+          // Auto-restart listening after TTS finishes in hands-free mode
+          if (!speaking && _handsFreeEnabled && !_isListening) {
+            _startListening();
+          }
+        }
+      }
+    });
+
+    // Listen for Watch voice events
+    _initWatchBridge();
+  }
+
+  void _initWatchBridge() {
+    final gatewayUrl = _session.gatewayClient?.baseUrl;
+    debugPrint('[ChatScreen] _initWatchBridge: gatewayUrl=$gatewayUrl');
+    if (gatewayUrl != null) {
+      WatchBridge.configure(gatewayUrl: gatewayUrl);
+    }
+
+    try {
+      _watchSub = WatchBridge.onVoiceReceived.listen(
+        (event) {
+          debugPrint('[ChatScreen] Watch event received: type=${event.type} text="${event.text}" isTextCommand=${event.isTextCommand}');
+          if (event.isTextCommand && event.text!.isNotEmpty) {
+            debugPrint('[ChatScreen] Forwarding Watch command to chat: "${event.text}"');
+            _send(event.text!, source: InputSource.watch);
+            WatchBridge.broadcastToRelay(event);
+          }
+        },
+        onError: (e) => debugPrint('[ChatScreen] Watch stream error: $e'),
+        onDone: () => debugPrint('[ChatScreen] Watch stream closed'),
+      );
+      debugPrint('[ChatScreen] Watch bridge listener active');
+    } catch (e) {
+      debugPrint('[ChatScreen] Watch bridge not available: $e');
     }
   }
 
@@ -85,8 +177,32 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _onCoordinatorChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _onSessionChanged() {
     _scrollToBottom();
+
+    // Send AI text replies to Watch and sync devices
+    if (_session.messages.isNotEmpty) {
+      final last = _session.messages.last;
+      if (!last.isUser && !last.isSurface && !_session.isProcessing && last.text != null) {
+        WatchBridge.sendReplyToWatch(last.text!).catchError((_) => null);
+        _syncServer?.broadcastAiResponse(last.text!);
+      }
+    }
+
+    // Track pipeline completion for queued input auto-replay
+    if (!_session.isProcessing &&
+        _inputCoordinator.state != PipelineState.idle) {
+      final queued = _inputCoordinator.markComplete();
+      if (queued != null) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _send(queued.$2, source: queued.$1);
+        });
+      }
+    }
 
     // Ensure widget rebuilds for session state changes.
     if (mounted) setState(() {});
@@ -166,6 +282,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       actions: [
+        if (_syncDeviceCount > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Chip(
+              avatar: const Icon(Icons.devices, size: 16),
+              label: Text('$_syncDeviceCount'),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
         if (_session.isProcessing)
           Padding(
             padding: const EdgeInsets.all(12),
@@ -230,6 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isProcessing: _session.isProcessing,
       healthState: _healthState,
       isListening: _isListening,
+      isSpeaking: _isSpeaking,
       interimTranscript: _interimTranscript,
       isHomeDashboard: isHome,
       activeAgentName: activeAgent,
@@ -241,6 +367,11 @@ class _ChatScreenState extends State<ChatScreen> {
       onToggleHandsFree: _toggleHandsFree,
       onQuickAction: _send,
       onPairDevice: () => _showPairingModal(_session.pairingUrl),
+      onViewDevices: _navigateToDevices,
+      onManageWatch: _showWatchManagementPanel,
+      activeInputSource: _inputCoordinator.activeSource,
+      queuedInputSource: _inputCoordinator.queuedSource,
+      watchConnectionState: _deviceRegistry?.watchState.connectionState,
     );
   }
 
@@ -483,6 +614,73 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // Devices
+  // ---------------------------------------------------------------------------
+
+  void _showWatchManagementPanel() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => WatchManagementPanel(registry: _deviceRegistry!),
+    );
+  }
+
+  void _navigateToDevices() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DevicesPage(registry: _deviceRegistry!),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Local Sync
+  // ---------------------------------------------------------------------------
+
+  void _initLocalSync() {
+    // Defer role detection until after first frame (needs MediaQuery).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final role = _roleDetector.detect(context);
+      debugPrint('[ChatScreen] Device sync role: $role');
+      if (role == SyncRole.host) {
+        _syncServer = LocalSyncServer();
+        _syncServer!.addListener(() {
+          if (mounted) setState(() {});
+        });
+        _syncServer!.start();
+      } else {
+        // Client mode — connect if host IP is known
+        final ip = _roleDetector.hostIp;
+        if (ip != null) {
+          _startSyncClient(ip);
+        }
+      }
+    });
+  }
+
+  void _startSyncClient(String hostIp) {
+    _syncClient = LocalSyncClient(serverUrl: 'ws://$hostIp:8765');
+    _syncClient!.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _syncSub = _syncClient!.events.listen((event) {
+      if (event.type == 'user_message') {
+        _session.sendMessage(event.text);
+      }
+      // ai_response events update via the normal ChatSession flow
+    });
+    _syncClient!.connect();
+  }
+
+  /// Number of connected sync devices (for UI badge).
+  int get _syncDeviceCount {
+    if (_syncServer != null) return _syncServer!.clientCount;
+    if (_syncClient != null && _syncClient!.isConnected) return 1;
+    return 0;
+  }
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -493,45 +691,113 @@ class _ChatScreenState extends State<ChatScreen> {
     _send(text);
   }
 
-  void _send(String text) {
+  void _send(String text, {InputSource source = InputSource.phone}) {
     HapticFeedback.lightImpact();
-    _session.sendMessage(text);
+    final immediate = _inputCoordinator.submit(source, text);
+    if (immediate != null) {
+      _session.sendMessage(immediate);
+      // Broadcast to connected sync devices
+      final srcName = source == InputSource.watch
+          ? 'watch'
+          : source == InputSource.phone
+              ? 'voice'
+              : 'keyboard';
+      _syncServer?.broadcastUserMessage(immediate, source: srcName);
+    }
   }
 
   void _toggleVoice() {
+    // If TTS is speaking, stop it first
+    final tts = sl.tryGet<TtsService>();
+    if (_isSpeaking && tts != null) {
+      tts.stop();
+      setState(() => _isSpeaking = false);
+      return;
+    }
+
     if (_isListening) {
-      widget.sttService?.stopListening();
-      _watchSync?.updateListening(false);
-      setState(() {
-        _isListening = false;
-        if (_interimTranscript.isNotEmpty) {
-          _send(_interimTranscript);
-          _interimTranscript = '';
-        }
-      });
+      _stopListening(sendTranscript: true);
     } else {
+      _startListening();
+    }
+  }
+
+  Future<void> _startListening() async {
+    // Don't start phone recording if watch is active
+    if (!_inputCoordinator.requestAccess(InputSource.phone)) return;
+
+    // Check STT availability before updating UI state
+    final stt = widget.sttService;
+    if (stt != null && !await stt.isAvailable) {
+      debugPrint('[ChatScreen] STT not available (permission denied or unsupported)');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Speech recognition unavailable. Check microphone permissions in Settings.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
       setState(() {
         _isListening = true;
         _interimTranscript = '';
       });
       _watchSync?.updateListening(true);
-      widget.sttService?.startListening(onResult: (transcript, isFinal) {
-        setState(() => _interimTranscript = transcript);
-        if (isFinal && transcript.isNotEmpty) {
-          widget.sttService?.stopListening();
-          _watchSync?.updateListening(false);
-          setState(() {
-            _isListening = false;
-            _interimTranscript = '';
-          });
-          _send(transcript);
-        }
+      vc.startListening(onResult: _onSttResult);
+    } else if (stt != null) {
+      setState(() {
+        _isListening = true;
+        _interimTranscript = '';
       });
+      _watchSync?.updateListening(true);
+      stt.startListening(onResult: _onSttResult);
+    } else {
+      debugPrint('[ChatScreen] No STT service available');
+    }
+  }
+
+  void _stopListening({bool sendTranscript = false}) {
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
+      vc.stopListening();
+    } else {
+      widget.sttService?.stopListening();
+    }
+    _watchSync?.updateListening(false);
+    setState(() {
+      _isListening = false;
+      if (sendTranscript && _interimTranscript.isNotEmpty) {
+        _send(_interimTranscript);
+      }
+      _interimTranscript = '';
+    });
+  }
+
+  void _onSttResult(String transcript, bool isFinal) {
+    if (!mounted) return;
+    setState(() => _interimTranscript = transcript);
+    if (isFinal && transcript.isNotEmpty) {
+      _stopListening();
+      _send(transcript);
     }
   }
 
   void _toggleHandsFree() {
-    setState(() => _handsFreeEnabled = !_handsFreeEnabled);
+    final newValue = !_handsFreeEnabled;
+    setState(() => _handsFreeEnabled = newValue);
+
+    final vc = sl.tryGet<VoiceController>();
+    if (vc != null) {
+      vc.setHandsFreeMode(
+        enabled: newValue,
+        onCommand: newValue ? _onSttResult : null,
+      );
+    }
   }
 
   void _scrollToBottom() {
@@ -551,9 +817,17 @@ class _ChatScreenState extends State<ChatScreen> {
     _session.onNavigateBack = null;
     _session.onPairingRequested = null;
     _session.removeListener(_onSessionChanged);
+    _inputCoordinator.removeListener(_onCoordinatorChanged);
+    _inputCoordinator.dispose();
     _healthPoller?.removeListener(_onHealthChanged);
     _healthPoller?.dispose();
     _watchSync?.stop();
+    _deviceRegistry?.dispose();
+    _ttsPollTimer?.cancel();
+    _watchSub?.cancel();
+    _syncSub?.cancel();
+    _syncServer?.dispose();
+    _syncClient?.dispose();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

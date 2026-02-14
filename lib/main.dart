@@ -73,6 +73,7 @@ class ClawfreeApp extends StatelessWidget {
       title: 'clawfree',
       theme: ClawfreeTheme.light,
       darkTheme: ClawfreeTheme.dark,
+      themeMode: ThemeMode.dark,
       themeAnimationDuration: const Duration(milliseconds: 400),
       themeAnimationCurve: Curves.easeInOut,
       home: const ClawfreeHome(),

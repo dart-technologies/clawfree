@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../spring_curve.dart';
+import '../theme.dart';
 
 /// Large pulsing voice visualizer for the phone "Mobile Remote" layout.
 ///
@@ -21,6 +22,7 @@ class VoiceOrb extends StatefulWidget {
   const VoiceOrb({
     super.key,
     required this.isListening,
+    this.isSpeaking = false,
     this.interimTranscript = '',
     this.onTap,
     this.size = 120,
@@ -28,6 +30,9 @@ class VoiceOrb extends StatefulWidget {
   });
 
   final bool isListening;
+
+  /// Whether TTS is currently speaking (drives speaking animation).
+  final bool isSpeaking;
   final String interimTranscript;
   final VoidCallback? onTap;
   final double size;
@@ -43,6 +48,7 @@ class _VoiceOrbState extends State<VoiceOrb>
     with TickerProviderStateMixin {
   late final AnimationController _controller;
   late final AnimationController _tapController;
+  late final AnimationController _breatheController;
 
   // Haptic heartbeat during listening
   Timer? _hapticTimer;
@@ -66,7 +72,14 @@ class _VoiceOrbState extends State<VoiceOrb>
       upperBound: 1.0,
       value: 1.0,
     );
-    if (widget.isListening) _controller.repeat(reverse: true);
+    // Subtle breathing animation for idle state
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+    if (widget.isListening || widget.isSpeaking) {
+      _controller.repeat(reverse: true);
+    }
     _loadShader();
   }
 
@@ -87,15 +100,22 @@ class _VoiceOrbState extends State<VoiceOrb>
   @override
   void didUpdateWidget(VoiceOrb old) {
     super.didUpdateWidget(old);
-    if (widget.isListening && !old.isListening) {
+    final wasActive = old.isListening || old.isSpeaking;
+    final isActive = widget.isListening || widget.isSpeaking;
+
+    if (isActive && !wasActive) {
       _controller.repeat(reverse: true);
-      // Start haptic heartbeat — 750ms matches a calm heartbeat rhythm
+    } else if (!isActive && wasActive) {
+      _controller.stop();
+      _controller.reset();
+    }
+
+    // Haptic heartbeat only while listening (not speaking)
+    if (widget.isListening && !old.isListening) {
       _hapticTimer = Timer.periodic(const Duration(milliseconds: 750), (_) {
         HapticFeedback.lightImpact();
       });
     } else if (!widget.isListening && old.isListening) {
-      _controller.stop();
-      _controller.reset();
       _hapticTimer?.cancel();
       _hapticTimer = null;
     }
@@ -106,6 +126,7 @@ class _VoiceOrbState extends State<VoiceOrb>
     _hapticTimer?.cancel();
     _controller.dispose();
     _tapController.dispose();
+    _breatheController.dispose();
     _shaderTicker?.dispose();
     _shader?.dispose();
     super.dispose();
@@ -128,7 +149,11 @@ class _VoiceOrbState extends State<VoiceOrb>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final baseColor = widget.isListening ? cs.error : cs.primary;
+    final baseColor = widget.isListening
+        ? cs.error
+        : widget.isSpeaking
+            ? cs.tertiary
+            : cs.primary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -140,112 +165,179 @@ class _VoiceOrbState extends State<VoiceOrb>
           child: ScaleTransition(
             scale: _tapController,
             child: AnimatedBuilder(
-              animation: _controller,
+              animation: Listenable.merge([_controller, _breatheController]),
               builder: (context, child) {
-                final pulse = widget.isListening ? _controller.value : 0.0;
+                final active = widget.isListening || widget.isSpeaking;
+                final pulse = active ? _controller.value : 0.0;
+                final breathe = _breatheController.value;
                 // Apply spring easing to pulse rings
                 const spring = SpringCurve(damping: 0.5, stiffness: 6.0);
                 final springPulse = spring.transform(pulse.clamp(0.0, 1.0));
 
-                return SizedBox(
-                  width: widget.size + 40,
-                  height: widget.size + 40,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Outer pulse ring
-                      if (widget.isListening)
-                        Container(
-                          width: widget.size + 40 * springPulse,
-                          height: widget.size + 40 * springPulse,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: baseColor
-                                  .withValues(alpha: 0.3 - 0.3 * pulse),
-                              width: 2,
+                // Idle breathing scale
+                final idleScale = active ? 1.0 : 1.0 + 0.02 * breathe;
+
+                return Transform.scale(
+                  scale: idleScale,
+                  child: SizedBox(
+                    width: widget.size + 40,
+                    height: widget.size + 40,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer pulse ring
+                        if (active)
+                          Container(
+                            width: widget.size + 40 * springPulse,
+                            height: widget.size + 40 * springPulse,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: baseColor
+                                    .withValues(alpha: 0.3 - 0.3 * pulse),
+                                width: 2,
+                              ),
                             ),
                           ),
-                        ),
-                      // Middle pulse ring
-                      if (widget.isListening)
-                        Container(
-                          width: widget.size + 20 * springPulse,
-                          height: widget.size + 20 * springPulse,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: baseColor.withValues(alpha: 0.2),
-                              width: 1.5,
+                        // Middle pulse ring
+                        if (active)
+                          Container(
+                            width: widget.size + 20 * springPulse,
+                            height: widget.size + 20 * springPulse,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: baseColor.withValues(alpha: 0.2),
+                                width: 1.5,
+                              ),
                             ),
                           ),
-                        ),
-                      // Shader blob or waveform fallback (only when listening)
-                      if (widget.isListening)
-                        _shader != null
-                            ? CustomPaint(
-                                size: Size(
-                                    widget.size - 8, widget.size - 8),
-                                painter: _BlobShaderPainter(
-                                  shader: _shader!,
-                                  elapsed: _elapsed,
-                                  amplitude: pulse,
-                                  color: baseColor,
+                        // Inner subtle ring (3rd layer)
+                        if (active)
+                          Container(
+                            width: widget.size + 8 * springPulse,
+                            height: widget.size + 8 * springPulse,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: baseColor.withValues(alpha: 0.15),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        // Wave bars around the orb (voice visualization)
+                        if (active)
+                          CustomPaint(
+                            size: Size(widget.size + 30, widget.size + 30),
+                            painter: _WaveBarsPainter(
+                              color: baseColor.withValues(alpha: 0.4),
+                              phase: _controller.value * 2 * math.pi,
+                              barCount: 24,
+                              radius: widget.size / 2 + 4,
+                            ),
+                          ),
+                        // Shader blob or waveform fallback (when active)
+                        if (active)
+                          _shader != null
+                              ? CustomPaint(
+                                  size: Size(
+                                      widget.size - 8, widget.size - 8),
+                                  painter: _BlobShaderPainter(
+                                    shader: _shader!,
+                                    elapsed: _elapsed,
+                                    amplitude: pulse,
+                                    color: baseColor,
+                                  ),
+                                )
+                              : CustomPaint(
+                                  size: Size(
+                                      widget.size - 8, widget.size - 8),
+                                  painter: _WaveformPainter(
+                                    color:
+                                        baseColor.withValues(alpha: 0.3),
+                                    phase:
+                                        _controller.value * 2 * math.pi,
+                                  ),
                                 ),
-                              )
-                            : CustomPaint(
-                                size: Size(
-                                    widget.size - 8, widget.size - 8),
-                                painter: _WaveformPainter(
-                                  color:
-                                      baseColor.withValues(alpha: 0.3),
-                                  phase:
-                                      _controller.value * 2 * math.pi,
+                        // Glassmorphism frosted glass background
+                        ClipOval(
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: AnimatedContainer(
+                              duration: ClawfreeTheme.durationMedium,
+                              width: widget.size,
+                              height: widget.size,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: baseColor.withValues(alpha: 0.1),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  width: 1.5,
                                 ),
                               ),
-                      // Core orb
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: widget.size,
-                        height: widget.size,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: baseColor.withValues(alpha: 0.15),
-                          border: Border.all(
-                            color: baseColor.withValues(alpha: 0.6),
-                            width: 2.5,
+                            ),
                           ),
-                          boxShadow: widget.isListening
-                              ? [
-                                  // Triple-layered glow bloom
-                                  BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.15 + 0.05 * pulse),
-                                    blurRadius: 40 + 10 * pulse,
-                                    spreadRadius: 2,
-                                  ),
-                                  BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.25 + 0.05 * pulse),
-                                    blurRadius: 20 + 5 * pulse,
-                                    spreadRadius: 1,
-                                  ),
-                                  BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.35 + 0.05 * pulse),
-                                    blurRadius: 8 + 3 * pulse,
-                                    spreadRadius: 0,
-                                  ),
-                                ]
-                              : null,
                         ),
-                        child: Icon(
-                          widget.isListening ? Icons.mic : Icons.mic_none,
-                          size: widget.size * 0.4,
-                          color: baseColor,
+                        // Core orb (on top of glass)
+                        AnimatedContainer(
+                          duration: ClawfreeTheme.durationMedium,
+                          width: widget.size,
+                          height: widget.size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                baseColor.withValues(alpha: 0.2),
+                                baseColor.withValues(alpha: 0.05),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: baseColor.withValues(alpha: 0.6),
+                              width: 2.5,
+                            ),
+                            boxShadow: active
+                                ? [
+                                    BoxShadow(
+                                      color: baseColor.withValues(
+                                          alpha: 0.15 + 0.05 * pulse),
+                                      blurRadius: 40 + 10 * pulse,
+                                      spreadRadius: 2,
+                                    ),
+                                    BoxShadow(
+                                      color: baseColor.withValues(
+                                          alpha: 0.25 + 0.05 * pulse),
+                                      blurRadius: 20 + 5 * pulse,
+                                      spreadRadius: 1,
+                                    ),
+                                    BoxShadow(
+                                      color: baseColor.withValues(
+                                          alpha: 0.35 + 0.05 * pulse),
+                                      blurRadius: 8 + 3 * pulse,
+                                      spreadRadius: 0,
+                                    ),
+                                  ]
+                                : [
+                                    // Subtle idle glow
+                                    BoxShadow(
+                                      color: baseColor.withValues(
+                                          alpha: 0.06 + 0.04 * breathe),
+                                      blurRadius: 20 + 5 * breathe,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                          ),
+                          child: Icon(
+                            widget.isListening
+                                ? Icons.mic
+                                : widget.isSpeaking
+                                    ? Icons.volume_up
+                                    : Icons.mic_none,
+                            size: widget.size * 0.4,
+                            color: baseColor,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -260,9 +352,15 @@ class _VoiceOrbState extends State<VoiceOrb>
                 ? (widget.interimTranscript.isNotEmpty
                     ? widget.interimTranscript
                     : 'Listening\u2026')
-                : 'Tap or say "Hey clawfree"',
+                : widget.isSpeaking
+                    ? 'Speaking\u2026'
+                    : 'Tap or say "Hey clawfree"',
             key: ValueKey(
-                widget.isListening ? widget.interimTranscript : 'idle'),
+                widget.isListening
+                    ? widget.interimTranscript
+                    : widget.isSpeaking
+                        ? 'speaking'
+                        : 'idle'),
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -277,6 +375,52 @@ class _VoiceOrbState extends State<VoiceOrb>
       ],
     );
   }
+}
+
+/// Draws radial wave bars around the orb for voice visualization.
+class _WaveBarsPainter extends CustomPainter {
+  _WaveBarsPainter({
+    required this.color,
+    required this.phase,
+    required this.barCount,
+    required this.radius,
+  });
+
+  final Color color;
+  final double phase;
+  final int barCount;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    for (var i = 0; i < barCount; i++) {
+      final angle = (i / barCount) * 2 * math.pi;
+      final barHeight =
+          4.0 + 8.0 * ((math.sin(angle * 3 + phase) + 1) / 2);
+      final startR = radius;
+      final endR = radius + barHeight;
+      final start = Offset(
+        center.dx + startR * math.cos(angle),
+        center.dy + startR * math.sin(angle),
+      );
+      final end = Offset(
+        center.dx + endR * math.cos(angle),
+        center.dy + endR * math.sin(angle),
+      );
+      canvas.drawLine(start, end, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveBarsPainter old) =>
+      color != old.color || phase != old.phase;
 }
 
 /// Draws a sine-distorted circle as an inner waveform ring.

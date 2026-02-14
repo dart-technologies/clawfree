@@ -69,6 +69,16 @@ class DemoCacheAiClient implements AiClient {
   /// Order matters: entries are checked in insertion order via [contains],
   /// so refinement keywords come before broad creation keywords.
   static final Map<String, String> defaultResponses = {
+    // Trip Planning demo (check before generic travel/add)
+    'sushi': _sushiClassResponse,
+    'weather in tokyo': _tokyoWeatherResponse,
+    'create trip': _createTripAgentResponse,
+    'trip planner': _createTripAgentResponse,
+    'trip agent': _createTripAgentResponse,
+    'plan a 3': _tripTokyoItineraryResponse,
+    'plan 3': _tripTokyoItineraryResponse,
+    '3 day trip': _tripTokyoItineraryResponse,
+    '3-day': _tripTokyoItineraryResponse,
     // Refinement (check before broad keywords)
     'rename': _renameAgentResponse,
     'add': _addToolResponse,
@@ -866,6 +876,121 @@ class DemoCacheAiClient implements AiClient {
     {"id": "day3-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Lake Chuzenji kayaking + Senjogahara marshland boardwalk"},
     {"id": "day3-dinner", "component": "Text", "text": "\ud83c\udf19 Dinner: Onsen ryokan kaiseki \u2014 soak in volcanic hot springs after a full day"},
     {"id": "persona-switch", "component": "ChoicePicker", "label": "Switch Persona", "variant": "mutuallyExclusive", "options": [{"label": "Foodie", "value": "foodie"}, {"label": "Artsy", "value": "artsy"}, {"label": "Outdoorsy", "value": "outdoorsy"}], "value": ["outdoorsy"], "onSubmit": {"event": {"name": "generate_itinerary", "context": {"city": "tokyo", "persona": {"path": "persona-switch.value"}, "days": "3"}}}}
+  ]}}
+]
+```''';
+
+  // ---------------------------------------------------------------------------
+  // Trip Planning Demo: Agent creation
+  // ---------------------------------------------------------------------------
+
+  static const _createTripAgentResponse =
+      '''Great! I'll set up a Trip Planner agent powered by Opus 4.6 with flight search, hotel booking, and itinerary planning skills.
+
+```json
+[
+  {"version": "v0.9", "createSurface": {"surfaceId": "trip-agent-001", "catalogId": "$_catalogId"}},
+  {"version": "v0.9", "updateComponents": {"surfaceId": "trip-agent-001", "components": [
+    {"id": "root", "component": "Column", "children": ["title", "desc", "name-field", "model-picker", "skills-picker", "create-btn"]},
+    {"id": "title", "component": "Text", "text": "Create Trip Planner Agent", "variant": "h4"},
+    {"id": "desc", "component": "Text", "text": "Configure your AI travel assistant with specialized planning skills."},
+    {"id": "name-field", "component": "TextField", "label": "Agent Name", "text": "Trip Planner"},
+    {"id": "model-picker", "component": "ChoicePicker", "label": "AI Model", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}], "value": ["claude-opus-4-6"]},
+    {"id": "skills-picker", "component": "ChoicePicker", "label": "Skills", "variant": "multipleSelection", "options": [{"label": "Flight Search", "value": "flights"}, {"label": "Hotel Booking", "value": "hotels"}, {"label": "Itinerary Planning", "value": "itinerary"}, {"label": "Weather Lookup", "value": "weather"}, {"label": "Restaurant Finder", "value": "restaurants"}], "value": ["flights", "hotels", "itinerary"]},
+    {"id": "create-btn", "component": "Button", "child": "create-btn-text", "variant": "primary", "action": {"event": {"name": "save_agent", "context": {"name": {"path": "name-field.value"}, "model": {"path": "model-picker.value"}, "skills": {"path": "skills-picker.value"}}}}},
+    {"id": "create-btn-text", "component": "Text", "text": "Create Agent"}
+  ]}}
+]
+```''';
+
+  // ---------------------------------------------------------------------------
+  // Trip Planning Demo: 3-day Tokyo itinerary
+  // ---------------------------------------------------------------------------
+
+  static const _tripTokyoItineraryResponse =
+      '''Here's your 3-day Tokyo itinerary! I've planned a mix of culture, food, and exploration with an estimated budget of \u00a5150,000 (~\$1,000).
+
+```json
+[
+  {"version": "v0.9", "createSurface": {"surfaceId": "trip-itin-001", "catalogId": "$_catalogId"}},
+  {"version": "v0.9", "updateComponents": {"surfaceId": "trip-itin-001", "components": [
+    {"id": "root", "component": "Column", "children": ["title", "budget-card", "day1-card", "day2-card", "day3-card"]},
+    {"id": "title", "component": "Text", "text": "Tokyo \u2014 3 Day Itinerary", "variant": "h4"},
+    {"id": "budget-card", "component": "Card", "child": "budget-col"},
+    {"id": "budget-col", "component": "Column", "children": ["budget-title", "budget-detail"]},
+    {"id": "budget-title", "component": "Text", "text": "Estimated Budget: \u00a5150,000", "variant": "h5"},
+    {"id": "budget-detail", "component": "Text", "text": "Accommodation \u00a545,000 \u2022 Food \u00a530,000 \u2022 Transport \u00a515,000 \u2022 Activities \u00a520,000 \u2022 Shopping \u00a540,000"},
+    {"id": "day1-card", "component": "Card", "child": "day1-col"},
+    {"id": "day1-col", "component": "Column", "children": ["day1-title", "day1-am", "day1-mid", "day1-pm", "day1-dinner"]},
+    {"id": "day1-title", "component": "Text", "text": "Day 1 \u2014 Shibuya & Harajuku", "variant": "h5"},
+    {"id": "day1-am", "component": "Text", "text": "\ud83c\udf05 Morning: Meiji Shrine \u2014 serene forest walk in the heart of Tokyo"},
+    {"id": "day1-mid", "component": "Text", "text": "\ud83d\udecd Midday: Takeshita Street \u2014 Harajuku fashion, crepes, and street culture"},
+    {"id": "day1-pm", "component": "Text", "text": "\ud83c\udf06 Afternoon: Shibuya Crossing \u2014 world's busiest intersection, Hachiko statue"},
+    {"id": "day1-dinner", "component": "Text", "text": "\ud83c\udf5c Dinner: Fuunji Ramen \u2014 famous tsukemen near Shinjuku Station"},
+    {"id": "day2-card", "component": "Card", "child": "day2-col"},
+    {"id": "day2-col", "component": "Column", "children": ["day2-title", "day2-am", "day2-mid", "day2-pm", "day2-dinner"]},
+    {"id": "day2-title", "component": "Text", "text": "Day 2 \u2014 Asakusa & Akihabara", "variant": "h5"},
+    {"id": "day2-am", "component": "Text", "text": "\u26e9 Morning: Senso-ji Temple \u2014 Tokyo's oldest temple, Thunder Gate"},
+    {"id": "day2-mid", "component": "Text", "text": "\ud83c\udfed Midday: Nakamise Shopping Street \u2014 traditional snacks and souvenirs"},
+    {"id": "day2-pm", "component": "Text", "text": "\ud83d\udd0c Afternoon: Akihabara \u2014 electronics, anime, and gaming paradise"},
+    {"id": "day2-dinner", "component": "Text", "text": "\ud83c\udf76 Dinner: Izakaya hopping \u2014 yakitori and sake under the rail tracks"},
+    {"id": "day3-card", "component": "Card", "child": "day3-col"},
+    {"id": "day3-col", "component": "Column", "children": ["day3-title", "day3-am", "day3-mid", "day3-pm", "day3-depart"]},
+    {"id": "day3-title", "component": "Text", "text": "Day 3 \u2014 Shinjuku & Departure", "variant": "h5"},
+    {"id": "day3-am", "component": "Text", "text": "\ud83c\udf38 Morning: Shinjuku Gyoen Park \u2014 beautiful gardens, perfect for a morning stroll"},
+    {"id": "day3-mid", "component": "Text", "text": "\ud83d\uddfc Midday: Tokyo Tower \u2014 panoramic city views from the observation deck"},
+    {"id": "day3-pm", "component": "Text", "text": "\ud83c\udf63 Afternoon: Tsukiji Outer Market \u2014 fresh sushi and street food for lunch"},
+    {"id": "day3-depart", "component": "Text", "text": "\u2708\ufe0f Evening: Depart from Narita/Haneda \u2014 pick up last-minute souvenirs at the airport"}
+  ]}}
+]
+```''';
+
+  // ---------------------------------------------------------------------------
+  // Trip Planning Demo: Add sushi class to Day 2
+  // ---------------------------------------------------------------------------
+
+  static const _sushiClassResponse =
+      '''Done! I've added a Sushi Making Class to Day 2. The updated itinerary now includes the class between Nakamise and Akihabara.
+
+```json
+[
+  {"version": "v0.9", "updateComponents": {"surfaceId": "trip-itin-001", "components": [
+    {"id": "day2-col", "component": "Column", "children": ["day2-title", "day2-am", "day2-mid", "day2-sushi", "day2-pm", "day2-dinner"]},
+    {"id": "day2-title", "component": "Text", "text": "Day 2 \u2014 Asakusa & Akihabara (Updated)", "variant": "h5"},
+    {"id": "day2-am", "component": "Text", "text": "\u26e9 Morning: Senso-ji Temple \u2014 Tokyo's oldest temple, Thunder Gate"},
+    {"id": "day2-mid", "component": "Text", "text": "\ud83c\udfed Midday: Nakamise Shopping Street \u2014 traditional snacks and souvenirs"},
+    {"id": "day2-sushi", "component": "Text", "text": "\ud83c\udf63 NEW: Sushi Making Class \u2014 Learn to make nigiri and maki from a master chef (2 hours, \u00a58,000)"},
+    {"id": "day2-pm", "component": "Text", "text": "\ud83d\udd0c Afternoon: Akihabara \u2014 electronics, anime, and gaming paradise"},
+    {"id": "day2-dinner", "component": "Text", "text": "\ud83c\udf76 Dinner: Izakaya hopping \u2014 yakitori and sake under the rail tracks"}
+  ]}}
+]
+```''';
+
+  // ---------------------------------------------------------------------------
+  // Trip Planning Demo: Tokyo weather
+  // ---------------------------------------------------------------------------
+
+  static const _tokyoWeatherResponse =
+      '''Here's the current weather in Tokyo \u2014 great conditions for sightseeing!
+
+```json
+[
+  {"version": "v0.9", "createSurface": {"surfaceId": "weather-001", "catalogId": "$_catalogId"}},
+  {"version": "v0.9", "updateComponents": {"surfaceId": "weather-001", "components": [
+    {"id": "root", "component": "Column", "children": ["title", "weather-card", "forecast-card", "tip"]},
+    {"id": "title", "component": "Text", "text": "Tokyo Weather", "variant": "h4"},
+    {"id": "weather-card", "component": "Card", "child": "weather-col"},
+    {"id": "weather-col", "component": "Column", "children": ["temp", "condition", "details"]},
+    {"id": "temp", "component": "Text", "text": "15\u00b0C / 59\u00b0F", "variant": "h4"},
+    {"id": "condition", "component": "Text", "text": "\u26c5 Partly Cloudy", "variant": "h6"},
+    {"id": "details", "component": "Text", "text": "Humidity: 62% \u2022 Wind: 8 km/h NW \u2022 UV Index: 3 (Moderate)"},
+    {"id": "forecast-card", "component": "Card", "child": "forecast-col"},
+    {"id": "forecast-col", "component": "Column", "children": ["forecast-title", "fc-1", "fc-2", "fc-3"]},
+    {"id": "forecast-title", "component": "Text", "text": "3-Day Forecast", "variant": "h6"},
+    {"id": "fc-1", "component": "Text", "text": "Tomorrow: 17\u00b0C \u2600\ufe0f Sunny \u2014 Perfect for outdoor sightseeing"},
+    {"id": "fc-2", "component": "Text", "text": "Day 3: 14\u00b0C \ud83c\udf27\ufe0f Light Rain \u2014 Bring an umbrella, great for museums"},
+    {"id": "fc-3", "component": "Text", "text": "Day 4: 16\u00b0C \u26c5 Partly Cloudy \u2014 Good conditions overall"},
+    {"id": "tip", "component": "Text", "text": "\ud83d\udca1 Tip: Layer up! Tokyo mornings can be cool but afternoons warm up. Perfect weather for walking tours.", "variant": "body2"}
   ]}}
 ]
 ```''';

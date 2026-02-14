@@ -47,6 +47,12 @@
 	<string>Clawfree uses the microphone for hands-free AI agent interaction.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Clawfree uses speech recognition to process your voice commands.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Clawfree uses the local network to sync chat sessions between your iPhone, iPad, and Mac.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_clawfree._tcp</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

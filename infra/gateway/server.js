@@ -31,6 +31,11 @@ const CORS_HEADERS = {
   'Access-Control-Expose-Headers': 'Content-Type',
 };
 
+// ---------------------------------------------------------------------------
+// Watch Relay — in-memory event bus for iPhone ↔ iPad ↔ Watch communication
+// ---------------------------------------------------------------------------
+const watchRelayClients = new Set();  // SSE subscribers
+
 const server = http.createServer((req, res) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
@@ -61,6 +66,38 @@ const server = http.createServer((req, res) => {
     });
     res.end();
     return;
+  }
+
+  // Watch Relay endpoint — SSE subscribe (GET) or broadcast (POST)
+  if (req.url === '/watch/relay') {
+    if (req.method === 'GET') {
+      // SSE stream — iPad or iPhone subscribes here
+      res.writeHead(200, {
+        ...CORS_HEADERS,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+      res.write('data: {"type":"connected"}\n\n');
+      watchRelayClients.add(res);
+      req.on('close', () => watchRelayClients.delete(res));
+      return;
+    }
+    if (req.method === 'POST') {
+      // Broadcast event to all SSE subscribers
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        const payload = Buffer.concat(chunks).toString();
+        for (const client of watchRelayClients) {
+          client.write(`data: ${payload}\n\n`);
+        }
+        res.writeHead(200, { ...CORS_HEADERS, 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, subscribers: watchRelayClients.size }));
+      });
+      return;
+    }
   }
 
   // Determine proxy target based on path

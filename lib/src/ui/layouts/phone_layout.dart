@@ -1,15 +1,20 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:genui/genui.dart';
 
+import '../../core/input_coordinator.dart';
 import '../../core/message_item.dart';
 import '../../core/prompt_library.dart';
 import '../../core/remote_session.dart';
+import '../../devices/device_registry.dart';
 import '../../voice/stt_service.dart';
 import '../chat/chat_input_bar.dart';
 import '../chat/chat_message_list.dart';
 import '../chat/chat_surface_view.dart';
 import '../health/health_indicators.dart';
+import '../theme.dart';
 import '../widgets/remote_session_indicator.dart';
 import 'voice_orb.dart';
 
@@ -29,6 +34,7 @@ class PhoneLayout extends StatelessWidget {
     required this.isProcessing,
     required this.healthState,
     required this.isListening,
+    this.isSpeaking = false,
     required this.interimTranscript,
     required this.isHomeDashboard,
     required this.activeAgentName,
@@ -39,9 +45,14 @@ class PhoneLayout extends StatelessWidget {
     required this.onToggleHandsFree,
     required this.onQuickAction,
     this.onPairDevice,
+    this.onViewDevices,
+    this.onManageWatch,
     this.sessionMode = SessionMode.home,
     this.activeSurfaceId,
     this.remoteSessions = const [],
+    this.activeInputSource,
+    this.queuedInputSource,
+    this.watchConnectionState,
   });
 
   final SessionMode sessionMode;
@@ -53,6 +64,7 @@ class PhoneLayout extends StatelessWidget {
   final bool isProcessing;
   final HealthState healthState;
   final bool isListening;
+  final bool isSpeaking;
   final String interimTranscript;
   final bool isHomeDashboard;
   final String? activeAgentName;
@@ -63,13 +75,18 @@ class PhoneLayout extends StatelessWidget {
   final VoidCallback onToggleHandsFree;
   final ValueChanged<String> onQuickAction;
   final VoidCallback? onPairDevice;
+  final VoidCallback? onViewDevices;
+  final VoidCallback? onManageWatch;
   final String? activeSurfaceId;
   final List<RemoteSession> remoteSessions;
+  final InputSource? activeInputSource;
+  final InputSource? queuedInputSource;
+  final WatchConnectionState? watchConnectionState;
 
   Color _accentForMode(BuildContext context) {
     return switch (sessionMode) {
       SessionMode.onboarding => const Color(0xFF9C27B0),
-      SessionMode.home => const Color(0xFF2196F3),
+      SessionMode.home => const Color(0xFF00BFA5),
       SessionMode.agentBuilder => Theme.of(context).colorScheme.primary,
     };
   }
@@ -92,6 +109,16 @@ class PhoneLayout extends StatelessWidget {
           activeAgentName: activeAgentName,
           remoteSessions: remoteSessions,
         ),
+        // -- Watch active banner --
+        if (activeInputSource == InputSource.watch)
+          _ActiveSourceBanner(
+            icon: Icons.watch,
+            label: 'Watch is talking',
+            color: ClawfreeTheme.teal,
+          ),
+        if (queuedInputSource == InputSource.phone &&
+            activeInputSource == InputSource.watch)
+          _QueuedBanner(),
         // -- Center: Voice Orb + latest surface --
         Expanded(
           child: Center(
@@ -102,6 +129,7 @@ class PhoneLayout extends StatelessWidget {
                 children: [
                   VoiceOrb(
                     isListening: isListening,
+                    isSpeaking: isSpeaking,
                     interimTranscript: interimTranscript,
                     onTap: onToggleVoice,
                     accentColor: _accentForMode(context),
@@ -113,6 +141,42 @@ class PhoneLayout extends StatelessWidget {
                     maxWidth: width - 32,
                     activeSurfaceId: activeSurfaceId,
                   ),
+                  if (messages.where((m) => m.isSurface).isEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'What would you like to build?',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _SuggestionChip(
+                          label: '🤖 Create an agent',
+                          onTap: () => onQuickAction('Create a new agent'),
+                        ),
+                        _SuggestionChip(
+                          label: '⌚ Pair Apple Watch',
+                          onTap: () {
+                            if (onPairDevice != null) {
+                              onPairDevice!();
+                            } else {
+                              onQuickAction('Pair a device');
+                            }
+                          },
+                        ),
+                        _SuggestionChip(
+                          label: '📊 Show analytics',
+                          onTap: () => onQuickAction('Show analytics'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -124,6 +188,9 @@ class PhoneLayout extends StatelessWidget {
           handsFreeEnabled: handsFreeEnabled,
           onToggleHandsFree: onToggleHandsFree,
           onPairDevice: onPairDevice,
+          onViewDevices: onViewDevices,
+          onManageWatch: onManageWatch,
+          watchConnectionState: watchConnectionState,
         ),
       ],
     );
@@ -180,13 +247,17 @@ class _ConnectivityBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.7),
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: Colors.white.withValues(alpha: 0.06),
             width: 0.5,
           ),
         ),
@@ -230,6 +301,8 @@ class _ConnectivityBar extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    ),
       ),
     );
   }
@@ -288,12 +361,18 @@ class _QuickActionGrid extends StatelessWidget {
     required this.handsFreeEnabled,
     required this.onToggleHandsFree,
     this.onPairDevice,
+    this.onViewDevices,
+    this.onManageWatch,
+    this.watchConnectionState,
   });
 
   final ValueChanged<String> onQuickAction;
   final bool handsFreeEnabled;
   final VoidCallback onToggleHandsFree;
   final VoidCallback? onPairDevice;
+  final VoidCallback? onViewDevices;
+  final VoidCallback? onManageWatch;
+  final WatchConnectionState? watchConnectionState;
 
   @override
   Widget build(BuildContext context) {
@@ -326,9 +405,17 @@ class _QuickActionGrid extends StatelessWidget {
               ),
               _QuickActionItem(
                 icon: Icons.watch,
-                label: 'Pair Watch',
+                label: watchConnectionState == WatchConnectionState.connected
+                    ? 'Watch'
+                    : 'Pair Watch',
+                badgeColor: watchConnectionState == WatchConnectionState.connected
+                    ? const Color(0xFF34C759)
+                    : null,
                 onTap: () {
-                  if (onPairDevice != null) {
+                  if (watchConnectionState == WatchConnectionState.connected &&
+                      onManageWatch != null) {
+                    onManageWatch!();
+                  } else if (onPairDevice != null) {
                     onPairDevice!();
                   } else {
                     onQuickAction('Pair a device');
@@ -336,9 +423,15 @@ class _QuickActionGrid extends StatelessWidget {
                 },
               ),
               _QuickActionItem(
-                icon: Icons.extension,
-                label: 'Skills',
-                onTap: () => onQuickAction('Show skill library'),
+                icon: Icons.devices,
+                label: 'Devices',
+                onTap: () {
+                  if (onViewDevices != null) {
+                    onViewDevices!();
+                  } else {
+                    onQuickAction('Show connected devices');
+                  }
+                },
               ),
             ],
           ),
@@ -379,42 +472,268 @@ class _QuickActionGrid extends StatelessWidget {
   }
 }
 
-class _QuickActionItem extends StatelessWidget {
-  const _QuickActionItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({required this.label, required this.onTap});
 
-  final IconData icon;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 13)),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      side: BorderSide(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
+      onPressed: () {
         HapticFeedback.lightImpact();
         onTap();
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+  }
+}
+
+class _QuickActionItem extends StatefulWidget {
+  const _QuickActionItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badgeColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? badgeColor;
+
+  @override
+  State<_QuickActionItem> createState() => _QuickActionItemState();
+}
+
+class _QuickActionItemState extends State<_QuickActionItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleController;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.9,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTapDown: (_) {
+        _scaleController.reverse();
+        setState(() => _pressed = true);
+      },
+      onTapUp: (_) {
+        _scaleController.forward();
+        setState(() => _pressed = false);
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      onTapCancel: () {
+        _scaleController.forward();
+        setState(() => _pressed = false);
+      },
+      child: ScaleTransition(
+        scale: _scaleController,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _pressed
+                ? [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(widget.icon, size: 28, color: primary),
+                  if (widget.badgeColor != null)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: widget.badgeColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.surface,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Active source banner ("Watch is talking")
+// ---------------------------------------------------------------------------
+
+class _ActiveSourceBanner extends StatelessWidget {
+  const _ActiveSourceBanner({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: ClawfreeTheme.durationMedium,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(
+            color: color.withValues(alpha: 0.2),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 6),
+          _PulsingDot(color: color),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Queued input banner
+// ---------------------------------------------------------------------------
+
+class _QueuedBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: Colors.white.withValues(alpha: 0.04),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.queue, size: 12, color: ClawfreeTheme.textTertiary),
+          const SizedBox(width: 6),
+          Text(
+            'Your input is queued',
+            style: TextStyle(
+              fontSize: 11,
+              color: ClawfreeTheme.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pulsing dot (reusable within this file)
+// ---------------------------------------------------------------------------
+
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({required this.color});
+  final Color color;
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: widget.color.withValues(alpha: 0.5 + 0.5 * _ctrl.value),
+            shape: BoxShape.circle,
+          ),
+        );
+      },
     );
   }
 }

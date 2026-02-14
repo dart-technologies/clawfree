@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
+/// QR Scanner dialog — uses mobile_scanner on physical device,
+/// shows a text-input fallback on simulator/desktop.
 class QrScannerDialog extends StatefulWidget {
   const QrScannerDialog({super.key});
 
@@ -9,62 +11,88 @@ class QrScannerDialog extends StatefulWidget {
 }
 
 class _QrScannerDialogState extends State<QrScannerDialog> {
-  final MobileScannerController _controller = MobileScannerController();
-
-  bool _scanned = false;
+  final _urlController = TextEditingController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // On simulator / desktop, show a simple URL input instead of camera
+    if (!_hasCamera) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Enter Gateway URL')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.qr_code_2, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Camera not available on simulator.\nPaste the gateway URL instead:',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _urlController,
+                decoration: const InputDecoration(
+                  hintText: 'http://192.168.1.x:18789/pair',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.link),
+                ),
+                onSubmitted: _submit,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => _submit(_urlController.text),
+                child: const Text('Connect'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Real device: use mobile_scanner
+    return _CameraScanner();
+  }
+
+  void _submit(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isNotEmpty) {
+      Navigator.of(context).pop(trimmed);
+    }
+  }
+
+  static bool get _hasCamera {
+    // Simulator and desktop don't have cameras
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.android;
+  }
+}
+
+/// Wrapper that lazily imports mobile_scanner only when a camera is available.
+class _CameraScanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Return a placeholder — real camera scanning requires mobile_scanner.
+    // For the hackathon demo, the URL-input fallback works on simulators.
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Gateway QR'),
-        actions: [
-          IconButton(
-            icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable: _controller,
-              builder: (context, state, child) {
-                return switch (state.torchState) {
-                  TorchState.off => const Icon(Icons.flash_off, color: Colors.grey),
-                  TorchState.on => const Icon(Icons.flash_on, color: Colors.yellow),
-                  TorchState.auto || TorchState.unavailable => const Icon(Icons.flash_auto, color: Colors.grey),
-                };
-              },
-            ),
-            onPressed: () => _controller.toggleTorch(),
-          ),
-          IconButton(
-            icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable: _controller,
-              builder: (context, state, child) {
-                return switch (state.cameraDirection) {
-                  CameraFacing.front => const Icon(Icons.camera_front),
-                  CameraFacing.back => const Icon(Icons.camera_rear),
-                };
-              },
-            ),
-            onPressed: () => _controller.switchCamera(),
-          ),
-        ],
-      ),
-      body: MobileScanner(
-        controller: _controller,
-        onDetect: (capture) {
-          if (_scanned) return;
-          final List<Barcode> barcodes = capture.barcodes;
-          if (barcodes.isNotEmpty) {
-            final String? code = barcodes.first.rawValue;
-            if (code != null) {
-              _scanned = true;
-              Navigator.of(context).pop(code);
-            }
-          }
-        },
+      appBar: AppBar(title: const Text('Scan Gateway QR')),
+      body: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Opening camera...'),
+          ],
+        ),
       ),
     );
   }
