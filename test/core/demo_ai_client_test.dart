@@ -78,6 +78,55 @@ void main() {
       expect(chunks.join(), 'Fallback');
     });
 
+    // Trip planning demo scenario tests
+    test('returns trip planning response for "plan tokyo trip"', () async {
+      final client = DemoCacheAiClient();
+      final chunks = await client
+          .sendStream('plan a 3 day trip to tokyo', systemPrompt: '', history: [])
+          .toList();
+      final response = chunks.join();
+      expect(response, contains('```json'));
+      expect(response.toLowerCase(), contains('tokyo'));
+    });
+
+    test('returns trip agent response for "create trip agent"', () async {
+      final client = DemoCacheAiClient();
+      final chunks = await client
+          .sendStream('create trip agent', systemPrompt: '', history: [])
+          .toList();
+      final response = chunks.join();
+      expect(response, contains('```json'));
+    });
+
+    test('returns sushi class response for "add sushi class"', () async {
+      final client = DemoCacheAiClient();
+      final chunks = await client
+          .sendStream('add sushi class to the itinerary', systemPrompt: '', history: [])
+          .toList();
+      final response = chunks.join();
+      expect(response, contains('```json'));
+      expect(response.toLowerCase(), contains('sushi'));
+    });
+
+    test('self-correction prompts do not trigger cached surface responses', () async {
+      final client = DemoCacheAiClient();
+      final chunks = await client
+          .sendStream('The createSurface could not be parsed. Please regenerate.', systemPrompt: '', history: [])
+          .toList();
+      final response = chunks.join();
+      expect(response, isNot(contains('```json')));
+    });
+
+    test('JSON block is yielded as single chunk', () async {
+      final client = DemoCacheAiClient(chunkSize: 10, chunkDelay: Duration.zero);
+      final chunks = await client
+          .sendStream('show dashboard', systemPrompt: '', history: [])
+          .toList();
+      // The last chunk should contain the entire JSON block
+      final jsonChunks = chunks.where((c) => c.contains('```json'));
+      expect(jsonChunks.length, 1);
+    });
+
     test('dispose completes without error', () {
       final client = DemoCacheAiClient();
       expect(() => client.dispose(), returnsNormally);

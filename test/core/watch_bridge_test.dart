@@ -28,6 +28,52 @@ void main() {
       expect(event.timestamp.isAfter(before.subtract(const Duration(seconds: 1))), isTrue);
       expect(event.timestamp.isBefore(after.add(const Duration(seconds: 1))), isTrue);
     });
+
+    test('fromMap parses voice_command with text', () {
+      final event = WatchVoiceEvent.fromMap({
+        'type': 'voice_command',
+        'text': 'plan tokyo trip',
+        'timestamp': 1707700000000,
+      });
+
+      expect(event.type, 'voice_command');
+      expect(event.text, 'plan tokyo trip');
+      expect(event.isTextCommand, isTrue);
+      expect(event.filePath, isNull);
+    });
+
+    test('isTextCommand is false for voice file events', () {
+      final event = WatchVoiceEvent.fromMap({
+        'type': 'voice',
+        'filePath': '/tmp/voice.m4a',
+        'timestamp': 1707700000000,
+      });
+
+      expect(event.isTextCommand, isFalse);
+    });
+
+    test('isTextCommand is false when text is null', () {
+      final event = WatchVoiceEvent.fromMap({
+        'type': 'voice_command',
+        'timestamp': 1707700000000,
+      });
+
+      expect(event.isTextCommand, isFalse);
+    });
+
+    test('toJson roundtrips correctly for voice_command', () {
+      final event = WatchVoiceEvent(
+        text: 'hello world',
+        timestamp: DateTime.fromMillisecondsSinceEpoch(1707700000000),
+        type: 'voice_command',
+      );
+
+      final json = event.toJson();
+      expect(json['type'], 'voice_command');
+      expect(json['text'], 'hello world');
+      expect(json['timestamp'], 1707700000000);
+      expect(json.containsKey('filePath'), isFalse);
+    });
   });
 
   group('WatchBridge MethodChannel', () {
