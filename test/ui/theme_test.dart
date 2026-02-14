@@ -49,16 +49,12 @@ void main() {
     test('light theme has primary color in appBarTheme', () {
       final theme = ClawfreeTheme.light;
       final appBarBg = theme.appBarTheme.backgroundColor;
-      expect(appBarBg, isNotNull);
-      // The primary color is Color(0xFF0066CC), possibly with alpha on Apple
-      expect(appBarBg!.r, closeTo(0.0, 0.02));
-      expect(appBarBg.g, closeTo(0.4, 0.05));
-      expect(appBarBg.b, closeTo(0.8, 0.05));
+      expect(appBarBg, Colors.transparent);
     });
 
-    test('light theme appBar has white foreground color', () {
+    test('light theme appBar has correct foreground color', () {
       final theme = ClawfreeTheme.light;
-      expect(theme.appBarTheme.foregroundColor, Colors.white);
+      expect(theme.appBarTheme.foregroundColor, theme.colorScheme.onSurface);
     });
 
     test('light theme appBar has zero elevation', () {
@@ -119,7 +115,7 @@ void main() {
       final border = theme.inputDecorationTheme.border;
       expect(border, isA<OutlineInputBorder>());
       final outlineBorder = border as OutlineInputBorder;
-      expect(outlineBorder.borderRadius, BorderRadius.circular(12));
+      expect(outlineBorder.borderRadius, BorderRadius.circular(20));
       debugDefaultTargetPlatformOverride = null;
     });
 
@@ -127,17 +123,23 @@ void main() {
     // Text theme
     // -----------------------------------------------------------------------
 
+    test('text theme uses JetBrains Mono font', () {
+      final theme = ClawfreeTheme.light;
+      expect(theme.textTheme.headlineLarge?.fontFamily, 'JetBrainsMono');
+      expect(theme.textTheme.bodyLarge?.fontFamily, 'JetBrainsMono');
+    });
+
     test('text theme has correct font weights', () {
       final theme = ClawfreeTheme.light;
-      expect(theme.textTheme.headlineLarge?.fontWeight, FontWeight.w700);
-      expect(theme.textTheme.titleLarge?.fontWeight, FontWeight.w600);
+      expect(theme.textTheme.headlineLarge?.fontWeight, FontWeight.w800);
+      expect(theme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
       expect(theme.textTheme.bodyLarge?.fontWeight, FontWeight.w400);
     });
 
     test('dark theme text theme has correct font weights', () {
       final theme = ClawfreeTheme.dark;
-      expect(theme.textTheme.headlineLarge?.fontWeight, FontWeight.w700);
-      expect(theme.textTheme.titleLarge?.fontWeight, FontWeight.w600);
+      expect(theme.textTheme.headlineLarge?.fontWeight, FontWeight.w800);
+      expect(theme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
       expect(theme.textTheme.bodyLarge?.fontWeight, FontWeight.w400);
     });
 
@@ -147,6 +149,157 @@ void main() {
       expect(theme.textTheme.headlineLarge?.color, onSurface);
       expect(theme.textTheme.titleLarge?.color, onSurface);
       expect(theme.textTheme.bodyLarge?.color, onSurface);
+    });
+
+    // -----------------------------------------------------------------------
+    // HUD Brackets
+    // -----------------------------------------------------------------------
+
+    testWidgets('hudBrackets renders brackets and child', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) =>
+                  ClawfreeTheme.hudBrackets(context, child: const Text('42.0')),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('['), findsOneWidget);
+      expect(find.text(']'), findsOneWidget);
+      expect(find.text('42.0'), findsOneWidget);
+    });
+
+    testWidgets('hudBrackets renders label when provided', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ClawfreeTheme.hudBrackets(
+                context,
+                label: 'lat',
+                child: const Text('35.68'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('['), findsOneWidget);
+      expect(find.text(']'), findsOneWidget);
+      expect(find.text('LAT'), findsOneWidget);
+      expect(find.text('35.68'), findsOneWidget);
+    });
+
+    testWidgets('hudBrackets wraps in a Row', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) =>
+                  ClawfreeTheme.hudBrackets(context, child: const Text('val')),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Row), findsOneWidget);
+    });
+
+    // -----------------------------------------------------------------
+    // New theme utility methods
+    // -----------------------------------------------------------------
+
+    testWidgets('minimalSurface returns BoxDecoration with element radius', (
+      tester,
+    ) async {
+      late BoxDecoration decoration;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                decoration = ClawfreeTheme.minimalSurface(context);
+                return Container(decoration: decoration);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(decoration.borderRadius, ClawfreeBorderRadius.element);
+      expect(decoration.border, isNotNull);
+    });
+
+    testWidgets('flatButtonStyle returns a ButtonStyle with pill shape', (
+      tester,
+    ) async {
+      late ButtonStyle style;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                style = ClawfreeTheme.flatButtonStyle(context);
+                return TextButton(
+                  onPressed: () {},
+                  style: style,
+                  child: const Text('btn'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('btn'), findsOneWidget);
+      expect(style.backgroundColor?.resolve({}), Colors.transparent);
+    });
+
+    testWidgets('pill wraps child in pill-shaped container', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: ClawfreeTheme.pill(child: const Text('tag')),
+          ),
+        ),
+      );
+
+      expect(find.text('tag'), findsOneWidget);
+      final container = tester.widget<Container>(find.byType(Container).first);
+      final decoration = container.decoration as BoxDecoration;
+      expect(decoration.borderRadius, ClawfreeBorderRadius.pill);
+    });
+
+    testWidgets('minimalInputDecoration returns underline-style input', (
+      tester,
+    ) async {
+      late InputDecoration decoration;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClawfreeTheme.light,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                decoration = ClawfreeTheme.minimalInputDecoration(context);
+                return TextField(decoration: decoration);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(decoration.filled, isFalse);
+      expect(decoration.border, isA<UnderlineInputBorder>());
+      expect(decoration.focusedBorder, isA<UnderlineInputBorder>());
     });
   });
 }

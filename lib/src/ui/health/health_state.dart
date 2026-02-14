@@ -1,10 +1,5 @@
 /// Health status level for a system section.
-enum HealthLevel {
-  nominal,
-  degraded,
-  error,
-  unknown,
-}
+enum HealthLevel { nominal, degraded, error, unknown }
 
 /// A single health section (GWAY, LLM, CHAN, TOOL, VOX).
 class HealthSection {
@@ -28,11 +23,11 @@ class HealthSection {
   final String detail;
 
   HealthSection copyWith({HealthLevel? level, String? detail}) => HealthSection(
-        id: id,
-        label: label,
-        level: level ?? this.level,
-        detail: detail ?? this.detail,
-      );
+    id: id,
+    label: label,
+    level: level ?? this.level,
+    detail: detail ?? this.detail,
+  );
 }
 
 /// Aggregate health state across all system sections.
@@ -46,15 +41,12 @@ class HealthState {
     HealthSection? channels,
     HealthSection? tools,
     HealthSection? voice,
-  })  : gateway = gateway ??
-            const HealthSection(id: 'LINK', label: 'Connectivity'),
-        llm = llm ?? const HealthSection(id: 'THINK', label: 'Thinking'),
-        channels = channels ??
-            const HealthSection(id: 'REACH', label: 'Reach'),
-        tools =
-            tools ?? const HealthSection(id: 'SKILL', label: 'Skills'),
-        voice =
-            voice ?? const HealthSection(id: 'EAR', label: 'Listening');
+  }) : gateway =
+           gateway ?? const HealthSection(id: 'LINK', label: 'Connectivity'),
+       llm = llm ?? const HealthSection(id: 'THINK', label: 'Thinking'),
+       channels = channels ?? const HealthSection(id: 'REACH', label: 'Reach'),
+       tools = tools ?? const HealthSection(id: 'SKILL', label: 'Skills'),
+       voice = voice ?? const HealthSection(id: 'EAR', label: 'Listening');
 
   final HealthSection gateway;
   final HealthSection llm;
@@ -78,15 +70,30 @@ class HealthState {
 
   /// Convenience factory for a fully-nominal state (e.g. after onboarding).
   factory HealthState.nominal() => HealthState(
-        gateway: const HealthSection(
-            id: 'LINK', label: 'Connectivity', level: HealthLevel.nominal),
-        llm: const HealthSection(
-            id: 'THINK', label: 'Thinking', level: HealthLevel.nominal),
-        channels: const HealthSection(
-            id: 'REACH', label: 'Reach', level: HealthLevel.nominal),
-        tools: const HealthSection(
-            id: 'SKILL', label: 'Skills', level: HealthLevel.nominal),
-        voice: const HealthSection(
-            id: 'EAR', label: 'Listening', level: HealthLevel.nominal),
-      );
+    gateway: const HealthSection(
+      id: 'LINK',
+      label: 'Connectivity',
+      level: HealthLevel.nominal,
+    ),
+    llm: const HealthSection(
+      id: 'THINK',
+      label: 'Thinking',
+      level: HealthLevel.nominal,
+    ),
+    channels: const HealthSection(
+      id: 'REACH',
+      label: 'Reach',
+      level: HealthLevel.nominal,
+    ),
+    tools: const HealthSection(
+      id: 'SKILL',
+      label: 'Skills',
+      level: HealthLevel.nominal,
+    ),
+    voice: const HealthSection(
+      id: 'EAR',
+      label: 'Listening',
+      level: HealthLevel.nominal,
+    ),
+  );
 }

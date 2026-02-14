@@ -15,8 +15,12 @@ void main() {
 
     test('tracks send count', () async {
       final client = MockAiClient();
-      await client.sendStream('q1', systemPrompt: '', history: []).drain<void>();
-      await client.sendStream('q2', systemPrompt: '', history: []).drain<void>();
+      await client
+          .sendStream('q1', systemPrompt: '', history: [])
+          .drain<void>();
+      await client
+          .sendStream('q2', systemPrompt: '', history: [])
+          .drain<void>();
       expect(client.sendCount, 2);
     });
 
@@ -31,7 +35,9 @@ void main() {
     test('throws on sendStream', () {
       final client = ErrorAiClient();
       expect(
-        () => client.sendStream('test', systemPrompt: '', history: []).drain<void>(),
+        () => client
+            .sendStream('test', systemPrompt: '', history: [])
+            .drain<void>(),
         throwsA(isA<Exception>()),
       );
     });

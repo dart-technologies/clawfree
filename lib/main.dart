@@ -138,26 +138,28 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
 
   Future<void> _start({String? injectedGateway, String? injectedToken}) async {
     final key = _apiKeyController.text.trim();
-    if (key.isEmpty && !PlatformConfig.isWeb && !_useDemoMode && injectedGateway == null) {
+    if (key.isEmpty &&
+        !PlatformConfig.isWeb &&
+        !_useDemoMode &&
+        injectedGateway == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your Anthropic API key')),
       );
       return;
     }
 
-    final effectiveUrl = injectedGateway ??
+    final effectiveUrl =
+        injectedGateway ??
         PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl);
-    final effectiveToken = injectedToken ??
+    final effectiveToken =
+        injectedToken ??
         const String.fromEnvironment('GATEWAY_TOKEN', defaultValue: '');
 
     final AiClient aiClient;
     if (_useDemoMode) {
       aiClient = DemoCacheAiClient();
     } else {
-      aiClient = AnthropicAiClient(
-        apiKey: key,
-        baseUrl: effectiveUrl,
-      );
+      aiClient = AnthropicAiClient(apiKey: key, baseUrl: effectiveUrl);
     }
 
     // Parallelize independent async init work.
@@ -195,7 +197,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
 
     _chatSession = ChatSession(
       aiClient: sl.get<AiClient>(),
-      ttsService: sl.tryGet<TtsService>(),
+      voiceController: sl.tryGet<VoiceController>(),
       agentStore: agentStore,
       gatewayClient: gatewayClient,
     );
@@ -212,70 +214,75 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     _sttService = sl.tryGet<SttService>();
 
     if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          chatSession: _chatSession!,
-          sttService: _sttService,
-          onNavigateHome: () => Navigator.of(context).pop(),
-        ),
-      ),
-    ).then((_) {
-      _chatSession?.dispose();
-      _chatSession = null;
-      _sttService?.dispose();
-      _sttService = null;
-      sl.tryGet<GatewayClient>()?.dispose();
-      sl.reset();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              chatSession: _chatSession!,
+              sttService: _sttService,
+              onNavigateHome: () => Navigator.of(context).pop(),
+            ),
+          ),
+        )
+        .then((_) {
+          _chatSession?.dispose();
+          _chatSession = null;
+          _sttService?.dispose();
+          _sttService = null;
+          sl.tryGet<GatewayClient>()?.dispose();
+          sl.reset();
+        });
   }
 
   @override
   Widget build(BuildContext context) {
     final isWeb = PlatformConfig.isWeb;
+    final formFactor = PlatformConfig.formFactor(context);
+    final isLarge =
+        formFactor == DeviceFormFactor.tablet ||
+        formFactor == DeviceFormFactor.desktop;
 
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isLarge ? 64 : 32),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) => Opacity(
               opacity: value,
-              child: Transform.scale(
-                scale: 0.85 + 0.15 * value,
-                child: child,
-              ),
+              child: Transform.scale(scale: 0.85 + 0.15 * value, child: child),
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: BoxConstraints(maxWidth: isLarge ? 600 : 400),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Hero(
                     tag: 'app-icon',
-                    child: Image.asset(
-                      ClawfreeAssets.icon,
-                      width: 120,
-                      height: 120,
+                    child: ClawfreeLogo(size: isLarge ? 240 : 160),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'clawfree',
+                    style: ClawfreeTheme.technicalStyle(
+                      context: context,
+                      fontSize: isLarge ? 48 : 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3.0,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'clawfree',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
-                    'Hands-free AI agent creation',
+                    'Hands-free voice agent orchestration',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: isLarge ? 20 : 16,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
                   if (!isWeb && !_useDemoMode)
                     TextField(
                       controller: _apiKeyController,
@@ -292,74 +299,90 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                     Text(
                       'Using gateway at ${PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl)}',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   if (_useDemoMode)
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .tertiaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .tertiary
-                              .withValues(alpha: 0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.tertiary.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.play_circle,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onTertiaryContainer),
-                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.play_circle,
+                            size: 28,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onTertiaryContainer,
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Demo mode: using cached responses (no API key needed)',
                               style: TextStyle(
-                                fontSize: 13,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onTertiaryContainer,
+                                fontSize: 14,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onTertiaryContainer,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.play_arrow),
-                          label: Text(_useDemoMode ? 'Start Demo' : 'Start'),
+                        child: SizedBox(
+                          height: 56,
+                          child: FilledButton.icon(
+                            onPressed: _start,
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(
+                              _useDemoMode ? 'Start Demo' : 'Start',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (!_useDemoMode && PlatformConfig.hasCamera) ...[
-                        const SizedBox(width: 8),
-                        IconButton.filledTonal(
-                          onPressed: () async {
-                            final result = await Navigator.of(context).push<String>(
-                              MaterialPageRoute(builder: (_) => const QrScannerDialog()),
-                            );
-                            if (result != null && mounted) {
-                              _handleQrResult(result);
-                            }
-                          },
-                          icon: const Icon(Icons.qr_code_scanner),
-                          tooltip: 'Scan Gateway QR',
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          height: 56,
+                          width: 56,
+                          child: IconButton.filledTonal(
+                            onPressed: () async {
+                              final result = await Navigator.of(context)
+                                  .push<String>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const QrScannerDialog(),
+                                    ),
+                                  );
+                              if (result != null && mounted) {
+                                _handleQrResult(result);
+                              }
+                            },
+                            icon: const Icon(Icons.qr_code_scanner),
+                            tooltip: 'Scan Gateway QR',
+                          ),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   // Demo mode toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -367,13 +390,11 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                       Text(
                         'Demo mode',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Switch.adaptive(
                         value: _useDemoMode,
                         onChanged: (v) => setState(() => _useDemoMode = v),
@@ -381,14 +402,12 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                     ],
                   ),
                   if (!isWeb && !_useDemoMode) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(
                       'Or pass via: --dart-define=ANTHROPIC_API_KEY=sk-ant-...',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -422,9 +441,9 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       _start(injectedGateway: pairing.url);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid QR: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Invalid QR: $e')));
     }
   }
 

@@ -65,9 +65,7 @@ class AnthropicAiClient implements AiClient {
 
     if (response.statusCode != 200) {
       final errorBody = await response.stream.bytesToString();
-      throw Exception(
-        'Anthropic API error ${response.statusCode}: $errorBody',
-      );
+      throw Exception('Anthropic API error ${response.statusCode}: $errorBody');
     }
 
     // Parse SSE stream

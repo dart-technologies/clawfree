@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:genui/genui.dart';
 
-import '../voice/tts_service.dart';
+import '../voice/voice_controller.dart';
 import 'a2ui_surface_manager.dart';
 import 'ai_client.dart';
 import 'message_item.dart';
@@ -12,14 +12,14 @@ class A2uiStreamProcessor {
   A2uiStreamProcessor({
     required AiClient aiClient,
     required A2uiSurfaceManager surfaceManager,
-    TtsService? ttsService,
-  })  : _aiClient = aiClient,
-        _surfaceManager = surfaceManager,
-        _ttsService = ttsService;
+    VoiceController? voiceController,
+  }) : _aiClient = aiClient,
+       _surfaceManager = surfaceManager,
+       _voiceController = voiceController;
 
   final AiClient _aiClient;
   final A2uiSurfaceManager _surfaceManager;
-  final TtsService? _ttsService;
+  final VoiceController? _voiceController;
 
   /// Debounce interval for notifyListeners during streaming (one frame at 60fps).
   static const _debounceInterval = Duration(milliseconds: 16);
@@ -30,19 +30,20 @@ class A2uiStreamProcessor {
   /// [onNotify] is called when the UI should be rebuilt (debounced).
   /// [isDisposed] returns true if the owning session has been disposed.
   Future<String> streamInto({
-    required MessageItem aiMessage,
+    required AiTextMessage aiMessage,
     required String prompt,
     required String systemPrompt,
     required List<Map<String, String>> history,
     required void Function() onNotify,
     required bool Function() isDisposed,
+    void Function(String transcript, bool isFinal)? onTranscriptionResult,
   }) async {
     var fullResponse = '';
 
     Timer? debounce;
     final textSub = _surfaceManager.textStream.listen(
       (chunk) {
-        aiMessage.text = (aiMessage.text ?? '') + chunk;
+        aiMessage.text = '${aiMessage.text}$chunk';
         debounce?.cancel();
         debounce = Timer(_debounceInterval, () {
           if (!isDisposed()) onNotify();
@@ -79,10 +80,10 @@ class A2uiStreamProcessor {
     // Trim trailing whitespace left by JSON block extraction
     aiMessage.text = aiMessage.text?.trim();
 
-    // TTS readback of the full text portion
-    final spokenText = aiMessage.text ?? '';
-    if (spokenText.isNotEmpty && _ttsService != null) {
-      _ttsService.speak(spokenText);
+    // Unified voice orchestration readback
+    final spokenText = aiMessage.text ?? ''; // text is non-null for AiTextMessage but getter returns String?
+    if (spokenText.isNotEmpty && _voiceController != null) {
+      await _voiceController.speak(spokenText, onResult: onTranscriptionResult);
     }
 
     return fullResponse;

@@ -7,10 +7,7 @@ import 'package:flutter/animation.dart';
 /// Produces an overshooting bounce effect that settles to 1.0.
 /// Used by VoiceOrb and AnimatedMessageEntry.
 class SpringCurve extends Curve {
-  const SpringCurve({
-    this.damping = 0.6,
-    this.stiffness = 8.0,
-  });
+  const SpringCurve({this.damping = 0.6, this.stiffness = 8.0});
 
   /// Controls how quickly oscillations decay (0.0 = none, 1.0 = critical).
   final double damping;

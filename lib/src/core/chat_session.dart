@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:genui/genui.dart';
 
+import '../voice/voice_controller.dart';
 import '../voice/tts_service.dart';
+import '../voice/stt_service.dart';
+import '../voice/acoustic_earcons.dart';
 import 'a2ui_stream_processor.dart';
 import 'a2ui_surface_manager.dart';
 import 'agent_config_parser.dart';
@@ -24,13 +28,21 @@ export 'message_item.dart';
 class ChatSession extends ChangeNotifier {
   ChatSession({
     required AiClient aiClient,
+    VoiceController? voiceController,
     TtsService? ttsService,
+    dynamic sttService,
     AgentRepository? agentStore,
     GatewayClient? gatewayClient,
-  })  : _aiClient = aiClient,
-        _agentStore = agentStore ?? AgentStore(),
-        _gatewayClient = gatewayClient {
-    _feedbackService = UIFeedbackService(ttsService: ttsService);
+  }) : _aiClient = aiClient,
+       voiceController =
+           voiceController ??
+           VoiceController(
+             tts: ttsService,
+             stt: sttService is SttService ? sttService : null,
+           ),
+       _agentStore = agentStore ?? AgentStore(),
+       _gatewayClient = gatewayClient {
+    _feedbackService = UIFeedbackService(ttsService: this.voiceController?.tts);
     _surfaceManager = A2uiSurfaceManager();
     _promptBuilder = SystemPromptBuilder(
       surfaceManager: _surfaceManager,
@@ -39,12 +51,12 @@ class ChatSession extends ChangeNotifier {
     _streamProcessor = A2uiStreamProcessor(
       aiClient: _aiClient,
       surfaceManager: _surfaceManager,
-      ttsService: ttsService,
+      voiceController: voiceController,
     );
     _interactionRouter = A2uiInteractionRouter(
       agentStore: _agentStore,
       feedbackService: _feedbackService,
-      ttsService: ttsService,
+      ttsService: voiceController?.tts,
       gatewayClient: _gatewayClient,
     );
     _listenToSurfaces();
@@ -53,6 +65,7 @@ class ChatSession extends ChangeNotifier {
 
   final AiClient _aiClient;
   final AgentRepository _agentStore;
+  final VoiceController? voiceController;
   final GatewayClient? _gatewayClient;
 
   /// The gateway client, if configured (non-demo mode).
@@ -68,6 +81,10 @@ class ChatSession extends ChangeNotifier {
   late final SystemPromptBuilder _promptBuilder;
   late final A2uiStreamProcessor _streamProcessor;
   late final A2uiInteractionRouter _interactionRouter;
+
+  /// Exposed for integration testing.
+  @visibleForTesting
+  A2uiInteractionRouter get interactionRouterForTest => _interactionRouter;
   SurfaceHost get surfaceHost => _surfaceManager.surfaceHost;
 
   final List<Map<String, String>> _chatHistory = [];
@@ -108,6 +125,11 @@ class ChatSession extends ChangeNotifier {
   bool _disposed = false;
   String? _lastPrompt;
 
+  /// Whether a success mood should be displayed (e.g. after save/book).
+  /// Auto-reverts to false after a short delay.
+  bool successMoodActive = false;
+  Timer? _successMoodTimer;
+
   /// Max retries on generation error.
   static const _maxRetries = 2;
 
@@ -121,6 +143,12 @@ class ChatSession extends ChangeNotifier {
       if (!exists) {
         _messages.add(MessageItem.surface(surfaceId: surfaceId));
         _promptBuilder.activeSurfaceIds.add(surfaceId);
+
+        // Premium acoustic feedback
+        final earcon = voiceController?.earcon;
+        if (earcon != null) {
+          AcousticEarcons.playSurfaceArrival(earcon);
+        }
       }
       _activeSurfaceId = surfaceId;
       notifyListeners();
@@ -148,9 +176,6 @@ class ChatSession extends ChangeNotifier {
       case CorrectionResult(:final prompt):
         _chatHistory.add({'role': 'user', 'content': prompt});
         _performGeneration(prompt);
-      case AgentSavedResult(:final message):
-        _messages.add(message);
-        notifyListeners();
       case UserInputResult(:final text):
         _chatHistory.add({'role': 'user', 'content': text});
         _performGeneration(text);
@@ -159,10 +184,17 @@ class ChatSession extends ChangeNotifier {
         notifyListeners();
       case ModeSwitchResult(:final targetMode, :final message):
         setMode(targetMode);
-        _messages.add(message);
         if (targetMode == SessionMode.home) {
+          // Clear conversation so the user returns to the home empty state
+          // instead of staying stuck on the previous surface.
+          _messages.clear();
+          _chatHistory.clear();
+          _activeSurfaceId = null;
           _syncAgentsFromGateway();
         }
+        _messages.add(message);
+        // Trigger success mood + earcon for terminal actions
+        _triggerSuccessMood();
         notifyListeners();
       case SystemActionResult(:final action, :final message):
         _messages.add(message);
@@ -181,6 +213,26 @@ class ChatSession extends ChangeNotifier {
       case IgnoredResult():
         break;
     }
+  }
+
+  /// Flash the success mood indicator for 2 seconds and play ear chime.
+  void _triggerSuccessMood() {
+    successMoodActive = true;
+    notifyListeners();
+
+    // Play booking confirm earcon (ascending C-E-G chord)
+    final earcon = voiceController?.earcon;
+    if (earcon != null) {
+      AcousticEarcons.playBookingConfirm(earcon);
+    }
+
+    _successMoodTimer?.cancel();
+    _successMoodTimer = Timer(const Duration(seconds: 2), () {
+      if (!_disposed) {
+        successMoodActive = false;
+        notifyListeners();
+      }
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -222,10 +274,12 @@ class ChatSession extends ChangeNotifier {
 
   /// Voice navigation commands checked before AI generation.
   static final _voiceNavCommands = <RegExp, String>{
-    RegExp(r'go\s*back|navigate\s*back|previous\s*screen',
-        caseSensitive: false): 'navigate_back',
-    RegExp(r'clear\s*(everything|all|chat|screen)',
-        caseSensitive: false): 'clear_session',
+    RegExp(
+      r'go\s*back|navigate\s*back|previous\s*screen',
+      caseSensitive: false,
+    ): 'navigate_back',
+    RegExp(r'clear\s*(everything|all|chat|screen)', caseSensitive: false):
+        'clear_session',
   };
 
   /// Keywords that trigger the native pairing modal instead of AI generation.
@@ -234,7 +288,29 @@ class ChatSession extends ChangeNotifier {
     caseSensitive: false,
   );
 
-  Future<void> sendMessage(String text) async {
+  /// Simulate a voice command: the VoiceOrb pulses, interim transcript builds
+  /// word-by-word, then the final text is sent to the AI.
+  ///
+  /// This drives the full STT visual pipeline (orb + interim text) across all
+  /// device layouts without requiring real microphone input.
+  Future<void> sendVoiceCommand(
+    String text, {
+    Duration pauseAfterStt = const Duration(milliseconds: 500),
+  }) async {
+    assert(
+      voiceController != null,
+      'sendVoiceCommand requires a VoiceController',
+    );
+    final transcript = await voiceController!.simulateVoiceCommand(text);
+    await voiceController!.stopListening();
+    await Future<void>.delayed(pauseAfterStt);
+    await sendMessage(transcript);
+  }
+
+  Future<void> sendMessage(
+    String text, {
+    void Function(String transcript, bool isFinal)? onTranscriptionResult,
+  }) async {
     if (text.isEmpty) return;
 
     _messages.add(MessageItem.user(text: text));
@@ -244,9 +320,11 @@ class ChatSession extends ChangeNotifier {
 
     // Short-circuit: show native QR modal for pairing requests.
     if (_pairingPattern.hasMatch(text) && onPairingRequested != null) {
-      _messages.add(MessageItem.aiText(
-        text: 'Opening pairing dialog. Scan the QR code with your device.',
-      ));
+      _messages.add(
+        MessageItem.aiText(
+          text: 'Opening pairing dialog. Scan the QR code with your device.',
+        ),
+      );
       notifyListeners();
       onPairingRequested!(pairingUrl);
       return;
@@ -270,7 +348,10 @@ class ChatSession extends ChangeNotifier {
       }
     }
 
-    await _performGeneration(text);
+    await _performGeneration(
+      text,
+      onTranscriptionResult: onTranscriptionResult,
+    );
   }
 
   /// Retry the last failed generation.
@@ -284,9 +365,19 @@ class ChatSession extends ChangeNotifier {
     await _performGeneration(_lastPrompt!);
   }
 
-  Future<void> _performGeneration(String prompt, {int attempt = 0}) async {
+  Future<void> _performGeneration(
+    String prompt, {
+    int attempt = 0,
+    void Function(String transcript, bool isFinal)? onTranscriptionResult,
+  }) async {
     _isProcessing = true;
     notifyListeners();
+
+    // Subtle acoustic heartbeat when thinking
+    final earcon = voiceController?.earcon;
+    if (earcon != null) {
+      AcousticEarcons.playThinking(earcon);
+    }
 
     final surfaceCountBefore = _messages.where((m) => m.isSurface).length;
 
@@ -302,12 +393,17 @@ class ChatSession extends ChangeNotifier {
       //
       // Skip the wait if the JSON targets a surfaceId that already exists
       // (e.g. repeated clicks on "manage openclaw" reuse "manage-001").
-      final targetsExistingSurface =
-          _streamProcessor.containsJsonBlock(fullResponse) &&
-          _messages.any((m) =>
-              m.isSurface &&
-              m.surfaceId != null &&
-              fullResponse.contains('"${m.surfaceId}"'));
+      final existingSurfaceMsg =
+          _streamProcessor.containsJsonBlock(fullResponse)
+          ? _messages.cast<MessageItem?>().firstWhere(
+              (m) =>
+                  m!.isSurface &&
+                  m.surfaceId != null &&
+                  fullResponse.contains('"${m.surfaceId}"'),
+              orElse: () => null,
+            )
+          : null;
+      final targetsExistingSurface = existingSurfaceMsg != null;
 
       if (!_disposed &&
           _streamProcessor.containsJsonBlock(fullResponse) &&
@@ -315,17 +411,32 @@ class ChatSession extends ChangeNotifier {
         final alreadyCreated =
             _messages.where((m) => m.isSurface).length > surfaceCountBefore;
         if (!alreadyCreated) {
-          await _surfaceManager.surfaceAdded
-              .first
-              .timeout(const Duration(milliseconds: 500), onTimeout: () => '');
+          await _surfaceManager.surfaceAdded.first.timeout(
+            const Duration(milliseconds: 500),
+            onTimeout: () => '',
+          );
         }
+      }
+
+      // Re-insert a fresh surface message at the end so it re-appears in the
+      // conversation flow (e.g. clicking "Manage OpenClaw" a second time).
+      // A NEW MessageItem instance is required — reusing the same object
+      // won't trigger a Flutter rebuild.
+      if (targetsExistingSurface) {
+        final surfaceId = existingSurfaceMsg.surfaceId!;
+        _messages.remove(existingSurfaceMsg);
+        _messages.add(MessageItem.surface(surfaceId: surfaceId));
+        _activeSurfaceId = surfaceId;
       }
 
       if (_disposed) return;
 
       if (!targetsExistingSurface &&
           _shouldSelfCorrect(fullResponse, surfaceCountBefore, attempt)) {
-        return _retrySelfCorrection(attempt);
+        return _retrySelfCorrection(
+          attempt,
+          onTranscriptionResult: onTranscriptionResult,
+        );
       }
 
       _onGenerationSuccess(surfaceCountBefore);
@@ -336,7 +447,11 @@ class ChatSession extends ChangeNotifier {
         genUiLogger.info('Retrying generation (attempt ${attempt + 1})...');
         _isProcessing = false;
         if (!_disposed) notifyListeners();
-        return _performGeneration(prompt, attempt: attempt + 1);
+        return _performGeneration(
+          prompt,
+          attempt: attempt + 1,
+          onTranscriptionResult: onTranscriptionResult,
+        );
       }
 
       _messages.add(_feedbackService.error('$e'));
@@ -346,8 +461,11 @@ class ChatSession extends ChangeNotifier {
     }
   }
 
-  Future<String> _streamResponse(String prompt) async {
-    final aiMessage = MessageItem.aiText(text: '');
+  Future<String> _streamResponse(
+    String prompt, {
+    void Function(String transcript, bool isFinal)? onTranscriptionResult,
+  }) async {
+    final aiMessage = AiTextMessage(text: '');
     _messages.add(aiMessage);
     notifyListeners();
 
@@ -358,6 +476,7 @@ class ChatSession extends ChangeNotifier {
       history: _chatHistory,
       onNotify: notifyListeners,
       isDisposed: () => _disposed,
+      onTranscriptionResult: onTranscriptionResult,
     );
   }
 
@@ -376,7 +495,10 @@ class ChatSession extends ChangeNotifier {
     );
   }
 
-  Future<void> _retrySelfCorrection(int attempt) {
+  Future<void> _retrySelfCorrection(
+    int attempt, {
+    void Function(String transcript, bool isFinal)? onTranscriptionResult,
+  }) {
     final correctionPrompt =
         'Your previous response contained JSON but it could not be parsed '
         'as valid A2UI. Please regenerate the A2UI JSON. Remember to use '
@@ -385,7 +507,11 @@ class ChatSession extends ChangeNotifier {
     _chatHistory.add({'role': 'user', 'content': correctionPrompt});
     _isProcessing = false;
     notifyListeners();
-    return _performGeneration(correctionPrompt, attempt: attempt + 1);
+    return _performGeneration(
+      correctionPrompt,
+      attempt: attempt + 1,
+      onTranscriptionResult: onTranscriptionResult,
+    );
   }
 
   void _onGenerationSuccess(int surfaceCountBefore) {
@@ -408,6 +534,7 @@ class ChatSession extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _successMoodTimer?.cancel();
     _surfaceManager.dispose();
     _aiClient.dispose();
     super.dispose();

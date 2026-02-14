@@ -19,12 +19,12 @@ void main() {
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('art.dart.clawfree/watch'),
-        (MethodCall methodCall) async {
-          methodCalls.add(methodCall);
-          return null;
-        },
-      );
+            const MethodChannel('art.dart.clawfree/watch'),
+            (MethodCall methodCall) async {
+              methodCalls.add(methodCall);
+              return null;
+            },
+          );
 
       agentStore = AgentStore();
       healthPoller = HealthPoller(

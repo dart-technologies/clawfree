@@ -28,10 +28,7 @@ void main() {
     });
 
     test('addAgent preserves existing created_at', () {
-      store.addAgent({
-        'name': 'TestBot',
-        'created_at': '2026-01-01T00:00:00',
-      });
+      store.addAgent({'name': 'TestBot', 'created_at': '2026-01-01T00:00:00'});
       expect(store.agents.first['created_at'], '2026-01-01T00:00:00');
     });
 
@@ -73,10 +70,7 @@ void main() {
 
     test('agents list is unmodifiable', () {
       store.addAgent({'name': 'Test'});
-      expect(
-        () => store.agents.add({'name': 'Hack'}),
-        throwsUnsupportedError,
-      );
+      expect(() => store.agents.add({'name': 'Hack'}), throwsUnsupportedError);
     });
 
     test('notifies listeners on addAgent', () {

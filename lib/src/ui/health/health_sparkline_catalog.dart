@@ -14,15 +14,19 @@ Widget healthSparklineCatalogBuilder(CatalogItemContext itemContext) {
     orElse: () => HealthLevel.unknown,
   );
   final rawPoints = data['dataPoints'] as List?;
-  final points =
-      rawPoints?.whereType<num>().map((n) => n.toDouble()).toList();
+  final points = rawPoints?.whereType<num>().map((n) => n.toDouble()).toList();
   final width = (data['width'] as num?)?.toDouble() ?? 60;
   final height = (data['height'] as num?)?.toDouble() ?? 20;
+  final showGlow = data['showGlow'] as bool? ?? false;
+  final animate = data['animate'] as bool? ?? true;
+
   return HealthSparkline(
     level: level,
     dataPoints: points,
     width: width,
     height: height,
+    showGlow: showGlow,
+    animate: animate,
   );
 }
 
@@ -37,6 +41,12 @@ final healthSparklineSchema = S.object(
     'dataPoints': S.list(
       items: S.number(),
       description: 'Optional 0.0-1.0 values.',
+    ),
+    'showGlow': S.boolean(
+      description: 'Whether to apply a technical glow effect.',
+    ),
+    'animate': S.boolean(
+      description: 'Whether to animate data changes (default true).',
     ),
     'width': S.number(description: 'Width in logical pixels (default 60).'),
     'height': S.number(description: 'Height in logical pixels (default 20).'),

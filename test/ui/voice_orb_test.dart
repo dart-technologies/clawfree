@@ -4,15 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('VoiceOrb haptic heartbeat', () {
-    testWidgets('does not crash with isListening: true for 2 seconds',
-        (tester) async {
+    testWidgets('does not crash with isListening: true for 2 seconds', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: VoiceOrb(isListening: true),
-            ),
-          ),
+          home: Scaffold(body: Center(child: VoiceOrb(isListening: true))),
         ),
       );
 
@@ -25,8 +22,9 @@ void main() {
       expect(find.byType(VoiceOrb), findsOneWidget);
     });
 
-    testWidgets('timer is cancelled when isListening switches to false',
-        (tester) async {
+    testWidgets('timer is cancelled when isListening switches to false', (
+      tester,
+    ) async {
       bool listening = true;
 
       await tester.pumpWidget(
@@ -65,11 +63,7 @@ void main() {
     testWidgets('idle orb renders without errors', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: VoiceOrb(isListening: false),
-            ),
-          ),
+          home: Scaffold(body: Center(child: VoiceOrb(isListening: false))),
         ),
       );
 

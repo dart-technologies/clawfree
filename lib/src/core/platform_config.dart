@@ -14,6 +14,9 @@ enum DeviceFormFactor {
 
   /// watchOS target.
   watch,
+
+  /// AR/VR Glasses target.
+  glasses,
 }
 
 /// Centralizes platform detection and URL resolution.
@@ -60,7 +63,8 @@ abstract final class PlatformConfig {
       return (url: url, token: uri.queryParameters['token']);
     }
     if (uri.scheme == 'http' || uri.scheme == 'https') {
-      final url = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+      final url =
+          '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
       return (url: url, token: null);
     }
     return null;

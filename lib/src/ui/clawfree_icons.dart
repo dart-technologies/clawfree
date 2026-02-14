@@ -8,9 +8,8 @@ abstract final class ClawfreeIcons {
   static IconData get back =>
       PlatformConfig.isApple ? CupertinoIcons.back : Icons.arrow_back;
 
-  static IconData get send => PlatformConfig.isApple
-      ? CupertinoIcons.arrow_up_circle_fill
-      : Icons.send;
+  static IconData get send =>
+      PlatformConfig.isApple ? CupertinoIcons.arrow_up_circle_fill : Icons.send;
 
   static const mic = Icons.mic;
   static const micNone = Icons.mic_none;

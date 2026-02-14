@@ -4,6 +4,7 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform float uAmplitude;  // 0.0 = idle, 1.0 = full listening
 uniform vec3 uColor;
+uniform float uMood; // 0=idle, 1=thinking, 2=listening, 3=speaking, 4=error
 
 out vec4 fragColor;
 
@@ -39,25 +40,49 @@ void main() {
     vec2 uv = (fragCoord - 0.5 * uResolution) / min(uResolution.x, uResolution.y);
 
     float t = uTime;
-    float amp = 0.04 + uAmplitude * 0.08;
+    
+    // Mood-based parameters
+    float chaotic = 0.0;
+    float freq = 1.0;
+    float speed = 0.7;
+    
+    if (uMood == 1.0) { // thinking
+        chaotic = 0.05;
+        freq = 2.5;
+        speed = 1.5;
+    } else if (uMood == 2.0) { // listening
+        chaotic = 0.02;
+        freq = 1.2;
+        speed = 1.0;
+    } else if (uMood == 3.0) { // speaking
+        chaotic = 0.01;
+        freq = 0.8;
+        speed = 0.5;
+    } else if (uMood == 4.0) { // error
+        chaotic = 0.1;
+        freq = 4.0;
+        speed = 2.0;
+    }
+
+    float amp = (0.04 + uAmplitude * 0.08) * (1.0 + chaotic);
     float baseR = 0.25 + uAmplitude * 0.05;
 
-    // Per-blob phase offsets so they don't move in lockstep.
+    // Per-blob phase offsets
     float p1 = 0.0, p2 = 1.7, p3 = 3.4, p4 = 5.1, p5 = 6.8;
 
-    // Organic wobble from value noise.
-    float w1 = noise(vec2(t * 0.3 + p1, 0.0)) * 0.03;
-    float w2 = noise(vec2(t * 0.3 + p2, 1.0)) * 0.03;
-    float w3 = noise(vec2(t * 0.3 + p3, 2.0)) * 0.03;
-    float w4 = noise(vec2(t * 0.3 + p4, 3.0)) * 0.03;
-    float w5 = noise(vec2(t * 0.3 + p5, 4.0)) * 0.03;
+    // Organic wobble
+    float w1 = noise(vec2(t * 0.3 * speed + p1, 0.0)) * 0.03;
+    float w2 = noise(vec2(t * 0.3 * speed + p2, 1.0)) * 0.03;
+    float w3 = noise(vec2(t * 0.3 * speed + p3, 2.0)) * 0.03;
+    float w4 = noise(vec2(t * 0.3 * speed + p4, 3.0)) * 0.03;
+    float w5 = noise(vec2(t * 0.3 * speed + p5, 4.0)) * 0.03;
 
-    // Five wandering SDF circles for richer metaball shape.
-    vec2 c1 = vec2(sin(t * 0.7 + p1) * amp + w1, cos(t * 0.9 + p1) * amp + w1);
-    vec2 c2 = vec2(cos(t * 1.1 + p2) * amp + w2, sin(t * 0.6 + p2) * amp + w2);
-    vec2 c3 = vec2(sin(t * 0.5 + p3) * amp + w3, cos(t * 1.3 + p3) * amp + w3);
-    vec2 c4 = vec2(cos(t * 0.8 + p4) * amp + w4, sin(t * 1.0 + p4) * amp + w4);
-    vec2 c5 = vec2(sin(t * 0.9 + p5) * amp + w5, cos(t * 0.7 + p5) * amp + w5);
+    // Wandering circles
+    vec2 c1 = vec2(sin(t * speed * freq + p1) * amp + w1, cos(t * speed * 1.2 * freq + p1) * amp + w1);
+    vec2 c2 = vec2(cos(t * speed * 1.5 * freq + p2) * amp + w2, sin(t * speed * freq + p2) * amp + w2);
+    vec2 c3 = vec2(sin(t * speed * 0.8 * freq + p3) * amp + w3, cos(t * speed * 1.8 * freq + p3) * amp + w3);
+    vec2 c4 = vec2(cos(t * speed * 1.1 * freq + p4) * amp + w4, sin(t * speed * 1.4 * freq + p4) * amp + w4);
+    vec2 c5 = vec2(sin(t * speed * 1.3 * freq + p5) * amp + w5, cos(t * speed * freq + p5) * amp + w5);
 
     float r1 = baseR + sin(t * 1.2 + p1) * 0.02;
     float r2 = baseR * 0.85 + cos(t * 0.8 + p2) * 0.02;
@@ -71,23 +96,21 @@ void main() {
     float d4 = sdCircle(uv, c4, r4);
     float d5 = sdCircle(uv, c5, r5);
 
-    // Merge with smooth minimum for blobby look.
     float d = smin(d1, d2, 0.15);
     d = smin(d, d3, 0.15);
     d = smin(d, d4, 0.15);
     d = smin(d, d5, 0.15);
 
-    // Soft edge glow.
     float edge = smoothstep(0.02, -0.03, d);
     float glow = smoothstep(0.12, -0.05, d) * 0.3;
 
-    // Inner core glow: bright center that pulses with amplitude.
     float coreDist = length(uv);
-    float corePulse = 0.3 + uAmplitude * 0.5 * (0.5 + 0.5 * sin(t * 3.0));
+    float corePulse = 0.3 + uAmplitude * 0.5 * (0.5 + 0.5 * sin(t * 3.0 * freq));
     float coreGlow = smoothstep(0.15, 0.0, coreDist) * corePulse * edge;
 
-    // Subtle hue shift during listening (warm shift toward accent).
     float hueShift = uAmplitude * 0.15 * sin(t * 1.5);
+    if (uMood == 1.0) hueShift = 0.1 * sin(t * 5.0); // fast shimmer when thinking
+    
     vec3 shiftedColor = uColor + vec3(hueShift, -hueShift * 0.5, -hueShift);
     shiftedColor = clamp(shiftedColor, 0.0, 1.0);
 

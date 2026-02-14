@@ -82,6 +82,7 @@ lcov.info
 
 # Test
 .test_runner/
+test_output.txt
 
 # Archived Docs
 docs/archive/

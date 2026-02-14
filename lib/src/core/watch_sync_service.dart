@@ -12,8 +12,8 @@ class WatchSyncService {
   WatchSyncService({
     required HealthPoller healthPoller,
     required AgentRepository agentStore,
-  })  : _healthPoller = healthPoller,
-        _agentStore = agentStore;
+  }) : _healthPoller = healthPoller,
+       _agentStore = agentStore;
 
   final HealthPoller _healthPoller;
   final AgentRepository _agentStore;

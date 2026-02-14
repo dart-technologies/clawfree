@@ -58,10 +58,7 @@ void main() {
       );
       final uri = Uri.parse(link);
 
-      expect(
-        uri.queryParameters['token'],
-        'token/with+special=chars&more',
-      );
+      expect(uri.queryParameters['token'], 'token/with+special=chars&more');
     });
 
     test('preserves path in gateway URL', () {
@@ -84,10 +81,16 @@ void main() {
         for (final token in tokens) {
           final link = buildDeepLink(url, token);
           final parsed = Uri.parse(link);
-          expect(parsed.queryParameters['url'], url,
-              reason: 'Failed for url=$url, token=$token');
-          expect(parsed.queryParameters['token'], token,
-              reason: 'Failed for url=$url, token=$token');
+          expect(
+            parsed.queryParameters['url'],
+            url,
+            reason: 'Failed for url=$url, token=$token',
+          );
+          expect(
+            parsed.queryParameters['token'],
+            token,
+            reason: 'Failed for url=$url, token=$token',
+          );
         }
       }
     });
@@ -106,8 +109,7 @@ void main() {
     });
 
     test('handles deep link with only url (no token)', () {
-      const deepLink =
-          'clawfree://pair?url=http%3A%2F%2Flocalhost%3A18789';
+      const deepLink = 'clawfree://pair?url=http%3A%2F%2Flocalhost%3A18789';
       final uri = Uri.parse(deepLink);
 
       expect(uri.queryParameters['url'], 'http://localhost:18789');
@@ -306,9 +308,7 @@ void main() {
     });
 
     test('clawfree:// URL is recognized as deep link', () {
-      final uri = Uri.parse(
-        'clawfree://pair?url=http%3A%2F%2Fhost&token=t',
-      );
+      final uri = Uri.parse('clawfree://pair?url=http%3A%2F%2Fhost&token=t');
 
       expect(uri.scheme, 'clawfree');
       expect(uri.host, 'pair');

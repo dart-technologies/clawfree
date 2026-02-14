@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:clawfree/src/core/agent_store.dart';
 import 'package:clawfree/src/core/chat_session.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
+import 'package:clawfree/src/voice/stt_service.dart';
+import 'package:clawfree/src/voice/voice_controller.dart';
 
 import '../fixtures/mock_ai_client.dart';
 
@@ -9,18 +11,22 @@ void main() {
   group('ChatSession', () {
     late MockAiClient mockClient;
     late MockTtsService mockTts;
+    late MockSttService mockStt;
+    late VoiceController voiceController;
     late AgentStore agentStore;
 
     setUp(() {
       mockClient = MockAiClient();
       mockTts = MockTtsService();
+      mockStt = MockSttService();
+      voiceController = VoiceController(stt: mockStt, tts: mockTts);
       agentStore = AgentStore();
     });
 
     test('starts with empty messages', () {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       expect(session.messages, isEmpty);
@@ -31,24 +37,29 @@ void main() {
     test('sendMessage adds user message', () async {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       await session.sendMessage('Hello');
-      expect(session.messages.any((m) => m.isUser && m.text == 'Hello'), isTrue);
+      expect(
+        session.messages.any((m) => m.isUser && m.text == 'Hello'),
+        isTrue,
+      );
       session.dispose();
     });
 
     test('sendMessage adds AI response', () async {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       await session.sendMessage('Hello');
       // Wait for debounce to flush
       await Future<void>.delayed(const Duration(milliseconds: 100));
-      final aiMessages = session.messages.where((m) => !m.isUser && !m.isSurface);
+      final aiMessages = session.messages.where(
+        (m) => !m.isUser && !m.isSurface,
+      );
       expect(aiMessages, isNotEmpty);
       session.dispose();
     });
@@ -56,7 +67,7 @@ void main() {
     test('empty message is ignored', () async {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       await session.sendMessage('');
@@ -68,7 +79,7 @@ void main() {
     test('isProcessing becomes true during generation', () async {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       var wasProcessing = false;
@@ -84,7 +95,7 @@ void main() {
     test('agentStore is accessible', () {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       expect(session.agentStore, same(agentStore));
@@ -92,10 +103,7 @@ void main() {
     });
 
     test('creates default agentStore if not provided', () {
-      final session = ChatSession(
-        aiClient: mockClient,
-        ttsService: mockTts,
-      );
+      final session = ChatSession(aiClient: mockClient, ttsService: mockTts);
       expect(session.agentStore, isNotNull);
       session.dispose();
     });
@@ -103,7 +111,7 @@ void main() {
     test('notifies listeners on message changes', () async {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       var notifyCount = 0;
@@ -116,7 +124,7 @@ void main() {
     test('messages list is unmodifiable', () {
       final session = ChatSession(
         aiClient: mockClient,
-        ttsService: mockTts,
+        voiceController: voiceController,
         agentStore: agentStore,
       );
       expect(
@@ -147,8 +155,9 @@ void main() {
         ttsService: MockTtsService(),
       );
       await session.sendMessage('Test');
-      final errorMessages =
-          session.messages.where((m) => !m.isUser && m.text?.startsWith('Error:') == true);
+      final errorMessages = session.messages.where(
+        (m) => !m.isUser && m.text?.startsWith('Error:') == true,
+      );
       expect(errorMessages, isNotEmpty);
       session.dispose();
     });
@@ -169,7 +178,9 @@ void main() {
     });
 
     test('plain text response does not trigger correction', () async {
-      final client = MockAiClient(responses: ['I can help you create an agent!']);
+      final client = MockAiClient(
+        responses: ['I can help you create an agent!'],
+      );
       final session = ChatSession(
         aiClient: client,
         ttsService: MockTtsService(),
@@ -188,7 +199,10 @@ void main() {
     test('returns null when no agent config in history', () {
       final session = ChatSession(
         aiClient: MockAiClient(),
-        ttsService: MockTtsService(),
+        voiceController: VoiceController(
+          stt: MockSttService(),
+          tts: MockTtsService(),
+        ),
       );
       expect(session.exportAgentConfig(), isNull);
       session.dispose();

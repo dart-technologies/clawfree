@@ -50,15 +50,16 @@ class GatewayClient extends ChangeNotifier {
     required String baseUrl,
     String token = '',
     http.Client? httpClient,
-  })  : _baseUrl = baseUrl,
-        _token = token,
-        _httpClient = httpClient ?? http.Client();
+  }) : _baseUrl = baseUrl,
+       _token = token,
+       _httpClient = httpClient ?? http.Client();
 
   String _baseUrl;
   String _token;
   final http.Client _httpClient;
 
   bool _isConnected = false;
+  bool _isDisposed = false;
 
   /// Whether the last health check returned 200.
   bool get isConnected => _isConnected;
@@ -76,6 +77,7 @@ class GatewayClient extends ChangeNotifier {
 
   /// Update the gateway base URL. Resets connection state.
   void updateBaseUrl(String url) {
+    if (_isDisposed) return;
     _baseUrl = url;
     _isConnected = false;
     notifyListeners();
@@ -83,6 +85,7 @@ class GatewayClient extends ChangeNotifier {
 
   /// Update the auth token.
   void updateToken(String token) {
+    if (_isDisposed) return;
     _token = token;
     notifyListeners();
   }
@@ -94,6 +97,11 @@ class GatewayClient extends ChangeNotifier {
       final response = await _httpClient
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 5));
+
+      if (_isDisposed) {
+        throw GatewayException('GatewayClient disposed during health check');
+      }
+
       if (response.statusCode == 200) {
         _isConnected = true;
         notifyListeners();
@@ -108,6 +116,9 @@ class GatewayClient extends ChangeNotifier {
       );
     } catch (e) {
       if (e is GatewayException) rethrow;
+      if (_isDisposed) {
+        throw GatewayException('GatewayClient disposed during health check');
+      }
       _isConnected = false;
       notifyListeners();
       throw GatewayException('Health check error: $e');
@@ -121,6 +132,9 @@ class GatewayClient extends ChangeNotifier {
     final response = await _httpClient
         .get(uri, headers: _headers)
         .timeout(const Duration(seconds: 5));
+
+    if (_isDisposed) return [];
+
     if (response.statusCode != 200) {
       throw GatewayException(
         'Fetch agents failed: ${response.statusCode}',
@@ -144,6 +158,9 @@ class GatewayClient extends ChangeNotifier {
     final response = await _httpClient
         .get(uri, headers: _headers)
         .timeout(const Duration(seconds: 5));
+
+    if (_isDisposed) return [];
+
     if (response.statusCode != 200) {
       throw GatewayException(
         'Fetch sessions failed: ${response.statusCode}',
@@ -166,6 +183,11 @@ class GatewayClient extends ChangeNotifier {
     final response = await _httpClient
         .post(uri, headers: _headers, body: jsonEncode(config))
         .timeout(const Duration(seconds: 10));
+
+    if (_isDisposed) {
+      throw GatewayException('GatewayClient disposed during create agent');
+    }
+
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw GatewayException(
         'Create agent failed: ${response.statusCode}',
@@ -190,6 +212,11 @@ class GatewayClient extends ChangeNotifier {
     final response = await _httpClient
         .post(uri, headers: _headers, body: jsonEncode(body))
         .timeout(const Duration(seconds: 10));
+
+    if (_isDisposed) {
+      throw GatewayException('GatewayClient disposed during onboard');
+    }
+
     if (response.statusCode != 200) {
       throw GatewayException(
         'Onboard failed: ${response.statusCode}',
@@ -201,6 +228,7 @@ class GatewayClient extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _httpClient.close();
     super.dispose();
   }

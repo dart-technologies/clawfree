@@ -10,18 +10,14 @@ void main() {
 
     setUp(() {
       demoClient = DemoCacheAiClient(chunkDelay: Duration.zero);
-      session = ChatSession(
-        aiClient: demoClient,
-        ttsService: MockTtsService(),
-      );
+      session = ChatSession(aiClient: demoClient, ttsService: MockTtsService());
     });
 
     tearDown(() {
       session.dispose();
     });
 
-    test('create agent then rename produces updateComponents response',
-        () async {
+    test('create agent then rename produces updateComponents response', () async {
       // Turn 1: Create
       await session.sendMessage('Create an agent');
       await Future<void>.delayed(const Duration(milliseconds: 200));
@@ -61,32 +57,34 @@ void main() {
       expect(allAiText.toLowerCase(), contains('updated'));
     });
 
-    test('create agent then add browser tool produces updateComponents response',
-        () async {
-      // Turn 1: Create
-      await session.sendMessage('Create an agent');
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+    test(
+      'create agent then add browser tool produces updateComponents response',
+      () async {
+        // Turn 1: Create
+        await session.sendMessage('Create an agent');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
 
-      // Turn 2: Add tool
-      await session.sendMessage('Add browser tool');
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+        // Turn 2: Add tool
+        await session.sendMessage('Add browser tool');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
 
-      // Should have user messages for both turns
-      final userMessages = session.messages.where((m) => m.isUser).toList();
-      expect(userMessages.length, 2);
-      expect(userMessages[0].text, 'Create an agent');
-      expect(userMessages[1].text, 'Add browser tool');
+        // Should have user messages for both turns
+        final userMessages = session.messages.where((m) => m.isUser).toList();
+        expect(userMessages.length, 2);
+        expect(userMessages[0].text, 'Create an agent');
+        expect(userMessages[1].text, 'Add browser tool');
 
-      // The AI response for "add" should mention browser
-      final aiMessages = session.messages
-          .where((m) => !m.isUser && !m.isSurface)
-          .toList();
-      expect(aiMessages.length, greaterThanOrEqualTo(2));
+        // The AI response for "add" should mention browser
+        final aiMessages = session.messages
+            .where((m) => !m.isUser && !m.isSurface)
+            .toList();
+        expect(aiMessages.length, greaterThanOrEqualTo(2));
 
-      // Due to async text streaming, the text may be in any of the AI messages.
-      final allAiText = aiMessages.map((m) => m.text ?? '').join(' ');
-      expect(allAiText.toLowerCase(), contains('browser'));
-    });
+        // Due to async text streaming, the text may be in any of the AI messages.
+        final allAiText = aiMessages.map((m) => m.text ?? '').join(' ');
+        expect(allAiText.toLowerCase(), contains('browser'));
+      },
+    );
 
     test('help command returns help text', () async {
       await session.sendMessage('help');

@@ -40,27 +40,57 @@ adapter.addChunk(chunk);
 
 ```
 clawfree/
-├── CLAUDE.md, README.md, LICENSE
+├── CLAUDE.md, GEMINI.md, README.md, LICENSE
+├── assets/fonts/             # JetBrainsMono font family (Bold, Italic, Medium, Regular)
+├── shaders/voice_blob.frag   # Fragment shader for VoiceOrb organic metaball animation
 ├── lib/
 │   ├── main.dart
 │   └── src/
-│       ├── core/            # AI client, chat session, gateway client, health poller, interaction router
-│       ├── voice/           # STT/TTS services, VoiceController, VoiceServiceFactory
+│       ├── core/             # AI client, chat session, gateway client, health poller,
+│       │                     # interaction router, demo_ai_client, remote_session,
+│       │                     # catalog (A2UI component registry), platform_config
+│       ├── voice/            # VoiceController (orchestrator), STT/TTS services,
+│       │                     # EarconService, AcousticEarcons, VoiceServiceFactory
+│       ├── video/            # ItineraryVideoGenerator (FFmpeg), VideoImageDownloader
 │       └── ui/
-│           ├── chat/        # Decomposed chat widgets (input bar, messages, surface panel)
-│           ├── chat_screen.dart   # Slim orchestrator (~267 lines)
+│           ├── chat/         # A2UI components: badge, button (override), card (override),
+│           │                 # chip, choice_picker (override), text (override), animated,
+│           │                 # gap, grid, stack, progress_bar, icon_resolver,
+│           │                 # responsive_container, trip_map, video_player,
+│           │                 # input bar, message bubble/list, surface panel/view
+│           ├── health/       # HealthIndicators, HealthSparkline (vital signs framework)
+│           ├── layouts/      # PhoneLayout, TabletLayout, VoiceOrb (shader-driven)
+│           ├── mixins/       # HealthMonitorMixin, WatchSyncManager
+│           ├── widgets/      # QrScannerDialog, RemoteSessionIndicator
+│           ├── chat_screen.dart        # Slim orchestrator
+│           ├── chat_screen_dialogs.dart # Extracted dialog flows
 │           ├── clawfree_assets.dart
 │           ├── clawfree_icons.dart
-│           ├── theme.dart
-│           └── voice_input_widget.dart
-├── infra/                   # Docker Compose, Dockerfile, configs
+│           ├── spring_curve.dart
+│           └── theme.dart         # Glassmorphism theme with JetBrainsMono typography
+├── infra/                    # Docker Compose, Dockerfile, configs
 ├── docs/
-│   ├── HACKATHON-PLAN.md    # Sprint plan + TODO checklist
-│   ├── NEXT-STEPS.md        # Setup + handoff guide
-│   └── background/          # Concise reference primers
-├── test/                    # 333 tests (unit + widget + e2e)
+│   ├── HACKATHON-PLAN.md     # Sprint plan + TODO checklist
+│   ├── NEXT-STEPS.md         # Setup + handoff guide
+│   ├── DISTRIBUTION.md       # Distribution & pairing guide
+│   ├── INTEGRATION_MERGE.md  # ChatClaw merge spec
+│   ├── WATCH_VOICE.md        # WatchOS voice implementation
+│   └── background/           # Concise reference primers
+├── test/                     # 462 tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
+
+## Dependencies (notable)
+
+- `genui` — A2UI v0.9 runtime (local path during dev)
+- `speech_to_text`, `flutter_tts` — STT/TTS platform wrappers
+- `audioplayers` — synthesized audio earcons
+- `ffmpeg_kit_flutter_new` — video generation from itinerary images
+- `video_player` — native video playback
+- `flutter_map`, `latlong2` — interactive trip maps
+- `path_provider` — temp/cache directory resolution
+- `json_schema_builder` — A2UI component schema definitions
+- `logging` — structured logging
 
 ## Conventions
 
@@ -70,6 +100,12 @@ clawfree/
 - Flutter targets: web (Chrome), iOS (iPad), watchOS (Apple Watch voice)
 - A2UI v0.9 flat component format: `{"component": "Text", "text": "Hello"}`
 - System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + `StandardCatalogEmbed.standardCatalogRules`
+- **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs)
+- **Theme**: glassmorphism design with `ClawfreeTheme.glassDecoration()`, transparent AppBar, `SpringCurve` animations
+- **Typography**: JetBrainsMono font family throughout (w800 headlines, w700 titles, w400 body)
+- **A2UI Catalog**: 35 components total — 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 4 core overrides (Card, Button, Text, ChoicePicker) + ~19 genUI core. Registered in `catalog.dart`.
+- Border radii standardized via `ClawfreeBorderRadius` constants (surface=20, interactive=16, element=12, small=8, tiny=4)
+- Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets
 
 ## Key Files (genUI v0.9 reference)
 

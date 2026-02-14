@@ -18,12 +18,12 @@ void main() {
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('art.dart.clawfree/watch'),
-      (MethodCall methodCall) async {
-        methodCalls.add(methodCall);
-        return null;
-      },
-    );
+          const MethodChannel('art.dart.clawfree/watch'),
+          (MethodCall methodCall) async {
+            methodCalls.add(methodCall);
+            return null;
+          },
+        );
 
     agentStore = AgentStore();
     healthPoller = HealthPoller(
@@ -47,17 +47,20 @@ void main() {
       expect(data['isListening'], false);
     });
 
-    test('start() registers as listener on healthPoller and agentStore', () async {
-      syncService.start();
-      methodCalls.clear();
+    test(
+      'start() registers as listener on healthPoller and agentStore',
+      () async {
+        syncService.start();
+        methodCalls.clear();
 
-      // Mutating agent store should trigger sync
-      agentStore.addAgent({'name': 'A'});
-      await Future.microtask(() {});
+        // Mutating agent store should trigger sync
+        agentStore.addAgent({'name': 'A'});
+        await Future.microtask(() {});
 
-      expect(methodCalls.length, 1);
-      expect((methodCalls.first.arguments as Map)['activeAgentCount'], 1);
-    });
+        expect(methodCalls.length, 1);
+        expect((methodCalls.first.arguments as Map)['activeAgentCount'], 1);
+      },
+    );
 
     test('stop() deregisters listeners', () async {
       syncService.start();
@@ -176,11 +179,11 @@ void main() {
       // Replace mock with one that throws
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('art.dart.clawfree/watch'),
-        (MethodCall methodCall) async {
-          throw PlatformException(code: 'UNAVAILABLE', message: 'No watch');
-        },
-      );
+            const MethodChannel('art.dart.clawfree/watch'),
+            (MethodCall methodCall) async {
+              throw PlatformException(code: 'UNAVAILABLE', message: 'No watch');
+            },
+          );
 
       // Should not throw
       expect(() => syncService.start(), returnsNormally);

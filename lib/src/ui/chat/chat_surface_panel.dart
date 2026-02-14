@@ -16,16 +16,19 @@ class ChatSurfacePanel extends StatelessWidget {
     required this.surfaceMessages,
     required this.surfaceHost,
     this.activeSurfaceId,
+    this.borderRadius = 20.0,
   });
 
   final List<MessageItem> surfaceMessages;
   final SurfaceHost surfaceHost;
   final String? activeSurfaceId;
+  final double borderRadius;
 
   MessageItem _resolveTarget() {
     if (activeSurfaceId != null) {
-      final match =
-          surfaceMessages.where((m) => m.surfaceId == activeSurfaceId);
+      final match = surfaceMessages.where(
+        (m) => m.surfaceId == activeSurfaceId,
+      );
       if (match.isNotEmpty) return match.first;
     }
     return surfaceMessages.last;
@@ -38,13 +41,18 @@ class ChatSurfacePanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(ClawfreeAssets.icon, width: 80, height: 80),
+            ClawfreeLogo(size: 120),
             const SizedBox(height: 16),
             Text(
-              'Generated UI will appear here',
+              'GENERATED UI WILL APPEAR HERE',
               style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontFamily: 'JetBrainsMono',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -53,28 +61,20 @@ class ChatSurfacePanel extends StatelessWidget {
     }
 
     final latest = _resolveTarget();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final overlayBase = isDark ? Colors.black : Colors.white;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(borderRadius),
+
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(
+          sigmaX: ClawfreeTheme.blurSigma(1.0),
+          sigmaY: ClawfreeTheme.blurSigma(1.0),
+        ),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                overlayBase.withValues(alpha: 0.10),
-                overlayBase.withValues(alpha: 0.05),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 0.5,
-            ),
-            borderRadius: BorderRadius.circular(16),
+          decoration: ClawfreeTheme.glassDecoration(
+            context,
+            elevation: 1.0,
+            borderRadius: borderRadius,
           ),
           child: SingleChildScrollView(
             physics: ClawfreeTheme.isApple
@@ -82,7 +82,7 @@ class ChatSurfacePanel extends StatelessWidget {
                     parent: AlwaysScrollableScrollPhysics(),
                   )
                 : null,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: ChatSurfaceView(
               surfaceId: latest.surfaceId!,
               surfaceHost: surfaceHost,
@@ -105,11 +105,17 @@ class SurfaceIndicator extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.8),
+          borderRadius: ClawfreeBorderRadius.element,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+          ),
         ),
+
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -118,11 +124,12 @@ class SurfaceIndicator extends StatelessWidget {
               size: 16,
               color: Theme.of(context).colorScheme.onPrimaryContainer,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               'UI generated',
               style: TextStyle(
                 fontSize: 13,
+                fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
             ),

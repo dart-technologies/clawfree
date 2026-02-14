@@ -32,10 +32,12 @@ void main() {
         gatewayClient: gatewayClient,
       );
 
-      final result = router.handle(_actionMessage('connect_gateway', {
-        'gateway_url': 'http://new-host:18789',
-        'gateway_token': 'my-secret-token',
-      }));
+      final result = router.handle(
+        _actionMessage('connect_gateway', {
+          'gateway_url': 'http://new-host:18789',
+          'gateway_token': 'my-secret-token',
+        }),
+      );
 
       expect(result, isA<ModeSwitchResult>());
       final msr = result as ModeSwitchResult;
@@ -47,14 +49,14 @@ void main() {
     });
 
     test('missing url returns UserInputResult', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
-      final result = router.handle(_actionMessage('connect_gateway', {
-        'gateway_url': '',
-        'gateway_token': 'token',
-      }));
+      final result = router.handle(
+        _actionMessage('connect_gateway', {
+          'gateway_url': '',
+          'gateway_token': 'token',
+        }),
+      );
 
       expect(result, isA<UserInputResult>());
       final uir = result as UserInputResult;
@@ -75,10 +77,12 @@ void main() {
         gatewayClient: gatewayClient,
       );
 
-      router.handle(_actionMessage('connect_gateway', {
-        'gateway_url': 'http://updated:18789',
-        'gateway_token': 'new-token',
-      }));
+      router.handle(
+        _actionMessage('connect_gateway', {
+          'gateway_url': 'http://updated:18789',
+          'gateway_token': 'new-token',
+        }),
+      );
 
       expect(gatewayClient.baseUrl, 'http://updated:18789');
       // isConnected is false after updateBaseUrl (needs a health check to reconnect)
@@ -93,9 +97,11 @@ void main() {
         // no gatewayClient
       );
 
-      final result = router.handle(_actionMessage('connect_gateway', {
-        'gateway_url': 'http://some-host:18789',
-      }));
+      final result = router.handle(
+        _actionMessage('connect_gateway', {
+          'gateway_url': 'http://some-host:18789',
+        }),
+      );
 
       // Still returns ModeSwitchResult even without a GatewayClient instance
       expect(result, isA<ModeSwitchResult>());
@@ -114,10 +120,12 @@ void main() {
         gatewayClient: gatewayClient,
       );
 
-      final result = router.handle(_actionMessage('connect_gateway', {
-        'gateway_url': 'http://no-token:18789',
-        // no gateway_token
-      }));
+      final result = router.handle(
+        _actionMessage('connect_gateway', {
+          'gateway_url': 'http://no-token:18789',
+          // no gateway_token
+        }),
+      );
 
       expect(result, isA<ModeSwitchResult>());
       expect(gatewayClient.baseUrl, 'http://no-token:18789');
@@ -128,13 +136,13 @@ void main() {
 
   group('copy_pairing_link action', () {
     test('returns SystemActionResult with correct action name', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
-      final result = router.handle(_actionMessage('copy_pairing_link', {
-        'url': 'http://192.168.1.5:18789/pair',
-      }));
+      final result = router.handle(
+        _actionMessage('copy_pairing_link', {
+          'url': 'http://192.168.1.5:18789/pair',
+        }),
+      );
 
       expect(result, isA<SystemActionResult>());
       final sar = result as SystemActionResult;
@@ -143,9 +151,7 @@ void main() {
     });
 
     test('uses default URL when context url is empty', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
       final result = router.handle(_actionMessage('copy_pairing_link', {}));
 
@@ -155,13 +161,13 @@ void main() {
     });
 
     test('returns message with QR code instruction', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
-      final result = router.handle(_actionMessage('copy_pairing_link', {
-        'url': 'http://10.0.0.1:18789/pair',
-      }));
+      final result = router.handle(
+        _actionMessage('copy_pairing_link', {
+          'url': 'http://10.0.0.1:18789/pair',
+        }),
+      );
 
       expect(result, isA<SystemActionResult>());
       final sar = result as SystemActionResult;
@@ -171,13 +177,9 @@ void main() {
 
   group('complete_onboarding action', () {
     test('transitions to home mode', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
-      final result = router.handle(
-        _actionMessage('complete_onboarding', {}),
-      );
+      final result = router.handle(_actionMessage('complete_onboarding', {}));
 
       expect(result, isA<ModeSwitchResult>());
       final msr = result as ModeSwitchResult;
@@ -187,13 +189,9 @@ void main() {
 
   group('switch_to_builder action', () {
     test('transitions to agentBuilder mode', () {
-      final router = A2uiInteractionRouter(
-        agentStore: AgentStore(),
-      );
+      final router = A2uiInteractionRouter(agentStore: AgentStore());
 
-      final result = router.handle(
-        _actionMessage('switch_to_builder', {}),
-      );
+      final result = router.handle(_actionMessage('switch_to_builder', {}));
 
       expect(result, isA<ModeSwitchResult>());
       final msr = result as ModeSwitchResult;

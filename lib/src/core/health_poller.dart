@@ -15,10 +15,10 @@ class HealthPoller extends ChangeNotifier {
     Duration interval = const Duration(seconds: 15),
     List<RemoteSession> demoSessions = const [],
     String? selfSessionId,
-  })  : _gatewayClient = gatewayClient,
-        _interval = interval,
-        _demoSessions = demoSessions,
-        _selfSessionId = selfSessionId;
+  }) : _gatewayClient = gatewayClient,
+       _interval = interval,
+       _demoSessions = demoSessions,
+       _selfSessionId = selfSessionId;
 
   final GatewayClient _gatewayClient;
   final Duration _interval;
@@ -39,9 +39,14 @@ class HealthPoller extends ChangeNotifier {
 
   /// Start polling: immediate first poll, then periodic.
   void start() {
+    if (_isDisposed) return;
     _poll();
     _timer?.cancel();
-    _timer = Timer.periodic(_interval, (_) => _poll());
+    _timer = Timer.periodic(_interval, (_) {
+      if (!_isDisposed) {
+        _poll();
+      }
+    });
   }
 
   /// Stop the periodic timer.
@@ -51,9 +56,14 @@ class HealthPoller extends ChangeNotifier {
   }
 
   /// Perform a single poll (useful after connect).
-  Future<void> pollOnce() => _poll();
+  Future<void> pollOnce() async {
+    if (_isDisposed) return;
+    await _poll();
+  }
 
   Future<void> _poll() async {
+    if (_isDisposed) return;
+
     // Fire health and sessions in parallel.
     final healthFuture = _gatewayClient.health();
     final sessionsFuture = _gatewayClient.fetchSessions().catchError(
@@ -64,6 +74,8 @@ class HealthPoller extends ChangeNotifier {
       healthFuture.then<Object?>((v) => v).catchError((Object e) => e),
       sessionsFuture,
     ]);
+
+    if (_isDisposed) return;
 
     // Process health result.
     final healthResult = results[0];
@@ -102,6 +114,7 @@ class HealthPoller extends ChangeNotifier {
       }
     }
 
+    if (_isDisposed) return;
     notifyListeners();
   }
 
@@ -110,8 +123,8 @@ class HealthPoller extends ChangeNotifier {
     final gwLevel = response.status == 'ok'
         ? HealthLevel.nominal
         : response.status == 'degraded'
-            ? HealthLevel.degraded
-            : HealthLevel.error;
+        ? HealthLevel.degraded
+        : HealthLevel.error;
     final gateway = HealthSection(
       id: 'LINK',
       label: 'Connectivity',
@@ -120,8 +133,9 @@ class HealthPoller extends ChangeNotifier {
     );
 
     // Thinking section — infer from status and agents count
-    final llmLevel =
-        response.status == 'ok' ? HealthLevel.nominal : HealthLevel.degraded;
+    final llmLevel = response.status == 'ok'
+        ? HealthLevel.nominal
+        : HealthLevel.degraded;
     final llm = HealthSection(
       id: 'THINK',
       label: 'Thinking',
@@ -132,15 +146,14 @@ class HealthPoller extends ChangeNotifier {
     // Reach section (channels)
     final channelMap = response.channels;
     final totalChannels = channelMap.length;
-    final activeChannels =
-        channelMap.values.where((v) => v == 'active').length;
+    final activeChannels = channelMap.values.where((v) => v == 'active').length;
     final chanLevel = totalChannels == 0
         ? HealthLevel.nominal
         : activeChannels == totalChannels
-            ? HealthLevel.nominal
-            : activeChannels > 0
-                ? HealthLevel.degraded
-                : HealthLevel.error;
+        ? HealthLevel.nominal
+        : activeChannels > 0
+        ? HealthLevel.degraded
+        : HealthLevel.error;
     final channels = HealthSection(
       id: 'REACH',
       label: 'Reach',
@@ -175,8 +188,11 @@ class HealthPoller extends ChangeNotifier {
     );
   }
 
+  bool _isDisposed = false;
+
   @override
   void dispose() {
+    _isDisposed = true;
     stop();
     super.dispose();
   }
