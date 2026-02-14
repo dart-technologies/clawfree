@@ -12,9 +12,7 @@ typedef VideoGenerationProgress = void Function(double fraction, String stage);
 
 /// Generates an MP4 video from downloaded itinerary images using FFmpeg.
 ///
-/// On iOS (iPhone), FFmpeg is stubbed out because the ffmpeg_kit binary
-/// lacks an arm64-simulator slice, causing linker failures on Apple Silicon.
-/// All other platforms (macOS, Android, web) use the real FFmpeg pipeline.
+/// This version supports the iOS arm64-simulator through a patched XCFramework.
 class ItineraryVideoGenerator {
   /// Duration each slide is shown, in seconds.
   static const _slideDuration = 3;
@@ -31,20 +29,15 @@ class ItineraryVideoGenerator {
     required List<String> imagePaths,
     VideoGenerationProgress? onProgress,
   }) async {
-    // iOS stub: FFmpeg binary is not available on iPhone simulators (arm64).
-    if (PlatformConfig.isIOS) {
-      genUiLogger.info(
-        'ItineraryVideoGenerator: Stubbed on iOS (no FFmpeg arm64-sim slice).',
-      );
-      onProgress?.call(1.0, 'Video generation unavailable on iOS');
-      throw UnsupportedError(
-        'Video generation is not available on iOS. '
-        'FFmpeg lacks an arm64-simulator slice.',
-      );
-    }
-
     if (imagePaths.isEmpty) {
       throw ArgumentError('imagePaths must not be empty');
+    }
+
+    // Verify all input images exist before starting
+    for (final path in imagePaths) {
+      if (!File(path).existsSync()) {
+        throw FileSystemException('Input image does not exist', path);
+      }
     }
 
     final outPath = await outputPath();
@@ -57,48 +50,71 @@ class ItineraryVideoGenerator {
 
     onProgress?.call(0.0, 'Preparing FFmpeg pipeline');
 
-    // Build a concat demuxer input file listing each image for _slideDuration.
     final cacheDir = await VideoImageDownloader.getCacheDir();
     final concatFile = File('$cacheDir/concat.txt');
-    final concatLines = StringBuffer();
-    for (final path in imagePaths) {
-      concatLines.writeln("file '$path'");
-      concatLines.writeln('duration $_slideDuration');
+    
+    try {
+      // Build a concat demuxer input file listing each image for _slideDuration.
+      final concatLines = StringBuffer();
+      for (final path in imagePaths) {
+        // Paths in concat file must be escaped/quoted for FFmpeg
+        final escapedPath = path.replaceAll("'", "'\\''");
+        concatLines.writeln("file '$escapedPath'");
+        concatLines.writeln('duration $_slideDuration');
+      }
+      // Repeat last image to avoid FFmpeg cutting it short (required by concat demuxer)
+      final lastEscapedPath = imagePaths.last.replaceAll("'", "'\\''");
+      concatLines.writeln("file '$lastEscapedPath'");
+      
+      await concatFile.writeAsString(concatLines.toString());
+
+      onProgress?.call(0.1, 'Encoding video');
+
+      final escapedConcatPath = concatFile.path.replaceAll("'", "'\\''");
+      final escapedOutPath = outPath.replaceAll("'", "'\\''");
+
+      // FFmpeg command: concat demuxer → scale to 1280x720 → H.264 MP4.
+      // We quote all paths for safety against spaces/special characters.
+      final command = [
+        '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', "'$escapedConcatPath'",
+        '-vf', '"scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"',
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-r', '$_fps',
+        '-preset', 'ultrafast',
+        '-crf', '23',
+        "'$escapedOutPath'",
+      ].join(' ');
+
+      genUiLogger.info('ItineraryVideoGenerator: Running FFmpeg command');
+
+      final session = await FFmpegKit.execute(command);
+      final returnCode = await session.getReturnCode();
+
+      if (ReturnCode.isSuccess(returnCode)) {
+        genUiLogger.info('ItineraryVideoGenerator: Success — $outPath');
+        onProgress?.call(1.0, 'Video ready');
+        return outPath;
+      }
+
+      final logs = await session.getLogsAsString();
+      genUiLogger.severe('ItineraryVideoGenerator: FFmpeg failed (code: ${returnCode?.getValue()})\n$logs');
+      throw Exception('FFmpeg encoding failed. See logs for details.');
+    } catch (e, stack) {
+      genUiLogger.severe('ItineraryVideoGenerator: Unexpected error', e, stack);
+      rethrow;
+    } finally {
+      // Cleanup the temporary concat file
+      if (concatFile.existsSync()) {
+        try {
+          await concatFile.delete();
+        } catch (cleanupError) {
+          genUiLogger.warning('ItineraryVideoGenerator: Failed to cleanup concat file', cleanupError);
+        }
+      }
     }
-    // Repeat last image to avoid FFmpeg cutting it short.
-    concatLines.writeln("file '${imagePaths.last}'");
-    await concatFile.writeAsString(concatLines.toString());
-
-    onProgress?.call(0.1, 'Encoding video');
-
-    // FFmpeg command: concat demuxer → scale to 1280x720 → H.264 MP4.
-    final command = [
-      '-y',
-      '-f', 'concat',
-      '-safe', '0',
-      '-i', concatFile.path,
-      '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-      '-c:v', 'libx264',
-      '-pix_fmt', 'yuv420p',
-      '-r', '$_fps',
-      '-preset', 'ultrafast',
-      '-crf', '23',
-      outPath,
-    ].join(' ');
-
-    genUiLogger.info('ItineraryVideoGenerator: Running FFmpeg');
-
-    final session = await FFmpegKit.execute(command);
-    final returnCode = await session.getReturnCode();
-
-    if (ReturnCode.isSuccess(returnCode)) {
-      genUiLogger.info('ItineraryVideoGenerator: Success — $outPath');
-      onProgress?.call(1.0, 'Video ready');
-      return outPath;
-    }
-
-    final logs = await session.getLogsAsString();
-    genUiLogger.severe('ItineraryVideoGenerator: FFmpeg failed\n$logs');
-    throw Exception('FFmpeg encoding failed (code: ${returnCode?.getValue()})');
   }
 }

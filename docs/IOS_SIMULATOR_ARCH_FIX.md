@@ -1,35 +1,26 @@
 # iOS Simulator Architecture Fix (Apple Silicon)
 
 ## Issue
-The "iPhone 17 Pro" simulator (running on arm64 Mac Mini) failed to run the app with a linker error:
+Apple Silicon simulators failed to link `ffmpeg_kit_flutter_new` with error:
 `Building for 'iOS-simulator', but linking in dylib built for 'iOS'`.
 
-### Root Cause
-The `ffmpeg_kit_flutter_new` library uses a "fat" framework that contains an `arm64` slice for physical devices but lacks an `arm64-simulator` slice. On Apple Silicon Macs, Xcode attempts to build a native `arm64` simulator binary and incorrectly tries to link the device-specific `arm64` FFmpeg slice, causing the failure.
+## Root Cause
+The binary lacked an `arm64-simulator` slice. Xcode incorrectly linked the device-specific `arm64` slice during simulator builds.
 
-## Proposed Fix: Forced Rosetta (x86_64) Build
-To resolve this for the hackathon without switching library variants, we force the simulator to run via **Rosetta 2** using the `x86_64` architecture.
+## Permanent Fix: Native arm64-Simulator Support
+Transitioned from a Rosetta (`x86_64`) workaround to native `arm64` simulator support via a patched framework build.
 
 ### Applied Changes
-1.  **Excluded arm64 for Simulators**:
-    - Updated `ios/Runner.xcodeproj/project.pbxproj` to set `"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64`.
-    - Updated `ios/Flutter/Debug.xcconfig` and `Release.xcconfig` to include `arm64` in `EXCLUDED_ARCHS`.
-2.  **Disabled "Build Active Architecture Only"**:
-    - Set `ONLY_ACTIVE_ARCH = NO` in project settings and `Podfile` to ensure the `x86_64` slice is built on `arm64` hosts.
-3.  **Restored Simulator Destinations**:
-    - Updated `SUPPORTED_PLATFORMS` to `"iphonesimulator iphoneos"` to ensure simulators are visible in Xcode/Flutter device lists.
-4.  **Podfile Post-Install Hook**:
-    - Added logic to `ios/Podfile` to propagate these architecture exclusions and the `iOS 15.0` deployment target to all plugin dependencies.
+1.  **Patched Library**:
+    - Updated `pubspec.yaml` to use fork `dart-technologies/ffmpeg_kit_flutter` (branch `arm64-simulator-support`).
+    - Frameworks were patched using `vtool` to set the build version to platform 7 (`IOSSIMULATOR`).
+2.  **Reverted Workarounds**:
+    - Removed `arm64` from `EXCLUDED_ARCHS` in project and `.xcconfig` files.
+    - Restored default `ONLY_ACTIVE_ARCH` and `SUPPORTED_PLATFORMS` settings.
+3.  **Native Pipeline**:
+    - Enabled full FFmpeg pipeline in `lib/src/video/itinerary_video_generator.dart` for iOS.
+    - Added single-quote escaping for paths in the FFmpeg concat demuxer.
 
-## Alternative: Temporarily Disabling FFmpeg (Native arm64)
-If Rosetta 2 is not working or native performance is required, FFmpeg can be disabled to allow a pure `arm64` build.
-
-### Steps to Disable
-1.  **pubspec.yaml**: Comment out `ffmpeg_kit_flutter_new`.
-2.  **Code Stubbing**: Replace logic in `lib/src/video/itinerary_video_generator.dart` with stubs to remove the dependency on `package:ffmpeg_kit_flutter_new`.
-3.  **Revert Architectures**: Remove `arm64` from `EXCLUDED_ARCHS` in all config files and the `Podfile`.
-4.  **Clean & Install**: Run `flutter clean` and `pod install` to remove the offending binary from the workspace.
-
-### Trade-off
-- **Pros**: Native `arm64` simulator performance; no Rosetta dependency.
-- **Cons**: Video generation features (e.g., Travel Itinerary previews) will be unavailable.
+### Maintenance
+- **Rebuild**: Run `scripts/rebuild_ffmpeg_arm64_sim.sh rebuild` to clone and patch.
+- **Verify**: Run `scripts/rebuild_ffmpeg_arm64_sim.sh verify` to check existing binaries.
