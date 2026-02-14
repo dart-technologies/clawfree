@@ -1,14 +1,25 @@
 import 'dart:io';
 
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new/ffmpeg_session.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:genui/genui.dart';
 
-import '../core/platform_config.dart';
 import 'video_image_downloader.dart';
 
 /// Progress callback: fraction 0.0–1.0 and a human-readable stage label.
 typedef VideoGenerationProgress = void Function(double fraction, String stage);
+
+/// Abstract interface for FFmpeg execution to allow mocking in tests.
+abstract class FFmpegExecutor {
+  Future<FFmpegSession> execute(String command);
+}
+
+/// Default implementation that calls the real FFmpegKit.
+class DefaultFFmpegExecutor implements FFmpegExecutor {
+  @override
+  Future<FFmpegSession> execute(String command) => FFmpegKit.execute(command);
+}
 
 /// Generates an MP4 video from downloaded itinerary images using FFmpeg.
 ///
@@ -28,7 +39,9 @@ class ItineraryVideoGenerator {
   static Future<String> generate({
     required List<String> imagePaths,
     VideoGenerationProgress? onProgress,
+    FFmpegExecutor? executor,
   }) async {
+    final exec = executor ?? DefaultFFmpegExecutor();
     if (imagePaths.isEmpty) {
       throw ArgumentError('imagePaths must not be empty');
     }
@@ -91,7 +104,7 @@ class ItineraryVideoGenerator {
 
       genUiLogger.info('ItineraryVideoGenerator: Running FFmpeg command');
 
-      final session = await FFmpegKit.execute(command);
+      final session = await exec.execute(command);
       final returnCode = await session.getReturnCode();
 
       if (ReturnCode.isSuccess(returnCode)) {

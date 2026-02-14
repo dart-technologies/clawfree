@@ -42,7 +42,7 @@ class ChatSession extends ChangeNotifier {
            ),
        _agentStore = agentStore ?? AgentStore(),
        _gatewayClient = gatewayClient {
-    _feedbackService = UIFeedbackService(ttsService: this.voiceController?.tts);
+    _feedbackService = UIFeedbackService();
     _surfaceManager = A2uiSurfaceManager();
     _promptBuilder = SystemPromptBuilder(
       surfaceManager: _surfaceManager,
@@ -56,7 +56,6 @@ class ChatSession extends ChangeNotifier {
     _interactionRouter = A2uiInteractionRouter(
       agentStore: _agentStore,
       feedbackService: _feedbackService,
-      ttsService: voiceController?.tts,
       gatewayClient: _gatewayClient,
     );
     _listenToSurfaces();
@@ -85,6 +84,9 @@ class ChatSession extends ChangeNotifier {
   /// Exposed for integration testing.
   @visibleForTesting
   A2uiInteractionRouter get interactionRouterForTest => _interactionRouter;
+
+  /// Interaction router (for production demo automation).
+  A2uiInteractionRouter get interactionRouter => _interactionRouter;
   SurfaceHost get surfaceHost => _surfaceManager.surfaceHost;
 
   final List<Map<String, String>> _chatHistory = [];
@@ -181,6 +183,7 @@ class ChatSession extends ChangeNotifier {
         _performGeneration(text);
       case MaxCorrectionsResult(:final message):
         _messages.add(message);
+        voiceController?.speak(message.text ?? '');
         notifyListeners();
       case ModeSwitchResult(:final targetMode, :final message):
         setMode(targetMode);
@@ -193,6 +196,7 @@ class ChatSession extends ChangeNotifier {
           _syncAgentsFromGateway();
         }
         _messages.add(message);
+        voiceController?.speak(message.text ?? '');
         // Trigger success mood + earcon for terminal actions
         _triggerSuccessMood();
         notifyListeners();
@@ -213,6 +217,11 @@ class ChatSession extends ChangeNotifier {
       case IgnoredResult():
         break;
     }
+  }
+  
+  /// Public API for demo automation to inject surface events.
+  void simulateSurfaceInteraction(ChatMessage event) {
+    _handleSurfaceInteraction(event);
   }
 
   /// Flash the success mood indicator for 2 seconds and play ear chime.

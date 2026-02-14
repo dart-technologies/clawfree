@@ -1,45 +1,73 @@
-.PHONY: run demo test test-workflow test-integration analyze build-macos build-web build-android build-apk build-ios build-ios-dist gateway gateway-down gateway-logs icons clean help
+.PHONY: help get icons clean run web demo demo-travel test test-e2e-logic test-e2e-ui test-integration test-all analyze lint check build-macos build-web build-ios build-android build-apk build-watch qa deploy stop health gateway gateway-down gateway-logs gateway-health
 
 # Default target
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 # ---------------------------------------------------------------------------
-# Run
+# Setup & Maintenance
+# ---------------------------------------------------------------------------
+
+get: ## Get dependencies
+	flutter pub get
+
+icons: ## Regenerate macOS app icons from assets/icon.png
+	@for size in 16 32 64 128 256 512 1024; do \
+		sips -z $$size $$size assets/icon.png --out macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$$size.png 2>/dev/null; \
+		echo "Generated $${size}x$${size}"; \
+	done
+
+clean: ## Clean build artifacts
+	flutter clean
+	cd infra && docker compose down --rmi local 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# Run & Development
 # ---------------------------------------------------------------------------
 
 run: ## Run on macOS with API key from env
 	flutter run -d macos --dart-define=ANTHROPIC_API_KEY=$(ANTHROPIC_API_KEY)
 
-demo: ## Run in demo mode (no API key needed)
-	flutter run -d macos --dart-define=DEMO_MODE=true
-
-demo-travel: ## Run demo mode and auto-trigger Tokyo travel flow
-	flutter run -d macos --dart-define=DEMO_MODE=true --dart-define=DEMO_SCENARIO=travel
-
 web: ## Run on Chrome (requires gateway)
 	flutter run -d chrome
 
 # ---------------------------------------------------------------------------
-# Quality
+# Demo Scenarios (AI Trajectories)
 # ---------------------------------------------------------------------------
 
-test: ## Run all tests
+demo: ## Run in demo mode (no API key needed)
+	flutter run -d macos --dart-define=DEMO_MODE=true
+
+demo-travel: ## Run automated Tokyo travel scenario in live app (In-App Trajectory)
+	flutter run -d macos --dart-define=DEMO_MODE=true --dart-define=DEMO_SCENARIO=travel
+
+# ---------------------------------------------------------------------------
+# Quality & Testing
+# ---------------------------------------------------------------------------
+
+test: ## Run all unit tests
 	flutter test
 
-test-workflow: ## Run the demo trip integration test
+test-e2e-logic: ## Run fast logic-only E2E tests (no UI)
 	flutter test test/integration/demo_trip_e2e_test.dart
 
-test-integration: ## Run all integration tests
-	flutter test test/integration/
+test-e2e-ui: ## Run high-fidelity UI automation with voiceover (macOS only)
+	flutter test integration_test/demo_driver.dart -d macos
+
+test-integration: ## Run all integration tests (logic + UI)
+	flutter test test/integration/ integration_test/
+
+test-all: test test-integration ## Run unit + logic + UI tests
 
 analyze: ## Run Dart analyzer
 	flutter analyze
 
-check: analyze test ## Run analyzer + tests
+lint: analyze ## Alias for analyze
+
+check: lint test test-e2e-logic ## Pre-commit check (Fast path)
 
 # ---------------------------------------------------------------------------
-# Build
+# Build & Distribution
 # ---------------------------------------------------------------------------
 
 build-macos: ## Build macOS release
@@ -60,15 +88,11 @@ build-android: ## Build Android release (AAB)
 build-apk: ## Build Android release (APK)
 	flutter build apk --release
 
-# ---------------------------------------------------------------------------
-# WatchOS Companion
-# ---------------------------------------------------------------------------
-
 build-watch: ## Build WatchOS companion
 	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build
 
 # ---------------------------------------------------------------------------
-# Production & QA (Docker)
+# Infrastructure (Docker)
 # ---------------------------------------------------------------------------
 
 qa: ## Launch Zero-to-One QA stack (Frontend + OpenClaw + Redis)
@@ -86,10 +110,6 @@ health: ## Check full stack health (Gateway + Frontend)
 	@echo "--- Frontend (http://localhost:8080) ---"
 	@curl -sf -o /dev/null -w "✅ HTTP %{http_code}\n" http://localhost:8080 || echo "❌ Offline"
 
-# ---------------------------------------------------------------------------
-# Gateway (Docker)
-# ---------------------------------------------------------------------------
-
 gateway: ## Start CORS gateway (Docker)
 	cd infra && docker compose up -d
 
@@ -99,26 +119,5 @@ gateway-down: ## Stop CORS gateway
 gateway-logs: ## Tail gateway logs
 	cd infra && docker compose logs -f gateway
 
-gateway-health: ## Check gateway health (via proxy or direct WebSocket)
-	@curl -sf http://localhost:8080/api/health | python3 -m json.tool || echo "Gateway not running (try direct: docker compose -f infra/docker-compose.prod.yml exec openclaw wget -qO- http://localhost:18789/health)"
-
-# ---------------------------------------------------------------------------
-# Assets
-# ---------------------------------------------------------------------------
-
-icons: ## Regenerate macOS app icons from assets/icon.png
-	@for size in 16 32 64 128 256 512 1024; do \
-		sips -z $$size $$size assets/icon.png --out macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$$size.png 2>/dev/null; \
-		echo "Generated $${size}x$${size}"; \
-	done
-
-# ---------------------------------------------------------------------------
-# Cleanup
-# ---------------------------------------------------------------------------
-
-clean: ## Clean build artifacts
-	flutter clean
-	cd infra && docker compose down --rmi local 2>/dev/null || true
-
-get: ## Get dependencies
-	flutter pub get
+gateway-health: ## Check gateway health
+	@curl -sf http://localhost:8080/api/health | python3 -m json.tool || echo "Gateway not running"

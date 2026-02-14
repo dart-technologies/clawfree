@@ -89,3 +89,6 @@ docs/archive/
 
 # Claude Code
 .claude/
+
+# FFmpeg Rebuild Workspace
+ffmpeg_rebuild_workspace/

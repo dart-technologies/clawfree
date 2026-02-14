@@ -7,10 +7,15 @@ import 'tts_service.dart';
 
 /// Creates platform-appropriate voice services.
 abstract final class VoiceServiceFactory {
-  static ({TtsService tts, SttService stt}) create({bool isDemo = false}) {
-    if (isDemo || kIsWeb) {
-      return (tts: MockTtsService(), stt: MockSttService());
-    }
-    return (tts: PlatformTtsService(), stt: PlatformSttService());
+  static ({TtsService tts, SttService stt}) create({
+    bool isDemo = false,
+    bool forceRealTts = false,
+  }) {
+    final tts =
+        (isDemo && !forceRealTts) || kIsWeb
+            ? MockTtsService()
+            : PlatformTtsService();
+    final stt = (isDemo || kIsWeb) ? MockSttService() : PlatformSttService();
+    return (tts: tts, stt: stt);
   }
 }

@@ -1,6 +1,6 @@
 # clawfree
 
-Hands-free AI agent creation powered by Opus 4.6 and Flutter genUI.
+Hands-free AI agent orchestrator powered by Flutter genUI
 
 Speak to create, configure, and interact with AI agents through dynamically generated UIs. No typing, no JSON editing, no code.
 

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:genui/genui.dart';
 import 'package:clawfree/src/core/agent_store.dart';
 import 'package:clawfree/src/core/chat_session.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
@@ -205,6 +207,46 @@ void main() {
         ),
       );
       expect(session.exportAgentConfig(), isNull);
+      session.dispose();
+    });
+  });
+
+  group('ChatSession automation', () {
+    test('simulateSurfaceInteraction triggers router logic', () {
+      final session = ChatSession(
+        aiClient: MockAiClient(),
+        voiceController: VoiceController(
+          stt: MockSttService(),
+          tts: MockTtsService(),
+        ),
+      );
+
+      final event = ChatMessage(
+        role: ChatMessageRole.user,
+        parts: [
+          TextPart(
+            jsonEncode({
+              'action': {
+                'name': 'save_agent',
+                'context': {
+                  'name': 'TestAgent',
+                  'model': ['model'],
+                  'tools': [],
+                  'channels': [],
+                },
+              },
+            }),
+          ),
+        ],
+      );
+
+      session.simulateSurfaceInteraction(event);
+
+      // Router should handle save_agent by creating a success message
+      expect(session.messages.isNotEmpty, isTrue);
+      expect(session.messages.last.text, contains('saved'));
+      expect(session.messages.last.isUser, isFalse);
+
       session.dispose();
     });
   });

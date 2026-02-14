@@ -1,0 +1,61 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Analyze & Test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: 'stable'
+          cache: true
+          
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Analyze code
+        run: flutter analyze
+        
+      - name: Run unit tests
+        run: flutter test --coverage
+
+  ios_verify:
+    name: Verify iOS Simulator Build
+    runs-on: macos-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Verify FFmpeg frameworks
+        run: |
+          chmod +x scripts/rebuild_ffmpeg_arm64_sim.sh
+          ./scripts/rebuild_ffmpeg_arm64_sim.sh verify
+          
+      - name: iOS Simulator Build (Dry run)
+        run: |
+          # Inject SDKROOT to avoid the native_assets error discovered during development
+          export SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          export DEVELOPER_DIR=$(xcode-select -p)
+          flutter build ios --simulator --debug --no-codesign

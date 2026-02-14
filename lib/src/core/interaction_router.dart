@@ -9,7 +9,6 @@ import 'message_item.dart';
 import 'openclaw_orchestrator.dart';
 import 'prompt_library.dart';
 import 'ui_feedback_service.dart';
-import '../voice/tts_service.dart';
 
 /// Result of routing a surface interaction.
 sealed class InteractionResult {
@@ -68,20 +67,17 @@ class A2uiInteractionRouter {
   A2uiInteractionRouter({
     required AgentRepository agentStore,
     UIFeedbackService? feedbackService,
-    TtsService? ttsService,
     OpenClawOrchestrator? orchestrator,
     GatewayClient? gatewayClient,
   }) : _agentStore = agentStore,
        _feedbackService =
-           feedbackService ?? UIFeedbackService(ttsService: ttsService),
-       _ttsService = ttsService,
+           feedbackService ?? UIFeedbackService(),
        _orchestrator =
            orchestrator ?? OpenClawOrchestrator(agentStore: agentStore),
        _gatewayClient = gatewayClient;
 
   final AgentRepository _agentStore;
   final UIFeedbackService _feedbackService;
-  final TtsService? _ttsService;
   final OpenClawOrchestrator _orchestrator;
   final GatewayClient? _gatewayClient;
 
@@ -399,7 +395,6 @@ class A2uiInteractionRouter {
 
     if (cmd == null) {
       genUiLogger.info('Unknown manage action: $actionName');
-      _ttsService?.speak('Action processed.');
       return InteractionResult.systemAction(
         actionName,
         MessageItem.aiText(text: 'Processed action: $actionName.'),
@@ -407,7 +402,6 @@ class A2uiInteractionRouter {
     }
 
     genUiLogger.info(cmd.logMessage);
-    _ttsService?.speak(cmd.ttsMessage);
 
     return InteractionResult.systemAction(
       actionName,

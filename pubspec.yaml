@@ -1,5 +1,5 @@
 name: clawfree
-description: "Hands-free AI agent creation powered by Opus 4.6 and Flutter genUI."
+description: "Hands-free AI agent orchestrator powered by Flutter genUI"
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -16,7 +16,7 @@ dependencies:
   genui:
     git:
       url: https://github.com/flutter/genui.git
-      ref: 172d13703f88f0242a464c4eedeaaeb562b9f82b
+      ref: feature/v0.9-migration
       path: packages/genui
 
   # AI client
@@ -69,6 +69,9 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+  path_provider_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.0
 
 flutter:
   uses-material-design: true
