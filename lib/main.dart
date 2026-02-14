@@ -112,13 +112,13 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     _appLinks = AppLinks();
     // Handle cold-start deep link (app launched via URL).
     _appLinks.getInitialLink().then((uri) {
-      if (uri != null && uri.scheme == 'clawfree' && uri.host == 'pair') {
+      if (uri != null && uri.scheme == 'clawfree') {
         _handleDeepLink(uri);
       }
     });
     // Handle warm-start deep links (app already running).
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'clawfree' && uri.host == 'pair') {
+      if (uri.scheme == 'clawfree') {
         _handleDeepLink(uri);
       }
     });

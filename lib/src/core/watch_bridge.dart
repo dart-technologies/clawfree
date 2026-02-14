@@ -16,6 +16,7 @@ class WatchVoiceEvent {
     this.text,
     required this.timestamp,
     required this.type,
+    this.uiState,
   });
 
   /// For file-based transfers: local path to the `.m4a` audio.
@@ -26,13 +27,24 @@ class WatchVoiceEvent {
 
   final DateTime timestamp;
 
-  /// Event type: `"voice"` (file), `"voice_command"` (text), or `"ai_reply"`.
+  /// Event type: `"voice"` (file), `"voice_command"` (text), `"ai_reply"`, or `"ui_state"`.
   final String type;
+
+  /// Watch UI 狀態資料（flow, step, selections 等）
+  final Map<String, dynamic>? uiState;
 
   /// Whether this is a text-based voice command (speech recognized on Watch).
   bool get isTextCommand => type == 'voice_command' && text != null;
 
+  /// Whether this is a Watch UI state sync event.
+  bool get isUIState => type == 'ui_state';
+
   factory WatchVoiceEvent.fromMap(Map<dynamic, dynamic> map) {
+    // 提取 ui_state 相關欄位
+    Map<String, dynamic>? uiState;
+    if (map['type'] == 'ui_state') {
+      uiState = Map<String, dynamic>.from(map);
+    }
     return WatchVoiceEvent(
       filePath: map['filePath'] as String?,
       text: map['text'] as String?,
@@ -41,6 +53,7 @@ class WatchVoiceEvent {
               (map['timestamp'] as num).toInt())
           : DateTime.now(),
       type: map['type'] as String? ?? 'voice',
+      uiState: uiState,
     );
   }
 

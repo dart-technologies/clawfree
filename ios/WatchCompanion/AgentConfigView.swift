@@ -35,7 +35,6 @@ struct AgentConfigView: View {
             darkBg.ignoresSafeArea()
 
             VStack(spacing: 6) {
-                // 頂部進度條
                 progressBar
 
                 switch step {
@@ -45,6 +44,21 @@ struct AgentConfigView: View {
                 }
             }
         }
+        .onAppear { syncState() }
+        .onChange(of: step) { _ in syncState() }
+        .onChange(of: selectedModel) { _ in syncState() }
+    }
+
+    /// 同步 Watch UI 狀態到 iPhone → iPad/macOS
+    private func syncState() {
+        let selectedSkills = skills.filter(\.selected).map(\.name)
+        connectivity.sendUIState([
+            "flow": "agentConfig",
+            "step": step,
+            "selectedModel": models[selectedModel].0,
+            "selectedModelEmoji": models[selectedModel].1,
+            "selectedSkills": selectedSkills,
+        ])
     }
 
     // MARK: - 進度條

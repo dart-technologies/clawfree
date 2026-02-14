@@ -85,6 +85,36 @@ class LocalSyncClient extends ChangeNotifier {
     });
   }
 
+  /// 傳送使用者訊息到 server（由 server 轉發給其他 clients）。
+  void sendUserMessage(String text, {String source = 'keyboard'}) {
+    _send({
+      'type': 'user_message',
+      'text': text,
+      'source': source,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  /// 傳送 AI 回應到 server（由 server 轉發給其他 clients）。
+  void sendAiResponse(String text, {String? a2ui}) {
+    _send({
+      'type': 'ai_response',
+      'text': text,
+      // ignore: use_null_aware_elements
+      if (a2ui != null) 'a2ui': a2ui,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  void _send(Map<String, dynamic> data) {
+    if (_ws == null || !_connected) return;
+    try {
+      _ws!.add(jsonEncode(data));
+    } catch (e) {
+      debugPrint('[LocalSyncClient] send error: $e');
+    }
+  }
+
   /// Disconnect from the server.
   Future<void> disconnect() async {
     _disposed = true;

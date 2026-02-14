@@ -84,12 +84,16 @@ struct TripPlannerView: View {
         }
         .onAppear {
             attractions = cityAttractions[selectedCity]
+            syncState()
         }
         .onChange(of: selectedCity) { newVal in
             if newVal < cityAttractions.count {
                 attractions = cityAttractions[newVal]
             }
+            syncState()
         }
+        .onChange(of: step) { _ in syncState() }
+        .onChange(of: selectedDays) { _ in syncState() }
     }
 
     // MARK: - 進度條
@@ -103,6 +107,19 @@ struct TripPlannerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)
+    }
+
+    /// 同步 Watch UI 狀態到 iPhone → iPad/macOS
+    private func syncState() {
+        let selectedAttr = attractions.filter(\.selected).map(\.name)
+        connectivity.sendUIState([
+            "flow": "tripPlanner",
+            "step": step,
+            "selectedCity": cities[selectedCity].name,
+            "selectedCityEmoji": cities[selectedCity].emoji,
+            "selectedDays": daysOptions[selectedDays],
+            "selectedAttractions": selectedAttr,
+        ])
     }
 
     // MARK: - Step 0: 選目的地（橫滑卡片）
