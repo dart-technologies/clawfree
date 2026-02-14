@@ -15,7 +15,7 @@ final textOverrideSchema = S.object(
     ),
     'variant': S.string(
       enumValues: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'caption', 'body', 'body2',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'caption', 'body', 'body1', 'body2',
         'technical', 'mono', 'label', 'overline',
       ],
       description: 'Text style variant.',
@@ -39,7 +39,7 @@ Widget textOverrideCatalogBuilder(CatalogItemContext itemContext) {
   final colorOverride = parseHexColor(data['color'] as String?);
 
   // Subscribe to string for reactive data binding.
-  final notifier = itemContext.dataContext.subscribeToString(textRef);
+  final notifier = _subscribeToText(itemContext.dataContext, textRef);
 
   return ValueListenableBuilder<String?>(
     valueListenable: notifier,
@@ -133,6 +133,7 @@ Widget _buildMarkdownVariant(
     'h3' => textTheme.headlineSmall,
     'h4' => textTheme.titleLarge,
     'h5' => textTheme.titleMedium,
+    'h6' => textTheme.titleSmall,
     'caption' || 'body2' => textTheme.bodySmall,
     _ => DefaultTextStyle.of(context).style,
   };
@@ -149,7 +150,7 @@ Widget _buildMarkdownVariant(
     'h2' => 6.0,
     'h3' => 4.0,
     'h4' => 4.0,
-    'h5' => 2.0,
+    'h5' || 'h6' => 2.0,
     'caption' || 'body2' => 0.0,
     _ => 2.0,
   };
@@ -163,4 +164,19 @@ Widget _buildMarkdownVariant(
       ),
     ),
   );
+}
+
+ValueNotifier<String?> _subscribeToText(DataContext context, Object? textRef) {
+  if (textRef is Map) {
+    if (textRef.containsKey('path')) {
+      return context.subscribe<String>(textRef['path'] as String);
+    }
+  }
+  if (textRef is String) {
+    if (textRef.contains(r'${')) {
+      return context.subscribe<String>(textRef);
+    }
+    return ValueNotifier(textRef);
+  }
+  return ValueNotifier(textRef?.toString());
 }

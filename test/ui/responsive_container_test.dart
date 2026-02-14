@@ -4,39 +4,39 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/responsive_container.dart';
 import 'package:clawfree/src/ui/chat/chat_surface_view.dart';
 
-class MockCatalogItemContext extends Fake implements CatalogItemContext {
-  MockCatalogItemContext({required this.data});
-
-  @override
-  final Object data;
-
-  @override
-  ChildBuilderCallback get buildChild => (String id, [DataContext? dataContext]) {
-        return Text('Child: $id');
-      };
-
-  @override
-  DataContext get dataContext => MockDataContext();
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-responsive',
+    type: 'ResponsiveContainer',
+    buildChild: (id, [dc]) => Text('Child: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
-
-class MockDataContext extends Fake implements DataContext {}
 
 void main() {
   group('ResponsiveContainer', () {
     testWidgets('renders children in columns on wide screen', (WidgetTester tester) async {
-      final context = MockCatalogItemContext(data: {
-        'children': ['1', '2'],
-        'columns': 2,
-        'spacing': 10.0,
-      });
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Center(
               child: SizedBox(
                 width: 800,
-                child: ResponsiveContainer(itemContext: context),
+                child: Builder(
+                  builder: (context) => ResponsiveContainer(
+                    itemContext: _createContext({
+                      'children': ['1', '2'],
+                      'columns': 2,
+                      'spacing': 10.0,
+                    }, context),
+                  ),
+                ),
               ),
             ),
           ),
@@ -54,20 +54,22 @@ void main() {
     });
 
     testWidgets('renders children in a column on narrow screen', (WidgetTester tester) async {
-      final context = MockCatalogItemContext(data: {
-        'children': ['1', '2'],
-        'columns': 2,
-        'mobileColumns': 1,
-        'spacing': 10.0,
-      });
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Center(
               child: SizedBox(
                 width: 400,
-                child: ResponsiveContainer(itemContext: context),
+                child: Builder(
+                  builder: (context) => ResponsiveContainer(
+                    itemContext: _createContext({
+                      'children': ['1', '2'],
+                      'columns': 2,
+                      'mobileColumns': 1,
+                      'spacing': 10.0,
+                    }, context),
+                  ),
+                ),
               ),
             ),
           ),
@@ -85,15 +87,17 @@ void main() {
     });
 
     testWidgets('renders skeleton when children are empty', (WidgetTester tester) async {
-      final context = MockCatalogItemContext(data: {
-        'children': [],
-        'skeleton': 'card',
-      });
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ResponsiveContainer(itemContext: context),
+            body: Builder(
+              builder: (context) => ResponsiveContainer(
+                itemContext: _createContext({
+                  'children': [],
+                  'skeleton': 'card',
+                }, context),
+              ),
+            ),
           ),
         ),
       );

@@ -4,25 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/button_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockDataContext extends Fake implements DataContext {}
-
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-button';
-  @override
-  DataContext get dataContext => _MockDataContext();
-
-  final dispatchedEvents = <UiEvent>[];
-  @override
-  DispatchEventCallback get dispatchEvent =>
-      (UiEvent event) => dispatchedEvents.add(event);
-
-  @override
-  ChildBuilderCallback get buildChild =>
-      (String id, [DataContext? dc]) => Text('BtnLabel: $id');
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-button',
+    type: 'Button',
+    buildChild: (id, [dc]) => Text('BtnLabel: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -32,16 +26,18 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: buttonOverrideCatalogBuilder(_MockContext({
-              'child': 'btn-label',
-              'action': <String, Object?>{
-                'event': <String, Object?>{
-                  'name': 'click',
-                  'context': <String, Object?>{},
+            body: Builder(
+              builder: (context) => buttonOverrideCatalogBuilder(_createContext({
+                'child': 'btn-label',
+                'action': <String, Object?>{
+                  'event': <String, Object?>{
+                    'name': 'click',
+                    'context': <String, Object?>{},
+                  },
                 },
-              },
-              'variant': 'primary',
-            })),
+                'variant': 'primary',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -55,16 +51,18 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: buttonOverrideCatalogBuilder(_MockContext({
-              'child': 'secondary-btn',
-              'action': <String, Object?>{
-                'event': <String, Object?>{
-                  'name': 'click',
-                  'context': <String, Object?>{},
+            body: Builder(
+              builder: (context) => buttonOverrideCatalogBuilder(_createContext({
+                'child': 'secondary-btn',
+                'action': <String, Object?>{
+                  'event': <String, Object?>{
+                    'name': 'click',
+                    'context': <String, Object?>{},
+                  },
                 },
-              },
-              'variant': 'secondary',
-            })),
+                'variant': 'secondary',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -77,16 +75,18 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: buttonOverrideCatalogBuilder(_MockContext({
-              'child': 'ghost-btn',
-              'action': <String, Object?>{
-                'event': <String, Object?>{
-                  'name': 'click',
-                  'context': <String, Object?>{},
+            body: Builder(
+              builder: (context) => buttonOverrideCatalogBuilder(_createContext({
+                'child': 'ghost-btn',
+                'action': <String, Object?>{
+                  'event': <String, Object?>{
+                    'name': 'click',
+                    'context': <String, Object?>{},
+                  },
                 },
-              },
-              'variant': 'ghost',
-            })),
+                'variant': 'ghost',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -99,16 +99,18 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: buttonOverrideCatalogBuilder(_MockContext({
-              'child': 'send-btn',
-              'action': <String, Object?>{
-                'event': <String, Object?>{
-                  'name': 'send',
-                  'context': <String, Object?>{},
+            body: Builder(
+              builder: (context) => buttonOverrideCatalogBuilder(_createContext({
+                'child': 'send-btn',
+                'action': <String, Object?>{
+                  'event': <String, Object?>{
+                    'name': 'send',
+                    'context': <String, Object?>{},
+                  },
                 },
-              },
-              'icon': 'send',
-            })),
+                'icon': 'send',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -121,12 +123,14 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: buttonOverrideCatalogBuilder(_MockContext({
-              'child': 42,
-              'action': <String, Object?>{
-                'event': <String, Object?>{'name': 'click'},
-              },
-            })),
+            body: Builder(
+              builder: (context) => buttonOverrideCatalogBuilder(_createContext({
+                'child': 42,
+                'action': <String, Object?>{
+                  'event': <String, Object?>{'name': 'click'},
+                },
+              }, context)),
+            ),
           ),
         ),
       );

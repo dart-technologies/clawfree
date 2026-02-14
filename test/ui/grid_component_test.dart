@@ -4,15 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/grid_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-grid';
-  @override
-  ChildBuilderCallback get buildChild =>
-      (String id, [DataContext? dc]) => Text('Child: $id');
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-grid',
+    type: 'Grid',
+    buildChild: (id, [dc]) => Text('Child: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -22,11 +26,13 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: gridCatalogBuilder(_MockContext({
-              'columns': 2,
-              'gap': 8,
-              'children': ['child-1', 'child-2', 'child-3'],
-            })),
+            body: Builder(
+              builder: (context) => gridCatalogBuilder(_createContext({
+                'columns': 2,
+                'gap': 8,
+                'children': ['child-1', 'child-2', 'child-3'],
+              }, context)),
+            ),
           ),
         ),
       );
@@ -42,9 +48,11 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: gridCatalogBuilder(_MockContext({
-              'children': ['a', 'b'],
-            })),
+            body: Builder(
+              builder: (context) => gridCatalogBuilder(_createContext({
+                'children': ['a', 'b'],
+              }, context)),
+            ),
           ),
         ),
       );
@@ -57,9 +65,11 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: gridCatalogBuilder(_MockContext({
-              'children': <String>[],
-            })),
+            body: Builder(
+              builder: (context) => gridCatalogBuilder(_createContext({
+                'children': <String>[],
+              }, context)),
+            ),
           ),
         ),
       );

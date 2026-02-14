@@ -38,6 +38,9 @@ class A2uiStreamProcessor {
     required bool Function() isDisposed,
     void Function(String transcript, bool isFinal)? onTranscriptionResult,
   }) async {
+    // Flush parser state from previous response to prevent text leakage.
+    _surfaceManager.resetTransport();
+
     var fullResponse = '';
 
     Timer? debounce;

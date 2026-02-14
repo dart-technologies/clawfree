@@ -4,15 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/stack_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-stack';
-  @override
-  ChildBuilderCallback get buildChild =>
-      (String id, [DataContext? dc]) => Text('Layer: $id');
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-stack',
+    type: 'Stack',
+    buildChild: (id, [dc]) => Text('Layer: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -25,9 +29,11 @@ void main() {
             body: SizedBox(
               width: 200,
               height: 200,
-              child: stackCatalogBuilder(_MockContext({
-                'children': ['bg', 'fg'],
-              })),
+              child: Builder(
+                builder: (context) => stackCatalogBuilder(_createContext({
+                  'children': ['bg', 'fg'],
+                }, context)),
+              ),
             ),
           ),
         ),
@@ -47,10 +53,12 @@ void main() {
             body: SizedBox(
               width: 200,
               height: 200,
-              child: stackCatalogBuilder(_MockContext({
-                'alignment': 'center',
-                'children': ['item'],
-              })),
+              child: Builder(
+                builder: (context) => stackCatalogBuilder(_createContext({
+                  'alignment': 'center',
+                  'children': ['item'],
+                }, context)),
+              ),
             ),
           ),
         ),
@@ -65,9 +73,17 @@ void main() {
     });
 
     testWidgets('returns SizedBox.shrink when no children', (tester) async {
-      final widget = stackCatalogBuilder(_MockContext({
-        'children': <String>[],
-      }));
+      late Widget widget;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(builder: (context) {
+            widget = stackCatalogBuilder(_createContext({
+              'children': <String>[],
+            }, context));
+            return Container();
+          }),
+        ),
+      );
 
       // Should be a SizedBox (shrink) directly
       expect(widget, isA<SizedBox>());

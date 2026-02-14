@@ -4,12 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/progress_bar_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-progress';
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-progress',
+    type: 'ProgressBar',
+    buildChild: (id, [dc]) => Text('Child: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -19,8 +26,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: progressBarCatalogBuilder(
-              _MockContext({'value': 0.5}),
+            body: Builder(
+              builder: (context) => progressBarCatalogBuilder(
+                _createContext({'value': 0.5}, context),
+              ),
             ),
           ),
         ),
@@ -35,8 +44,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: progressBarCatalogBuilder(
-              _MockContext({'value': 0.75, 'label': 'UPLOAD'}),
+            body: Builder(
+              builder: (context) => progressBarCatalogBuilder(
+                _createContext({'value': 0.75, 'label': 'UPLOAD'}, context),
+              ),
             ),
           ),
         ),
@@ -50,11 +61,13 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: progressBarCatalogBuilder(
-              _MockContext({
-                'value': 0.42,
-                'showPercentage': true,
-              }),
+            body: Builder(
+              builder: (context) => progressBarCatalogBuilder(
+                _createContext({
+                  'value': 0.42,
+                  'showPercentage': true,
+                }, context),
+              ),
             ),
           ),
         ),
@@ -68,8 +81,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: progressBarCatalogBuilder(
-              _MockContext({'value': 1.5, 'showPercentage': true}),
+            body: Builder(
+              builder: (context) => progressBarCatalogBuilder(
+                _createContext({'value': 1.5, 'showPercentage': true}, context),
+              ),
             ),
           ),
         ),

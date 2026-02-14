@@ -15,7 +15,7 @@ dependencies:
   # genUI v0.9 — git ref for CI/Docker; local override via pubspec_overrides.yaml
   genui:
     git:
-      url: https://github.com/flutter/genui.git
+      url: https://github.com/dart-technologies/genui.git
       ref: feature/v0.9-migration
       path: packages/genui
 

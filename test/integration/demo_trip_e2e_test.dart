@@ -274,10 +274,10 @@ void main() {
         pauseAfterStt: Duration.zero,
       );
 
-      // Should produce tokyo-itin-001 surface.
+      // Should produce tokyo-itin-001 surface (after travel-setup-001 from Step 6).
       final surfaces = session.messages.where((m) => m.isSurface).toList();
       expect(surfaces, isNotEmpty);
-      expect(surfaces.first.surfaceId, 'tokyo-itin-001');
+      expect(surfaces.last.surfaceId, 'tokyo-itin-001');
 
       // Verify ANA (ticket1) appears before JAL (ticket2) in the response.
       final responses = DemoCacheAiClient.defaultResponses;

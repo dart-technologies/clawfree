@@ -12,14 +12,7 @@ class A2uiSurfaceManager {
     _catalog = getClawfreeCatalog();
     _surfaceController = SurfaceController(catalogs: [_catalog]);
     _transportAdapter = A2uiTransportAdapter();
-
-    // Wire transport -> engine
-    _transportAdapter.messageStream.listen(
-      _surfaceController.handleMessage,
-      onError: (Object error) {
-        genUiLogger.warning('A2UI parse error: $error');
-      },
-    );
+    _wireTransport();
 
     // Track new surfaces
     _surfaceController.surfaceUpdates.listen((SurfaceUpdate update) {
@@ -31,8 +24,30 @@ class A2uiSurfaceManager {
 
   late final Catalog _catalog;
   late final SurfaceController _surfaceController;
-  late final A2uiTransportAdapter _transportAdapter;
+  late A2uiTransportAdapter _transportAdapter;
+  StreamSubscription<A2uiMessage>? _transportSub;
   final _surfaceAddedController = StreamController<String>.broadcast();
+
+  void _wireTransport() {
+    _transportSub?.cancel();
+    _transportSub = _transportAdapter.incomingMessages.listen(
+      _surfaceController.handleMessage,
+      onError: (Object error) {
+        genUiLogger.warning('A2UI parse error: $error');
+      },
+    );
+  }
+
+  /// Reset the transport adapter to flush parser state between responses.
+  ///
+  /// Must be called before each new AI response to prevent text from the
+  /// previous response leaking into the next one via the parser buffer.
+  void resetTransport() {
+    _transportSub?.cancel();
+    _transportAdapter.dispose();
+    _transportAdapter = A2uiTransportAdapter();
+    _wireTransport();
+  }
 
   /// The catalog used for schema generation.
   Catalog get catalog => _catalog;
@@ -47,7 +62,7 @@ class A2uiSurfaceManager {
   Stream<String> get surfaceAdded => _surfaceAddedController.stream;
 
   /// The text stream (non-A2UI portions of the response).
-  Stream<String> get textStream => _transportAdapter.textStream;
+  Stream<String> get textStream => _transportAdapter.incomingText;
 
   /// Feed a chunk of the AI response into the A2UI pipeline.
   void addChunk(String chunk) => _transportAdapter.addChunk(chunk);
@@ -58,7 +73,60 @@ class A2uiSurfaceManager {
   }
 
   /// Standard catalog rules for the system prompt.
-  String get catalogRules => StandardCatalogEmbed.standardCatalogRules;
+  String get catalogRules => r'''
+**REQUIRED PROPERTIES:** You MUST include ALL required properties for every component, even if they are inside a template or will be bound to data.
+- For 'Text', you MUST provide 'text'. If dynamic, use { "path": "..." }.
+- For 'Image', you MUST provide 'url'. If dynamic, use { "path": "..." }.
+- For 'Button', you MUST provide 'action'.
+- For 'TextField', 'CheckBox', etc., you MUST provide 'label'.
+
+**OUTPUT FORMAT:**
+You must output a VALID JSON object representing one of the A2UI message types (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`).
+- Do NOT use function blocks or tool calls for these messages.
+- You can treat the A2UI schema as a specification for the JSON you typically output.
+- You may include a brief conversational explanation before or after the JSON block if it helps the user, but the JSON block must be valid and complete.
+- Ensure your JSON is fenced with ```json and ```.
+
+**EXAMPLES:**
+
+1. Create a surface:
+```json
+{
+  "createSurface": {
+    "surfaceId": "main",
+    "catalogId": "clawfree-catalog",
+    "sendDataModel": true
+  }
+}
+```
+
+2. Update components:
+```json
+{
+  "updateComponents": {
+    "surfaceId": "main",
+    "components": [
+      {
+        // The root component MUST have id "root"
+        "id": "root",
+        "component": "Column",
+        "justify": "start",
+        "children": [
+          "headerText",
+          "content"
+        ]
+      }
+    ]
+  }
+}
+```
+
+**IMPORTANT:**
+- One of the components sent in one of the `updateComponents` MUST have id "root", or nothing will be displayed.
+- Do NOT nest `components` inside `createSurface`. Use `updateComponents` to add components to a surface.
+- `createSurface` ONLY sets up the surface (ID and catalog). It does NOT take content.
+- To show a UI, you typically send a `createSurface` message (if the surface doesn't exist), followed by an `updateComponents` message.
+''';
 
   void dispose() {
     _surfaceAddedController.close();

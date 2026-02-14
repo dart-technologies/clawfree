@@ -4,18 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/card_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data, this._buildContext);
-  @override
-  final Object data;
-  final BuildContext _buildContext;
-  @override
-  BuildContext get buildContext => _buildContext;
-  @override
-  String get id => 'test-card';
-  @override
-  ChildBuilderCallback get buildChild =>
-      (String id, [DataContext? dc]) => Text('CardChild: $id');
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-card',
+    type: 'Card',
+    buildChild: (id, [dc]) => Text('CardChild: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -28,7 +29,7 @@ void main() {
             body: Builder(
               builder: (context) {
                 return cardOverrideCatalogBuilder(
-                  _MockContext({'child': 'card-child'}, context),
+                  _createContext({'child': 'card-child'}, context),
                 );
               },
             ),
@@ -47,7 +48,7 @@ void main() {
             body: Builder(
               builder: (context) {
                 return cardOverrideCatalogBuilder(
-                  _MockContext({'child': 'flat-child', 'variant': 'flat'}, context),
+                  _createContext({'child': 'flat-child', 'variant': 'flat'}, context),
                 );
               },
             ),
@@ -66,7 +67,7 @@ void main() {
             body: Builder(
               builder: (context) {
                 return cardOverrideCatalogBuilder(
-                  _MockContext({'child': 'elev-child', 'variant': 'elevated'}, context),
+                  _createContext({'child': 'elev-child', 'variant': 'elevated'}, context),
                 );
               },
             ),
@@ -86,7 +87,7 @@ void main() {
             body: Builder(
               builder: (context) {
                 return cardOverrideCatalogBuilder(
-                  _MockContext({'child': 123}, context),
+                  _createContext({'child': 123}, context),
                 );
               },
             ),

@@ -9,7 +9,7 @@ Team **genUIne**: [Mike](https://cerebralvalley.ai/u/michow) (Flutter/infra) + [
 ## Tech Stack
 
 - **Flutter** 3.38.9 (stable channel, macOS arm64)
-- **genUI** v0.9 from `flutter/genui` branch `feature/v0.9-migration`
+- **genUI** v0.9 from `dart-technologies/genui` fork, branch `feature/v0.9-migration`
 - **OpenClaw** gateway (TypeScript, Node.js >= 22)
 - **Opus 4.6** (`claude-opus-4-6`) via Anthropic API
 - **A2UI v0.9** protocol ("Prompt First")
@@ -26,14 +26,17 @@ Opus streams text + A2UI JSON -> Gateway -> Flutter renders Surface widgets
                                               Voice (TTS) confirms actions
 ```
 
-Key v0.9 pattern:
+Key v0.9 pattern (clawfree uses polyfilled catalog, not `CoreCatalogItems`):
 ```dart
-final catalog = CoreCatalogItems.asCatalog();
+final catalog = Catalog([...items...], catalogId: 'clawfree-catalog');
 final surfaceController = SurfaceController(catalogs: [catalog]);
 final adapter = A2uiTransportAdapter();
-adapter.messageStream.listen(surfaceController.handleMessage);
+adapter.incomingMessages.listen(surfaceController.handleMessage);
 // Stream Opus chunks into adapter:
 adapter.addChunk(chunk);
+// IMPORTANT: recreate adapter between responses (no reset API):
+adapter.dispose();
+adapter = A2uiTransportAdapter();
 ```
 
 ## Repo Structure
@@ -78,13 +81,13 @@ clawfree/
 │   ├── INTEGRATION_MERGE.md  # ChatClaw merge spec
 │   ├── WATCH_VOICE.md        # WatchOS voice implementation
 │   └── background/           # Concise reference primers
-├── test/                     # 483+ tests (unit + widget + e2e)
+├── test/                     # 492+ tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
 
 ## Dependencies (notable)
 
-- `genui` — A2UI v0.9 runtime (local path during dev)
+- `genui` — A2UI v0.9 runtime from `dart-technologies/genui` fork (local path override via `pubspec_overrides.yaml` during dev)
 - `speech_to_text`, `flutter_tts` — STT/TTS platform wrappers
 - `audioplayers` — synthesized audio earcons
 - `ffmpeg_kit_flutter_new` — video generation from itinerary images
@@ -98,15 +101,17 @@ clawfree/
 ## Conventions
 
 - Prefer **yarn** over npm for Node.js/OpenClaw dependencies
-- genUI dependency via local path (`path: ../genui/packages/genui`) during dev, git ref for submission
+- genUI dependency via `dart-technologies/genui` fork (branch ref for CI, local path override via `pubspec_overrides.yaml` for dev)
 - OpenClaw gateway runs in Docker on port 18789
 - Flutter targets: web (Chrome), iOS (iPad), watchOS (Apple Watch voice)
 - A2UI v0.9 flat component format: `{"component": "Text", "text": "Hello"}`
-- System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + `StandardCatalogEmbed.standardCatalogRules`
+- System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + inline catalog rules with `catalogId: "clawfree-catalog"`
 - **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs)
 - **Theme**: glassmorphism design with `ClawfreeTheme.glassDecoration()`, transparent AppBar, `SpringCurve` animations
 - **Typography**: JetBrainsMono font family throughout (w800 headlines, w700 titles, w400 body)
-- **A2UI Catalog**: 36 components total — 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + ~19 genUI core. Registered in `catalog.dart`.
+- **A2UI Catalog**: 26 components total — 7 polyfilled core (Column, Row, Image, Icon, Divider, Slider, CheckBox) + 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + 2 custom form (AgentFormSurface, TravelSetupSurface via SurfaceController). All registered in `catalog.dart` with `catalogId: 'clawfree-catalog'`.
+- **Polyfilled schemas** must include `'component': S.string(enumValues: ['ComponentName'])` for genUI's `_schemaMatchesType()` validation
+- **Transport adapter** must be recreated between responses via `A2uiSurfaceManager.resetTransport()` — the parser has no reset API and its internal `_buffer` persists across `addChunk()` calls, causing text leakage
 - Border radii standardized via `ClawfreeBorderRadius` constants (surface=20, interactive=16, element=12, small=8, tiny=4)
 - Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets
 

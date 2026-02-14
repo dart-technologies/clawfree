@@ -12,7 +12,7 @@ class MockSurfaceContext extends Fake implements SurfaceContext {
   String get surfaceId => 'test';
 
   @override
-  ValueListenable<UiDefinition?> get definition => ValueNotifier(null);
+  ValueListenable<SurfaceDefinition?> get definition => ValueNotifier(null);
 }
 
 class MockSurfaceHost extends Fake implements SurfaceHost {
@@ -23,8 +23,8 @@ class MockSurfaceHost extends Fake implements SurfaceHost {
   Stream<SurfaceUpdate> get surfaceUpdates => const Stream.empty();
 
   @override
-  ValueListenable<UiDefinition?> watchSurface(String surfaceId) {
-    return ValueNotifier<UiDefinition?>(null);
+  ValueListenable<SurfaceDefinition?> watchSurface(String surfaceId) {
+    return ValueNotifier<SurfaceDefinition?>(null);
   }
 }
 
