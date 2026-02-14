@@ -18,9 +18,9 @@ class PromptBuilder {
 
   /// Add an A2UI schema block wrapped in XML tags.
   PromptBuilder schema(String json) {
-    _sections.add(_PromptSection(
-      content: '<a2ui_schema>\n$json\n</a2ui_schema>',
-    ));
+    _sections.add(
+      _PromptSection(content: '<a2ui_schema>\n$json\n</a2ui_schema>'),
+    );
     return this;
   }
 
@@ -46,7 +46,9 @@ class PromptBuilder {
         '- ${agent['name']} (model: ${agent['model']}, tools: $tools)',
       );
     }
-    _sections.add(_PromptSection(name: 'Saved Agents', content: buf.toString()));
+    _sections.add(
+      _PromptSection(name: 'Saved Agents', content: buf.toString()),
+    );
     return this;
   }
 
@@ -54,12 +56,15 @@ class PromptBuilder {
   PromptBuilder activeSurfaces(List<String> surfaceIds) {
     if (surfaceIds.isEmpty) return this;
     final surfaceContext = surfaceIds.map((id) => '- $id').join('\n');
-    _sections.add(_PromptSection(
-      name: 'Active Surfaces',
-      content: 'The following surfaces are currently rendered. '
-          'Use updateComponents to modify them instead of creating new surfaces:\n'
-          '$surfaceContext',
-    ));
+    _sections.add(
+      _PromptSection(
+        name: 'Active Surfaces',
+        content:
+            'The following surfaces are currently rendered. '
+            'Use updateComponents to modify them instead of creating new surfaces:\n'
+            '$surfaceContext',
+      ),
+    );
     return this;
   }
 
@@ -79,6 +84,9 @@ class PromptBuilder {
       DeviceFormFactor.watch =>
         'The user is on Apple Watch. Voice-ONLY responses — do NOT generate A2UI JSON. '
             'Keep to 1 sentence max. Use "your Watch" in speech.',
+      DeviceFormFactor.glasses =>
+        'The user is on AR/VR Glasses. Spoken responses only (no UI). '
+            'Keep to 1 sentence. Avoid visual references like "tap" or "see".',
     };
     _sections.add(_PromptSection(name: 'Device Context', content: guidance));
     return this;

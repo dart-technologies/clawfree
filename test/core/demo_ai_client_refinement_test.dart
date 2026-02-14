@@ -13,19 +13,25 @@ void main() {
     // Individual keyword matching
     // -----------------------------------------------------------------------
 
-    test('"rename" returns refinement response with updateComponents', () async {
-      final chunks = await client
-          .sendStream('Rename it to GitDigest Bot',
-              systemPrompt: '', history: [])
-          .toList();
-      final response = chunks.join();
+    test(
+      '"rename" returns refinement response with updateComponents',
+      () async {
+        final chunks = await client
+            .sendStream(
+              'Rename it to GitDigest Bot',
+              systemPrompt: '',
+              history: [],
+            )
+            .toList();
+        final response = chunks.join();
 
-      expect(response, contains('agent-form-001'));
-      expect(response, contains('updateComponents'));
-      // Refinement must NOT create a new surface
-      expect(response, isNot(contains('createSurface')));
-      expect(response, contains('```json'));
-    });
+        expect(response, contains('agent-form-001'));
+        expect(response, contains('updateComponents'));
+        // Refinement must NOT create a new surface
+        expect(response, isNot(contains('createSurface')));
+        expect(response, contains('```json'));
+      },
+    );
 
     test('"add" returns add-tool response with updateComponents', () async {
       final chunks = await client
@@ -123,24 +129,28 @@ void main() {
     // Verify refinement responses use updateComponents NOT createSurface
     // -----------------------------------------------------------------------
 
-    test('all refinement responses use updateComponents not createSurface',
-        () async {
-      // rename
-      final rename = (await client
-              .sendStream('rename it', systemPrompt: '', history: [])
-              .toList())
-          .join();
-      expect(rename, contains('updateComponents'));
-      expect(rename, isNot(contains('createSurface')));
+    test(
+      'all refinement responses use updateComponents not createSurface',
+      () async {
+        // rename
+        final rename =
+            (await client
+                    .sendStream('rename it', systemPrompt: '', history: [])
+                    .toList())
+                .join();
+        expect(rename, contains('updateComponents'));
+        expect(rename, isNot(contains('createSurface')));
 
-      // add
-      final add = (await client
-              .sendStream('add a tool', systemPrompt: '', history: [])
-              .toList())
-          .join();
-      expect(add, contains('updateComponents'));
-      expect(add, isNot(contains('createSurface')));
-    });
+        // add
+        final add =
+            (await client
+                    .sendStream('add a tool', systemPrompt: '', history: [])
+                    .toList())
+                .join();
+        expect(add, contains('updateComponents'));
+        expect(add, isNot(contains('createSurface')));
+      },
+    );
 
     // -----------------------------------------------------------------------
     // defaultResponses map structure

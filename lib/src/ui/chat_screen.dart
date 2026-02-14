@@ -1,23 +1,22 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/chat_session.dart';
-import '../core/health_poller.dart';
 import '../core/platform_config.dart';
 import '../core/prompt_library.dart';
 import '../core/remote_session.dart';
-import '../core/watch_sync_service.dart';
 import '../voice/stt_service.dart';
-import 'widgets/qr_scanner_dialog.dart';
+import 'chat_screen_dialogs.dart';
 import 'clawfree_assets.dart';
 import 'clawfree_icons.dart';
 import 'health/health_indicators.dart';
 import 'layouts/phone_layout.dart';
 import 'layouts/tablet_layout.dart';
 import 'layouts/watch_layout.dart';
+import 'layouts/voice_orb.dart';
+import 'mixins/health_monitor_mixin.dart';
+import 'mixins/watch_sync_manager.dart';
+import 'theme.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -35,24 +34,14 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with HealthMonitorMixin, WatchSyncManager {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
   ChatSession get _session => widget.chatSession;
 
-  // Voice state for phone layout
-  bool _isListening = false;
-  String _interimTranscript = '';
   bool _handsFreeEnabled = false;
-
-  // Health state — optimistic nominal default so vitals show green immediately.
-  // The HealthPoller overrides with live data when the REST endpoint is available.
-  HealthState _healthState = HealthState.nominal();
-  HealthPoller? _healthPoller;
-  List<RemoteSession> _remoteSessions = [];
-
-  WatchSyncService? _watchSync;
 
   @override
   void initState() {
@@ -62,33 +51,17 @@ class _ChatScreenState extends State<ChatScreen> {
     _session.onNavigateBack = () => widget.onNavigateHome?.call();
 
     if (_session.gatewayClient != null) {
-      _healthPoller = HealthPoller(gatewayClient: _session.gatewayClient!);
-      _healthPoller!.addListener(_onHealthChanged);
-      
-      _watchSync = WatchSyncService(
-        healthPoller: _healthPoller!,
+      initHealthMonitor(_session.gatewayClient!);
+
+      initWatchSync(
+        healthPoller: healthPoller!,
         agentStore: _session.agentStore,
       );
-      _watchSync!.start();
-
-      // Start polling immediately so vitals update as soon as possible.
-      _healthPoller!.start();
-    }
-  }
-
-  void _onHealthChanged() {
-    if (mounted) {
-      setState(() {
-        _healthState = _healthPoller!.state;
-        _remoteSessions = _healthPoller!.sessions;
-      });
     }
   }
 
   void _onSessionChanged() {
     _scrollToBottom();
-
-    // Ensure widget rebuilds for session state changes.
     if (mounted) setState(() {});
   }
 
@@ -104,17 +77,150 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Focus(
         autofocus: true,
         child: ListenableBuilder(
-          listenable: _session,
+          listenable: Listenable.merge([_session, _session.voiceController]),
           builder: (context, _) {
+            final isPhone =
+                PlatformConfig.formFactor(context) == DeviceFormFactor.phone;
+
+            if (isPhone) {
+              return Scaffold(
+                drawer: ChatScreenDialogs.buildDrawer(
+                  context,
+                  session: _session,
+                  onSend: _send,
+                  onExportConfig: () =>
+                      ChatScreenDialogs.showExportConfig(context, _session),
+                  onShowPairing: _showPairingModal,
+                ),
+                body: _buildPhoneLayout(context),
+              );
+            }
+
             return Scaffold(
               appBar: _buildAppBar(context),
-              body: SafeArea(
-                child: _buildAdaptiveLayout(context),
-              ),
+              drawer: null,
+              body: SafeArea(child: _buildAdaptiveLayout(context)),
             );
           },
         ),
       ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phone layout
+  // ---------------------------------------------------------------------------
+
+  Widget _buildPhoneLayout(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
+
+    final effectiveSessions = remoteSessions.isNotEmpty
+        ? remoteSessions
+        : (_session.gatewayClient == null
+            ? defaultDemoSessions(PlatformConfig.formFactor(context))
+            : <RemoteSession>[]);
+
+    return Stack(
+      children: [
+        // -- Layer 1: Main Content --
+        Padding(
+          padding: EdgeInsets.only(top: topPadding + 44),
+          child: _buildAdaptiveLayout(context),
+        ),
+
+        // -- Layer 2: Status Overlay (Dynamic Island Area) --
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: EdgeInsets.only(
+              top: topPadding > 0 ? topPadding - 18 : 12,
+            ),
+            height: topPadding > 0 ? topPadding : 24,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 32),
+                HealthDotBar(
+                  state: HealthState(
+                    gateway: healthState.gateway,
+                    llm: healthState.llm,
+                    channels: healthState.channels,
+                  ),
+                ),
+                const Spacer(),
+                for (final session in effectiveSessions) ...[
+                  Icon(
+                    iconForDeviceType(session.deviceType),
+                    size: 14,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                const SizedBox(width: 32),
+              ],
+            ),
+          ),
+        ),
+
+        // -- Layer 3: Centered Logo/Title + Menu --
+        Positioned(
+          top: topPadding,
+          left: 0,
+          right: 0,
+          height: 44,
+          child: Container(
+            color:
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  left: 4,
+                  child: Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu, size: 20),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: widget.onNavigateHome,
+                  borderRadius: ClawfreeBorderRadius.interactive,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Hero(tag: 'app-icon', child: ClawfreeLogo(size: 24)),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'clawfree',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_session.isProcessing)
+                  Positioned(
+                    right: 12,
+                    child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -124,62 +230,45 @@ class _ChatScreenState extends State<ChatScreen> {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      leading: widget.onNavigateHome != null
-          ? IconButton(
-              icon: Icon(ClawfreeIcons.back),
-              onPressed: widget.onNavigateHome,
-              tooltip: 'Back to Home (\u2318[)',
-            )
-          : null,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Hero(
-            tag: 'app-icon',
-            child:
-                Image.asset(ClawfreeAssets.icon, width: 28, height: 28),
+      automaticallyImplyLeading: false,
+      title: InkWell(
+        onTap: widget.onNavigateHome,
+        borderRadius: ClawfreeBorderRadius.interactive,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Hero(tag: 'app-icon', child: ClawfreeLogo(size: 32)),
+              const SizedBox(width: 8),
+              const Text(
+                'clawfree',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          const Text('clawfree'),
-          if (_session.sessionMode == SessionMode.home) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color:
-                    Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'Home',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onPrimaryContainer,
-                ),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
       actions: [
         if (_session.isProcessing)
           Padding(
             padding: const EdgeInsets.all(12),
             child: SizedBox(
-              width: 24,
-              height: 24,
+              width: 20,
+              height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color:
-                    Theme.of(context).appBarTheme.foregroundColor,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
-        _buildExportButton(),
+        IconButton(
+          icon: const Icon(ClawfreeIcons.download),
+          tooltip: 'Export agent config',
+          onPressed: () =>
+              ChatScreenDialogs.showExportConfig(context, _session),
+        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -194,30 +283,38 @@ class _ChatScreenState extends State<ChatScreen> {
 
     switch (formFactor) {
       case DeviceFormFactor.phone:
-        return _buildPhoneLayout();
+        return _buildPhoneContent(context);
       case DeviceFormFactor.tablet:
       case DeviceFormFactor.desktop:
         return _buildTabletLayout(context);
       case DeviceFormFactor.watch:
+      case DeviceFormFactor.glasses:
         return _buildWatchLayout();
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Phone: "The Mobile Remote"
-  // ---------------------------------------------------------------------------
-
-  Widget _buildPhoneLayout() {
-    final isHome = _session.sessionMode == SessionMode.home;
+  Widget _buildPhoneContent(BuildContext context) {
     final agents = _session.agentStore.agents;
     final activeAgent =
         agents.isNotEmpty ? agents.last['name'] as String? : null;
 
-    final effectiveSessions = _remoteSessions.isNotEmpty
-        ? _remoteSessions
-        : (_session.gatewayClient == null
-            ? defaultDemoSessions(DeviceFormFactor.phone)
-            : <RemoteSession>[]);
+    final isListening = _session.voiceController?.isListening ?? false;
+    final isSpeaking = _session.voiceController?.isSpeaking ?? false;
+    final isProcessing = _session.isProcessing;
+
+    OrbMood mood = OrbMood.idle;
+    if (_session.successMoodActive) {
+      mood = OrbMood.success;
+    } else if (_session.messages.isNotEmpty &&
+        _session.messages.last.isError) {
+      mood = OrbMood.error;
+    } else if (isListening) {
+      mood = OrbMood.listening;
+    } else if (isSpeaking) {
+      mood = OrbMood.speaking;
+    } else if (isProcessing) {
+      mood = OrbMood.thinking;
+    }
 
     return PhoneLayout(
       sessionMode: _session.sessionMode,
@@ -226,37 +323,36 @@ class _ChatScreenState extends State<ChatScreen> {
       surfaceHost: _session.surfaceHost,
       scrollController: _scrollController,
       textController: _textController,
-      sttService: widget.sttService,
-      isProcessing: _session.isProcessing,
-      healthState: _healthState,
-      isListening: _isListening,
-      interimTranscript: _interimTranscript,
-      isHomeDashboard: isHome,
+      voiceController: _session.voiceController,
+      isProcessing: isProcessing,
+      healthState: healthState,
+      isListening: isListening,
+      interimTranscript: _session.voiceController?.interimTranscript ?? '',
+      isHomeDashboard: _session.sessionMode == SessionMode.home,
       activeAgentName: activeAgent,
+      agentNames:
+          agents.map((a) => a['name'] as String? ?? 'Untitled').toList(),
       handsFreeEnabled: _handsFreeEnabled,
-      remoteSessions: effectiveSessions,
+      remoteSessions: remoteSessions,
       onSend: _send,
       onRetry: _session.retryLastMessage,
       onToggleVoice: _toggleVoice,
       onToggleHandsFree: _toggleHandsFree,
       onQuickAction: _send,
       onPairDevice: () => _showPairingModal(_session.pairingUrl),
+      mood: mood,
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Tablet/Desktop: "The Control Tower"
-  // ---------------------------------------------------------------------------
 
   Widget _buildTabletLayout(BuildContext context) {
     final agents = _session.agentStore.agents;
     final agentNames =
         agents.map((a) => a['name'] as String? ?? 'Untitled').toList();
 
-    final effectiveSessions = _remoteSessions.isNotEmpty
-        ? _remoteSessions
+    final effectiveSessions = remoteSessions.isNotEmpty
+        ? remoteSessions
         : (_session.gatewayClient == null
-            ? defaultDemoSessions(DeviceFormFactor.tablet)
+            ? defaultDemoSessions(PlatformConfig.formFactor(context))
             : <RemoteSession>[]);
 
     return TabletLayout(
@@ -265,9 +361,9 @@ class _ChatScreenState extends State<ChatScreen> {
       surfaceHost: _session.surfaceHost,
       scrollController: _scrollController,
       textController: _textController,
-      sttService: widget.sttService,
+      voiceController: _session.voiceController,
       isProcessing: _session.isProcessing,
-      healthState: _healthState,
+      healthState: healthState,
       agentNames: agentNames,
       activeNodeName: 'Local Gateway',
       gatewayVersion: 'v2026.2.9',
@@ -280,19 +376,15 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Watch: "The Pulse Monitor"
-  // ---------------------------------------------------------------------------
-
   Widget _buildWatchLayout() {
     final agents = _session.agentStore.agents;
     final agentNames =
         agents.map((a) => a['name'] as String? ?? 'Untitled').toList();
 
     return WatchLayout(
-      healthLevel: _healthState.overall,
+      healthLevel: healthState.overall,
       activeAgentCount: agents.length,
-      pendingApprovals: const [], // populated by system_run events
+      pendingApprovals: const [],
       agentNames: agentNames,
       onStartSpeaking: _toggleVoice,
       onApprove: (_) {},
@@ -302,163 +394,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Export
-  // ---------------------------------------------------------------------------
-
-  Widget _buildExportButton() {
-    return IconButton(
-      icon: const Icon(ClawfreeIcons.download),
-      tooltip: 'Export agent config',
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        final config = _session.exportAgentConfig();
-        if (config != null) {
-          final json = const JsonEncoder.withIndent('  ').convert(config);
-          final agentName = config['name'] ?? 'Agent';
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text('$agentName (OpenClaw)'),
-              content: SingleChildScrollView(
-                child: SelectableText(
-                  json,
-                  style:
-                      const TextStyle(fontFamily: 'monospace', fontSize: 12),
-                ),
-              ),
-              actions: [
-                TextButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: json));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard')),
-                    );
-                  },
-                  icon: const Icon(ClawfreeIcons.copy, size: 16),
-                  label: const Text('Copy'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
-                ),
-              ],
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text('No agent config to export. Create an agent first.'),
-            ),
-          );
-        }
-      },
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // QR Pairing Modal
+  // Pairing
   // ---------------------------------------------------------------------------
 
   void _showPairingModal(String pairingUrl) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        // Use up to 90% of screen width, capped at 400.
-        final screenWidth = MediaQuery.sizeOf(ctx).width;
-        final qrSize = (screenWidth * 0.65).clamp(200.0, 320.0);
-
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.qr_code_2,
-                  color: Theme.of(ctx).colorScheme.primary),
-              const SizedBox(width: 8),
-              const Text('Pair a Device'),
-            ],
-          ),
-          content: SizedBox(
-            width: qrSize + 40,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: QrImageView(
-                    data: pairingUrl,
-                    version: QrVersions.auto,
-                    size: qrSize,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.circle,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.circle,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SelectableText(
-                  pairingUrl,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Scan with your iPhone or Apple Watch to pair.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            ),
-          ),
-          actions: [
-            if (PlatformConfig.hasCamera)
-              TextButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push<String>(
-                    MaterialPageRoute(builder: (_) => const QrScannerDialog()),
-                  );
-                  if (result != null && ctx.mounted) {
-                    _handlePairingLink(result);
-                    Navigator.pop(ctx);
-                  }
-                },
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan QR'),
-              ),
-            TextButton.icon(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: pairingUrl));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pairing link copied')),
-                );
-              },
-              icon: const Icon(ClawfreeIcons.copy, size: 16),
-              label: const Text('Copy Link'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Done'),
-            ),
-          ],
-        );
-      },
+    ChatScreenDialogs.showPairingModal(
+      context,
+      pairingUrl: pairingUrl,
+      session: _session,
+      onHandlePairingLink: _handlePairingLink,
     );
   }
 
@@ -476,9 +420,9 @@ class _ChatScreenState extends State<ChatScreen> {
         SnackBar(content: Text('Paired with gateway at ${pairing.url}')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid pairing link: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Invalid pairing link: $e')));
     }
   }
 
@@ -493,45 +437,53 @@ class _ChatScreenState extends State<ChatScreen> {
     _send(text);
   }
 
-  void _send(String text) {
+  Future<void> _send(String text) async {
+    if (_session.isProcessing) return;
     HapticFeedback.lightImpact();
-    _session.sendMessage(text);
+    await _session.sendMessage(
+      text,
+      onTranscriptionResult: (transcript, isFinal) {
+        if (isFinal && transcript.isNotEmpty) {
+          _send(transcript);
+        }
+      },
+    );
   }
 
   void _toggleVoice() {
-    if (_isListening) {
-      widget.sttService?.stopListening();
-      _watchSync?.updateListening(false);
-      setState(() {
-        _isListening = false;
-        if (_interimTranscript.isNotEmpty) {
-          _send(_interimTranscript);
-          _interimTranscript = '';
-        }
-      });
+    final voice = _session.voiceController;
+    if (voice == null) return;
+
+    if (voice.isListening) {
+      voice.stopListening();
+      updateWatchListening(false);
     } else {
-      setState(() {
-        _isListening = true;
-        _interimTranscript = '';
-      });
-      _watchSync?.updateListening(true);
-      widget.sttService?.startListening(onResult: (transcript, isFinal) {
-        setState(() => _interimTranscript = transcript);
-        if (isFinal && transcript.isNotEmpty) {
-          widget.sttService?.stopListening();
-          _watchSync?.updateListening(false);
-          setState(() {
-            _isListening = false;
-            _interimTranscript = '';
-          });
-          _send(transcript);
-        }
-      });
+      updateWatchListening(true);
+      voice.startListening(
+        onResult: (transcript, isFinal) {
+          if (isFinal && transcript.isNotEmpty) {
+            updateWatchListening(false);
+            _send(transcript);
+          }
+        },
+      );
     }
   }
 
   void _toggleHandsFree() {
     setState(() => _handsFreeEnabled = !_handsFreeEnabled);
+    final voice = _session.voiceController;
+    if (voice == null) return;
+
+    voice.continuousMode = _handsFreeEnabled;
+    voice.setHandsFreeMode(
+      enabled: _handsFreeEnabled,
+      onCommand: (command, isFinal) {
+        if (isFinal && command.isNotEmpty) {
+          _send(command);
+        }
+      },
+    );
   }
 
   void _scrollToBottom() {
@@ -551,9 +503,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _session.onNavigateBack = null;
     _session.onPairingRequested = null;
     _session.removeListener(_onSessionChanged);
-    _healthPoller?.removeListener(_onHealthChanged);
-    _healthPoller?.dispose();
-    _watchSync?.stop();
+    disposeHealthMonitor();
+    disposeWatchSync();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

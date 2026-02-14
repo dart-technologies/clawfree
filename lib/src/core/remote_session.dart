@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import 'platform_config.dart';
 
@@ -33,6 +34,7 @@ class RemoteSession {
       'tablet' => DeviceFormFactor.tablet,
       'phone' => DeviceFormFactor.phone,
       'watch' => DeviceFormFactor.watch,
+      'glasses' => DeviceFormFactor.glasses,
       _ => DeviceFormFactor.phone,
     };
   }
@@ -41,17 +43,19 @@ class RemoteSession {
 /// Returns an appropriate Material icon for the given device type.
 IconData iconForDeviceType(DeviceFormFactor type) {
   return switch (type) {
-    DeviceFormFactor.desktop => Icons.desktop_mac,
-    DeviceFormFactor.tablet => Icons.tablet_mac,
-    DeviceFormFactor.phone => Icons.phone_iphone,
-    DeviceFormFactor.watch => Icons.watch,
+    DeviceFormFactor.desktop => Symbols.desktop_mac,
+    DeviceFormFactor.tablet => Symbols.tablet_mac,
+    DeviceFormFactor.phone => Symbols.phone_iphone,
+    DeviceFormFactor.watch => Symbols.watch,
+    DeviceFormFactor.glasses => Symbols.eyeglasses,
   };
 }
 
-/// Returns plausible demo sessions for when no gateway is connected,
-/// excluding the current device's own form factor.
+/// Returns plausible demo sessions for when no gateway is connected.
+/// All devices are included (Mac first, iPad second) so the demo always
+/// shows a full fleet regardless of the current form factor.
 List<RemoteSession> defaultDemoSessions(DeviceFormFactor self) {
-  const all = [
+  return const [
     RemoteSession(
       sessionId: 'demo-mac',
       deviceType: DeviceFormFactor.desktop,
@@ -72,6 +76,10 @@ List<RemoteSession> defaultDemoSessions(DeviceFormFactor self) {
       deviceType: DeviceFormFactor.watch,
       deviceName: 'Watch',
     ),
+    RemoteSession(
+      sessionId: 'demo-glasses',
+      deviceType: DeviceFormFactor.glasses,
+      deviceName: 'Glasses',
+    ),
   ];
-  return all.where((s) => s.deviceType != self).toList();
 }

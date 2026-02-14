@@ -1,4 +1,4 @@
-.PHONY: run demo test analyze build-macos build-web build-android build-apk build-ios build-ios-dist gateway gateway-down gateway-logs icons clean help
+.PHONY: run demo test test-workflow test-integration analyze build-macos build-web build-android build-apk build-ios build-ios-dist gateway gateway-down gateway-logs icons clean help
 
 # Default target
 help: ## Show this help
@@ -26,6 +26,12 @@ web: ## Run on Chrome (requires gateway)
 
 test: ## Run all tests
 	flutter test
+
+test-workflow: ## Run the demo trip integration test
+	flutter test test/integration/demo_trip_e2e_test.dart
+
+test-integration: ## Run all integration tests
+	flutter test test/integration/
 
 analyze: ## Run Dart analyzer
 	flutter analyze

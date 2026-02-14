@@ -34,5 +34,20 @@ void main() {
       msg.text = '${msg.text} chunk2';
       expect(msg.text, 'chunk1 chunk2');
     });
+
+    test('error message has correct properties', () {
+      final msg = MessageItem.error(text: 'Error: Something failed');
+      expect(msg.text, 'Error: Something failed');
+      expect(msg.isError, isTrue);
+      expect(msg.isUser, isFalse);
+      expect(msg.isSurface, isFalse);
+    });
+
+    test('sealed class subtypes are correct', () {
+      expect(MessageItem.user(text: 'hi'), isA<UserMessage>());
+      expect(MessageItem.aiText(text: 'hi'), isA<AiTextMessage>());
+      expect(MessageItem.surface(surfaceId: 's1'), isA<SurfaceMessage>());
+      expect(MessageItem.error(text: 'err'), isA<ErrorMessage>());
+    });
   });
 }

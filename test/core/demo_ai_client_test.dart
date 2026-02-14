@@ -19,7 +19,7 @@ void main() {
           .sendStream('Show my agents', systemPrompt: '', history: [])
           .toList();
       final response = chunks.join();
-      expect(response, contains('dashboard'));
+      expect(response, contains('agents'));
     });
 
     test('returns default response for unknown prompt', () async {

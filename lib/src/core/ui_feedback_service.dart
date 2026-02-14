@@ -6,8 +6,8 @@ import 'message_item.dart';
 /// tones, and message creation into single calls.
 class UIFeedbackService {
   UIFeedbackService({TtsService? ttsService, SoundService? soundService})
-      : _ttsService = ttsService,
-        _soundService = soundService;
+    : _ttsService = ttsService,
+      _soundService = soundService;
 
   final TtsService? _ttsService;
   final SoundService? _soundService;
@@ -23,7 +23,7 @@ class UIFeedbackService {
   MessageItem error(String msg) {
     _ttsService?.speak(msg);
     _soundService?.error();
-    return MessageItem.aiText(text: 'Error: $msg');
+    return MessageItem.error(text: 'Error: $msg');
   }
 
   /// Create an informational feedback message and speak it.

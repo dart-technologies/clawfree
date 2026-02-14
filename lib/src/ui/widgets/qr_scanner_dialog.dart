@@ -30,9 +30,18 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
               valueListenable: _controller,
               builder: (context, state, child) {
                 return switch (state.torchState) {
-                  TorchState.off => const Icon(Icons.flash_off, color: Colors.grey),
-                  TorchState.on => const Icon(Icons.flash_on, color: Colors.yellow),
-                  TorchState.auto || TorchState.unavailable => const Icon(Icons.flash_auto, color: Colors.grey),
+                  TorchState.off => const Icon(
+                    Icons.flash_off,
+                    color: Colors.grey,
+                  ),
+                  TorchState.on => const Icon(
+                    Icons.flash_on,
+                    color: Colors.yellow,
+                  ),
+                  TorchState.auto || TorchState.unavailable => const Icon(
+                    Icons.flash_auto,
+                    color: Colors.grey,
+                  ),
                 };
               },
             ),
@@ -44,7 +53,7 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
               builder: (context, state, child) {
                 return switch (state.cameraDirection) {
                   CameraFacing.front => const Icon(Icons.camera_front),
-                  CameraFacing.back => const Icon(Icons.camera_rear),
+                  _ => const Icon(Icons.camera_rear),
                 };
               },
             ),

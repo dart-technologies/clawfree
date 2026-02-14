@@ -81,8 +81,11 @@ class CapturingAiClient extends MockAiClient {
     required List<Map<String, String>> history,
   }) async* {
     lastSystemPrompt = systemPrompt;
-    yield* super.sendStream(prompt,
-        systemPrompt: systemPrompt, history: history);
+    yield* super.sendStream(
+      prompt,
+      systemPrompt: systemPrompt,
+      history: history,
+    );
   }
 }
 

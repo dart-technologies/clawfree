@@ -21,6 +21,7 @@ class ChatMessageList extends StatelessWidget {
     required this.isProcessing,
     required this.onSend,
     this.onRetry,
+    this.agentNames = const [],
   });
 
   final List<MessageItem> messages;
@@ -31,39 +32,58 @@ class ChatMessageList extends StatelessWidget {
   final bool isProcessing;
   final ValueChanged<String> onSend;
   final VoidCallback? onRetry;
+  final List<String> agentNames;
 
   @override
   Widget build(BuildContext context) {
-    if (messages.isEmpty) return _EmptyState(onSend: onSend);
+    if (messages.isEmpty) {
+      return _EmptyState(onSend: onSend, agentNames: agentNames);
+    }
 
     return ListView.builder(
       controller: scrollController,
       physics: ClawfreeTheme.isApple
-          ? const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            )
+          ? const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics())
           : null,
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
         final stagger = Duration(milliseconds: 80 * (index % 5));
+        // The last AI text message while processing is the streaming bubble.
+        final isStreamingBubble =
+            isProcessing &&
+            !message.isUser &&
+            !message.isSurface &&
+            index == _lastAiTextIndex;
         return AnimatedMessageEntry(
           message: message,
           delay: stagger,
-          child: _buildMessage(message, stagger),
+          child: _buildMessage(message, stagger, isStreamingBubble),
         );
       },
     );
   }
 
-  Widget _buildMessage(MessageItem message, [Duration stagger = Duration.zero]) {
+  /// Index of the last AI text message (for streaming indicator).
+  int get _lastAiTextIndex {
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (!messages[i].isUser && !messages[i].isSurface) return i;
+    }
+    return -1;
+  }
+
+  Widget _buildMessage(
+    MessageItem message, [
+    Duration stagger = Duration.zero,
+    bool isStreaming = false,
+  ]) {
     if (message.isSurface) {
       if (isDesktop) {
         return const SurfaceIndicator();
       }
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: ChatSurfaceView(
           surfaceId: message.surfaceId!,
           surfaceHost: surfaceHost,
@@ -76,49 +96,60 @@ class ChatMessageList extends StatelessWidget {
       message: message,
       maxBubbleWidth: maxBubbleWidth,
       isProcessing: isProcessing,
+      isStreaming: isStreaming,
       onRetry: onRetry,
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onSend});
+  const _EmptyState({required this.onSend, required this.agentNames});
 
   final ValueChanged<String> onSend;
+  final List<String> agentNames;
+
+  bool get _hasTravelConcierge =>
+      agentNames.any((name) => name.toLowerCase().contains('travel'));
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              ClawfreeIcons.mic,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Say or type something to get started',
-              style: TextStyle(
-                fontSize: 16,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                ClawfreeIcons.mic,
+                size: 64,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _chip('Create a GitHub automation agent'),
-                _chip('Plan a trip'),
-                _chip('Show my agents'),
-              ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'Say something to get started',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  _chip('Create an agent'),
+                  _chip('Show my agents'),
+                  _chip('Manage OpenClaw'),
+                  _chip('Pair a device'),
+                  _chip('Run a security scan'),
+                  _chip('Check system health'),
+                  if (_hasTravelConcierge) _chip('Plan a trip'),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

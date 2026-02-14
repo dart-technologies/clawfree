@@ -137,11 +137,11 @@ class _HeartbeatScreenState extends State<_HeartbeatScreen>
       _WatchVoiceState.listening => 'Listening...',
       _WatchVoiceState.processing => 'Thinking...',
       _WatchVoiceState.idle => switch (widget.healthLevel) {
-          HealthLevel.nominal => 'Tap to Speak',
-          HealthLevel.degraded => 'Gateway Disconnected',
-          HealthLevel.error => 'API Error',
-          HealthLevel.unknown => 'Connecting\u2026',
-        },
+        HealthLevel.nominal => 'Tap to Speak',
+        HealthLevel.degraded => 'Gateway Disconnected',
+        HealthLevel.error => 'API Error',
+        HealthLevel.unknown => 'Connecting\u2026',
+      },
     };
 
     final isListening = _voiceState == _WatchVoiceState.listening;
@@ -184,7 +184,9 @@ class _HeartbeatScreenState extends State<_HeartbeatScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: ringColor.withValues(alpha: 0.2 * (1.0 - pulse)),
+                          color: ringColor.withValues(
+                            alpha: 0.2 * (1.0 - pulse),
+                          ),
                           width: 2,
                         ),
                       ),
@@ -199,11 +201,7 @@ class _HeartbeatScreenState extends State<_HeartbeatScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.mic,
-                              size: 32,
-                              color: ringColor,
-                            ),
+                            Icon(Icons.mic, size: 32, color: ringColor),
                             const SizedBox(height: 2),
                             Text(
                               isListening ? 'Listening' : 'Speak',
@@ -222,13 +220,7 @@ class _HeartbeatScreenState extends State<_HeartbeatScreen>
               },
             ),
             const SizedBox(height: 8),
-            Text(
-              statusLabel,
-              style: TextStyle(
-                fontSize: 11,
-                color: ringColor,
-              ),
-            ),
+            Text(statusLabel, style: TextStyle(fontSize: 11, color: ringColor)),
           ],
         ),
       ),
@@ -296,10 +288,7 @@ class _AlertsList extends StatelessWidget {
             ),
           ),
           for (final name in agentNames)
-            _AgentTile(
-              name: name,
-              onPing: () => onPingAgent(name),
-            ),
+            _AgentTile(name: name, onPing: () => onPingAgent(name)),
         ],
         if (pendingApprovals.isEmpty && agentNames.isEmpty)
           Padding(

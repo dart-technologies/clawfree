@@ -8,8 +8,8 @@ class SystemPromptBuilder {
   SystemPromptBuilder({
     required A2uiSurfaceManager surfaceManager,
     required AgentRepository agentRepository,
-  })  : _surfaceManager = surfaceManager,
-        _agentRepository = agentRepository;
+  }) : _surfaceManager = surfaceManager,
+       _agentRepository = agentRepository;
 
   final A2uiSurfaceManager _surfaceManager;
   final AgentRepository _agentRepository;
@@ -29,17 +29,17 @@ class SystemPromptBuilder {
         ).deviceContext(formFactor).build();
       case SessionMode.home:
         return PromptLibrary.homePrompt(
-          a2uiSchema: _surfaceManager.buildSchemaJson(),
-          catalogRules: _surfaceManager.catalogRules,
-        )
+              a2uiSchema: _surfaceManager.buildSchemaJson(),
+              catalogRules: _surfaceManager.catalogRules,
+            )
             .agentContext(_agentRepository.agents)
             .deviceContext(formFactor)
             .build();
       case SessionMode.agentBuilder:
         return PromptLibrary.systemPrompt(
-          a2uiSchema: _surfaceManager.buildSchemaJson(),
-          catalogRules: _surfaceManager.catalogRules,
-        )
+              a2uiSchema: _surfaceManager.buildSchemaJson(),
+              catalogRules: _surfaceManager.catalogRules,
+            )
             .activeSurfaces(activeSurfaceIds)
             .agentContext(_agentRepository.agents)
             .deviceContext(formFactor)

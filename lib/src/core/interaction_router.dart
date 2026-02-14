@@ -15,28 +15,24 @@ import '../voice/tts_service.dart';
 sealed class InteractionResult {
   const InteractionResult();
 
-  const factory InteractionResult.correction(String prompt) =
-      CorrectionResult;
-  const factory InteractionResult.agentSaved(MessageItem message) =
-      AgentSavedResult;
+  const factory InteractionResult.correction(String prompt) = CorrectionResult;
   const factory InteractionResult.userInput(String text) = UserInputResult;
   const factory InteractionResult.ignored() = IgnoredResult;
   const factory InteractionResult.maxCorrectionsReached(MessageItem message) =
       MaxCorrectionsResult;
   const factory InteractionResult.modeSwitch(
-      SessionMode targetMode, MessageItem message) = ModeSwitchResult;
+    SessionMode targetMode,
+    MessageItem message,
+  ) = ModeSwitchResult;
   const factory InteractionResult.systemAction(
-      String action, MessageItem message) = SystemActionResult;
+    String action,
+    MessageItem message,
+  ) = SystemActionResult;
 }
 
 class CorrectionResult extends InteractionResult {
   const CorrectionResult(this.prompt);
   final String prompt;
-}
-
-class AgentSavedResult extends InteractionResult {
-  const AgentSavedResult(this.message);
-  final MessageItem message;
 }
 
 class UserInputResult extends InteractionResult {
@@ -75,12 +71,13 @@ class A2uiInteractionRouter {
     TtsService? ttsService,
     OpenClawOrchestrator? orchestrator,
     GatewayClient? gatewayClient,
-  })  : _agentStore = agentStore,
-        _feedbackService = feedbackService ?? UIFeedbackService(ttsService: ttsService),
-        _ttsService = ttsService,
-        _orchestrator = orchestrator ??
-            OpenClawOrchestrator(agentStore: agentStore),
-        _gatewayClient = gatewayClient;
+  }) : _agentStore = agentStore,
+       _feedbackService =
+           feedbackService ?? UIFeedbackService(ttsService: ttsService),
+       _ttsService = ttsService,
+       _orchestrator =
+           orchestrator ?? OpenClawOrchestrator(agentStore: agentStore),
+       _gatewayClient = gatewayClient;
 
   final AgentRepository _agentStore;
   final UIFeedbackService _feedbackService;
@@ -90,6 +87,23 @@ class A2uiInteractionRouter {
 
   static const _maxCorrectionAttempts = 2;
   int _correctionAttempts = 0;
+
+  /// Dispatch table mapping action names to handlers.
+  late final Map<String, InteractionResult Function(Map<String, dynamic>)>
+      _actionHandlers = {
+    'navigate': _handleNavigate,
+    'save_agent': _handleSaveAgent,
+    'save_config': _handleSaveConfig,
+    'confirm_setup': _handleConfirmSetup,
+    'complete_onboarding': (_) => _handleCompleteOnboarding(),
+    'connect_gateway': _handleConnectGateway,
+    'copy_pairing_link': _handleCopyPairingLink,
+    'generate_itinerary': _handleGenerateItinerary,
+    'save_itin': _handleSaveItinerary,
+    'book_trip': _handleSaveItinerary,
+    'book_flight': _handleSaveItinerary,
+    'switch_to_builder': (_) => _handleSwitchToBuilder(),
+  };
 
   /// Reset correction counter (call after a successful surface creation).
   void resetCorrections() => _correctionAttempts = 0;
@@ -116,6 +130,10 @@ class A2uiInteractionRouter {
     'rotate_api_keys',
     'export_compliance',
     'export_analytics',
+    'refresh_analytics',
+    // Agent lifecycle
+    'pause_agent',
+    'resume_agent',
   };
 
   /// Route a surface interaction event to the appropriate handler.
@@ -149,35 +167,12 @@ class A2uiInteractionRouter {
       final actionName = action['name'] as String?;
       final context = action['context'] as Map<String, dynamic>? ?? {};
 
-      if (actionName == 'save_agent') {
-        return _handleSaveAgent(context);
-      }
-      if (actionName == 'save_config') {
-        return _handleSaveConfig(context);
-      }
-      if (actionName == 'confirm_setup') {
-        return _handleConfirmSetup(context);
-      }
-      if (actionName == 'complete_onboarding') {
-        return _handleCompleteOnboarding();
-      }
-      if (actionName == 'connect_gateway') {
-        return _handleConnectGateway(context);
-      }
-      if (actionName == 'copy_pairing_link') {
-        return _handleCopyPairingLink(context);
-      }
-      if (actionName == 'generate_itinerary') {
-        return _handleGenerateItinerary(context);
-      }
-      if (actionName == 'save_itin') {
-        return _handleSaveItinerary(context);
-      }
-      if (actionName == 'switch_to_builder') {
-        return _handleSwitchToBuilder();
-      }
-      if (actionName != null && _manageActions.contains(actionName)) {
-        return _handleManageAction(actionName, context);
+      if (actionName != null) {
+        final handler = _actionHandlers[actionName];
+        if (handler != null) return handler(context);
+        if (_manageActions.contains(actionName)) {
+          return _handleManageAction(actionName, context);
+        }
       }
     }
 
@@ -189,6 +184,12 @@ class A2uiInteractionRouter {
     }
 
     return InteractionResult.userInput(text);
+  }
+
+  InteractionResult _handleNavigate(Map<String, dynamic> context) {
+    final text = context['text']?.toString() ?? '';
+    if (text.isNotEmpty) return InteractionResult.userInput(text);
+    return const InteractionResult.ignored();
   }
 
   InteractionResult _handleValidationError(Map<String, dynamic> parsed) {
@@ -218,8 +219,7 @@ class A2uiInteractionRouter {
 
   InteractionResult _handleSaveAgent(Map<String, dynamic> context) {
     final rawName = context['name']?.toString();
-    final name =
-        (rawName != null && rawName.isNotEmpty) ? rawName : 'My Agent';
+    final name = (rawName != null && rawName.isNotEmpty) ? rawName : 'My Agent';
     final model = context['model'];
     final tools = context['tools'];
     final channels = context['channels'];
@@ -255,8 +255,7 @@ class A2uiInteractionRouter {
       'Tools: ${toolsStr.isEmpty ? 'none' : toolsStr}, '
       'Channels: ${channelsStr.isEmpty ? 'none' : channelsStr}.',
     );
-
-    return InteractionResult.agentSaved(message);
+    return InteractionResult.modeSwitch(SessionMode.home, message);
   }
 
   // ---------------------------------------------------------------------------
@@ -266,10 +265,9 @@ class A2uiInteractionRouter {
   InteractionResult _handleSaveConfig(Map<String, dynamic> context) {
     genUiLogger.info('Config saved: API Key provided');
 
-    _feedbackService.info('Configuration saved successfully!');
-    return InteractionResult.userInput(
-      'Configuration saved! I\'ve updated the OpenClaw gateway with your API key. '
-      'We are now ready to build agents.',
+    // Return a user input to the AI to advance the conversation to Stage 2 (pairing)
+    return const InteractionResult.userInput(
+      'Configuration saved! Please show me the pairing screen now.',
     );
   }
 
@@ -280,9 +278,7 @@ class A2uiInteractionRouter {
     final cmd = _orchestrator.buildOnboardCommand(
       apiKey: apiKey.isNotEmpty ? apiKey : null,
     );
-    genUiLogger.info(
-      'Setup confirmed: executing $cmd',
-    );
+    genUiLogger.info('Setup confirmed: executing $cmd');
 
     _feedbackService.info(
       'Setup confirmed. Launching OpenClaw gateway. '
@@ -368,10 +364,10 @@ class A2uiInteractionRouter {
     genUiLogger.info('Itinerary saved: $city ($persona)');
 
     final message = _feedbackService.success(
-      'Your $city $persona itinerary has been saved!',
+      'Your $city $persona itinerary has been booked!',
     );
 
-    return InteractionResult.agentSaved(message);
+    return InteractionResult.modeSwitch(SessionMode.home, message);
   }
 
   /// Extract the first element from a value that may be a List or a String.

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../core/message_item.dart';
 import '../../core/remote_session.dart';
-import '../../voice/stt_service.dart';
+import '../../voice/voice_controller.dart';
+import '../theme.dart';
 import '../chat/chat_input_bar.dart';
 import '../chat/chat_message_list.dart';
 import '../chat/chat_surface_panel.dart';
@@ -23,7 +25,7 @@ class TabletLayout extends StatelessWidget {
     required this.surfaceHost,
     required this.scrollController,
     required this.textController,
-    required this.sttService,
+    required this.voiceController,
     required this.isProcessing,
     required this.healthState,
     required this.agentNames,
@@ -42,7 +44,7 @@ class TabletLayout extends StatelessWidget {
   final SurfaceHost surfaceHost;
   final ScrollController scrollController;
   final TextEditingController textController;
-  final SttService? sttService;
+  final VoiceController? voiceController;
   final bool isProcessing;
   final HealthState healthState;
   final List<String> agentNames;
@@ -74,7 +76,7 @@ class TabletLayout extends StatelessWidget {
             children: [
               // Left sidebar
               SizedBox(
-                width: 220,
+                width: 240,
                 child: _Sidebar(
                   activeNodeName: activeNodeName,
                   agentNames: agentNames,
@@ -93,6 +95,7 @@ class TabletLayout extends StatelessWidget {
                   onSend: onSend,
                   onRetry: onRetry,
                   activeSurfaceId: activeSurfaceId,
+                  agentNames: agentNames,
                 ),
               ),
             ],
@@ -101,7 +104,7 @@ class TabletLayout extends StatelessWidget {
         // -- Bottom: Global command input + permissions --
         _BottomBar(
           textController: textController,
-          sttService: sttService,
+          voiceController: voiceController,
           isProcessing: isProcessing,
           healthState: healthState,
           onSend: onSend,
@@ -133,73 +136,114 @@ class _TelemetryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.only(left: 20, right: 8, top: 10, bottom: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 0.5,
           ),
         ),
       ),
       child: Row(
         children: [
-          const Text(
-            'Vitals',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          // --- Left Group: Vitals ---
+          Text(
+            'VITALS',
+            style: ClawfreeTheme.technicalStyle(
+              context: context,
+              fontSize: 11,
+              letterSpacing: 1.5,
+            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(child: HealthPillBar(state: healthState)),
-          const SizedBox(width: 12),
-          // Remote session indicators
-          for (final session in remoteSessions) ...[
-            RemoteSessionIndicator(
-              icon: iconForDeviceType(session.deviceType),
-              label: session.deviceName,
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Version badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: updateAvailable
-                  ? Colors.orange.withValues(alpha: 0.15)
-                  : Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(8),
-              border: updateAvailable
-                  ? Border.all(color: Colors.orange.withValues(alpha: 0.5))
-                  : null,
-            ),
-            child: InkWell(
-              onTap: updateAvailable ? onUpdate : null,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    gatewayVersion,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                  if (updateAvailable) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.orange,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ],
+          const SizedBox(width: 24),
+          Expanded(
+            child: HealthPillBar(state: healthState),
+          ),
+
+          // --- Right Group: Sessions + Version ---
+          const SizedBox(width: 32),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final session in remoteSessions) ...[
+                RemoteSessionIndicator(
+                  icon: iconForDeviceType(session.deviceType),
+                  label: session.deviceName,
+                ),
+                const SizedBox(width: 10),
+              ],
+              _VersionBadge(
+                gatewayVersion: gatewayVersion,
+                updateAvailable: updateAvailable,
+                onUpdate: onUpdate,
               ),
-            ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VersionBadge extends StatelessWidget {
+  const _VersionBadge({
+    required this.gatewayVersion,
+    required this.updateAvailable,
+    required this.onUpdate,
+  });
+
+  final String gatewayVersion;
+  final bool updateAvailable;
+  final VoidCallback onUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: updateAvailable
+            ? Colors.orange.withValues(alpha: 0.1)
+            : Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        borderRadius: ClawfreeBorderRadius.element,
+        border: Border.all(
+          color: updateAvailable
+              ? Colors.orange.withValues(alpha: 0.3)
+              : Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: InkWell(
+        onTap: updateAvailable ? onUpdate : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '\ud83e\udd9e ${gatewayVersion.toUpperCase()}',
+              style: ClawfreeTheme.technicalStyle(
+                context: context,
+                fontSize: 9,
+              ),
+            ),
+            if (updateAvailable) ...[
+              const SizedBox(width: 6),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -226,106 +270,115 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Node section
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Text(
-            'NODES',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        _SidebarItem(
-          icon: Icons.computer,
-          label: activeNodeName,
-          isActive: true,
-          onTap: () {},
-        ),
-        const Divider(height: 16, indent: 16, endIndent: 16),
-        // Agent library
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Row(
-            children: [
-              Text(
-                'AGENTS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                  letterSpacing: 1,
-                ),
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: () => onQuickAction('Create a new agent'),
-                borderRadius: BorderRadius.circular(4),
-                child: Icon(Icons.add, size: 18, color: cs.primary),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: agentNames.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.zero,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Node section
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
                     child: Text(
-                      'No agents yet.\nSay "Create an agent" to start.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
+                      'NODES',
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 10,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                        letterSpacing: 1.5,
                       ),
                     ),
                   ),
-                )
-              : ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: agentNames.length,
-                  itemBuilder: (context, i) => _SidebarItem(
-                    icon: Icons.smart_toy,
-                    label: agentNames[i],
-                    onTap: () => onSelectAgent(agentNames[i]),
+                  _SidebarItem(
+                    icon: Symbols.hub,
+                    label: activeNodeName,
+                    isActive: true,
+                    onTap: () {},
                   ),
-                ),
-        ),
-        // Quick actions at bottom of sidebar
-        const Divider(height: 1),
-        _SidebarItem(
-          icon: Icons.settings,
-          label: 'Manage OpenClaw',
-          onTap: () => onQuickAction('Manage OpenClaw'),
-        ),
-        _SidebarItem(
-          icon: Icons.qr_code,
-          label: 'Pair Device',
-          onTap: () => onQuickAction('Pair a device'),
-        ),
-        _SidebarItem(
-          icon: Icons.extension,
-          label: 'Skill Library',
-          onTap: () => onQuickAction('Show skill library'),
-        ),
-        _SidebarItem(
-          icon: Icons.analytics,
-          label: 'Analytics',
-          onTap: () => onQuickAction('Show analytics'),
-        ),
-        _SidebarItem(
-          icon: Icons.security,
-          label: 'Security',
-          onTap: () => onQuickAction('Security overview'),
-        ),
-        const SizedBox(height: 8),
-      ],
+                  const Divider(height: 24, indent: 20, endIndent: 20),
+                  // Agent library
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 16, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          'AGENTS',
+                          style: ClawfreeTheme.technicalStyle(
+                            context: context,
+                            fontSize: 10,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          onTap: () => onQuickAction('Create a new agent'),
+                          borderRadius: ClawfreeBorderRadius.tiny,
+                          child: Icon(Icons.add, size: 18, color: cs.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (agentNames.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'No agents yet.\nSay "Create an agent" to start.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  else
+                    for (final name in agentNames)
+                      _SidebarItem(
+                        icon: Icons.smart_toy,
+                        label: name,
+                        onTap: () => onSelectAgent(name),
+                      ),
+
+                  // Blank space to push quick actions to bottom
+                  const Spacer(),
+
+                  const Divider(height: 1),
+                  // Quick actions
+                  _SidebarItem(
+                    icon: Icons.settings,
+                    label: 'Manage OpenClaw',
+                    onTap: () => onQuickAction('Manage OpenClaw'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.qr_code,
+                    label: 'Pair Device',
+                    onTap: () => onQuickAction('Pair a device'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.extension,
+                    label: 'Skill Library',
+                    onTap: () => onQuickAction('Show skill library'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.analytics,
+                    label: 'Analytics',
+                    onTap: () => onQuickAction('Show analytics'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.security,
+                    label: 'Security',
+                    onTap: () => onQuickAction('Security overview'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -350,7 +403,7 @@ class _SidebarItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         color: isActive ? cs.primaryContainer.withValues(alpha: 0.3) : null,
         child: Row(
           children: [
@@ -359,7 +412,7 @@ class _SidebarItem extends StatelessWidget {
               size: 18,
               color: isActive ? cs.primary : cs.onSurfaceVariant,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
@@ -399,6 +452,7 @@ class _SplitContent extends StatelessWidget {
     required this.isProcessing,
     required this.onSend,
     required this.onRetry,
+    required this.agentNames,
     this.activeSurfaceId,
   });
 
@@ -408,6 +462,7 @@ class _SplitContent extends StatelessWidget {
   final bool isProcessing;
   final ValueChanged<String> onSend;
   final VoidCallback? onRetry;
+  final List<String> agentNames;
   final String? activeSurfaceId;
 
   @override
@@ -421,6 +476,7 @@ class _SplitContent extends StatelessWidget {
             surfaceMessages: messages.where((m) => m.isSurface).toList(),
             surfaceHost: surfaceHost,
             activeSurfaceId: activeSurfaceId,
+            borderRadius: 0,
           ),
         ),
         const VerticalDivider(width: 1),
@@ -436,6 +492,7 @@ class _SplitContent extends StatelessWidget {
             isProcessing: isProcessing,
             onSend: onSend,
             onRetry: onRetry,
+            agentNames: agentNames,
           ),
         ),
       ],
@@ -450,14 +507,14 @@ class _SplitContent extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.textController,
-    required this.sttService,
+    required this.voiceController,
     required this.isProcessing,
     required this.healthState,
     required this.onSend,
   });
 
   final TextEditingController textController;
-  final SttService? sttService;
+  final VoiceController? voiceController;
   final bool isProcessing;
   final HealthState healthState;
   final ValueChanged<String> onSend;
@@ -475,38 +532,46 @@ class _BottomBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Permissions tray (compact)
+          // Permissions tray (System Tray Pill)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PermissionChip(
-                  icon: Icons.mic,
-                  label: 'EAR',
-                  level: healthState.voice.level,
-                ),
-                const SizedBox(width: 6),
-                _PermissionChip(
-                  icon: Icons.location_on,
-                  label: 'LOC',
-                  level: HealthLevel.unknown,
-                ),
-                const SizedBox(width: 6),
-                _PermissionChip(
-                  icon: Icons.folder,
-                  label: 'FILE',
-                  level: HealthLevel.unknown,
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: ClawfreeTheme.glassDecoration(
+                context,
+                borderRadius: 16,
+                elevation: 1,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PermissionChip(
+                    icon: Symbols.mic,
+                    label: 'MIC',
+                    level: healthState.voice.level,
+                  ),
+                  const SizedBox(width: 12),
+                  _PermissionChip(
+                    icon: Symbols.location_on,
+                    label: 'GPS',
+                    level: HealthLevel.unknown,
+                  ),
+                  const SizedBox(width: 12),
+                  _PermissionChip(
+                    icon: Symbols.database,
+                    label: 'DISK',
+                    level: HealthLevel.unknown,
+                  ),
+                ],
+              ),
             ),
           ),
           const VerticalDivider(width: 1),
           // Command input
           Expanded(
             child: ChatInputBar(
-              controller: textController,
-              sttService: sttService,
+              textController: textController,
+              voiceController: voiceController,
               isProcessing: isProcessing,
               onSend: onSend,
             ),

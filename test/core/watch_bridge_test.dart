@@ -25,8 +25,14 @@ void main() {
       final after = DateTime.now();
 
       expect(event.filePath, '/tmp/voice.m4a');
-      expect(event.timestamp.isAfter(before.subtract(const Duration(seconds: 1))), isTrue);
-      expect(event.timestamp.isBefore(after.add(const Duration(seconds: 1))), isTrue);
+      expect(
+        event.timestamp.isAfter(before.subtract(const Duration(seconds: 1))),
+        isTrue,
+      );
+      expect(
+        event.timestamp.isBefore(after.add(const Duration(seconds: 1))),
+        isTrue,
+      );
     });
   });
 
@@ -37,13 +43,13 @@ void main() {
       methodCalls.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('art.dart.clawfree/watch'),
-        (MethodCall call) async {
-          methodCalls.add(call);
-          if (call.method == 'isWatchReachable') return true;
-          return null;
-        },
-      );
+            const MethodChannel('art.dart.clawfree/watch'),
+            (MethodCall call) async {
+              methodCalls.add(call);
+              if (call.method == 'isWatchReachable') return true;
+              return null;
+            },
+          );
     });
 
     test('sendReplyToWatch invokes sendReply with text', () async {
@@ -65,9 +71,9 @@ void main() {
     test('isWatchReachable returns false when native returns null', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('art.dart.clawfree/watch'),
-        (MethodCall call) async => null,
-      );
+            const MethodChannel('art.dart.clawfree/watch'),
+            (MethodCall call) async => null,
+          );
 
       final reachable = await WatchBridge.isWatchReachable;
       expect(reachable, isFalse);

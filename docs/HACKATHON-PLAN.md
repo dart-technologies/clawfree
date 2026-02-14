@@ -171,12 +171,14 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 - [x] Infrastructure: Flutter + genUI v0.9, CORS proxy, Makefile
 - [x] genUI Core: AI client (SSE streaming), chat session, A2UI schema injection, multi-turn, self-correction, demo mode (12 cached responses), agent store, adaptive layout, animations, theming
 - [x] Architecture: ChatScreen (5 extracted widgets), ChatSession (InteractionRouter + PromptLibrary extracted), VoiceController + VoiceServiceFactory, centralized assets/icons
-- [x] Testing: 350+ tests across 35 files (unit + widget + e2e integration)
+- [x] Testing: 462 tests across 45+ files (unit + widget + e2e integration)
 - [x] Gateway: GatewayClient (HTTP /health, /agents, /onboard, /sessions), HealthPoller (15s periodic + session polling), connect_gateway action, agent sync on home transition
 - [x] Remote Sessions: Live device indicators from `/sessions` endpoint, demo fallback, self-filtering
 - [x] Deployment: Docker Compose prod stack (frontend + OpenClaw + Redis), Makefile qa/stop/health targets
 - [x] QR Pairing: In-app QR scanner (mobile_scanner v6), gateway /pair redirect, deep link handling (cold + warm start), gateway URL validation
 - [x] Watch Sync: WatchSyncService with debounce, MethodChannel bridge, updateApplicationContext, ConnectivityProvider, PulseMonitorView with health-adaptive pulse
+- [x] A2UI Catalog: Expanded to 35 components — 12 custom + 4 core overrides (Card, Button, Text, ChoicePicker) + genUI core. New: Badge, ProgressBar, Chip, Grid, Stack, Animated. Gap enhanced with named sizes. Shared icon_resolver utility.
+- [x] Video Generation: FFmpeg pipeline reinstated (concat demuxer → H.264 MP4) with iOS-only stub (missing arm64-sim slice)
 
 ### Voice + Interaction (Roy)
 - [ ] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory (auto on native, mock on web/demo)
@@ -204,30 +206,39 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 
 ## Demo Script (3 Minutes)
 
+### Context Setup
+- Screen shows macOS app running alongside iPad Simulator and Watch Simulator
+- All three share the same session — multi-device continuity via synced pills in connectivity bar
+- Same Flutter codebase powers three adaptive layouts: phone (voice-orb remote), tablet (split-panel control tower), watch (pulse monitor)
+
 ### Opening (15s)
-"clawfree -- hands-free AI agent creation powered by Opus 4.6 and Flutter genUI. Speak to create. No code required."
+"clawfree — hands-free AI agent creation. One voice command. Three screens. Zero code."
+*(Camera shows Watch + iPad + macOS all connected — pulsing green dots in connectivity bar)*
 
-### Scene 1: Voice Agent Creation (75s)
-1. Show Apple Watch -- tap, speak: "Create a Telegram bot that summarizes my GitHub notifications"
-2. Cut to iPad -- Opus streams: text explanation + real-time form UI generation
-3. Form appears: name field, model picker, tool checkboxes, channel selector
-4. Speak: "Change the name to GitDigest and add the browser tool"
-5. Multi-turn: Opus updates UI, fields change live
-6. Speak: "Save it"
-7. Watch + iPad both confirm: "GitDigest saved and connected to Telegram"
+### Story 1: Agent Creation (50s)
+1. Watch pill + iPad pill visible in connectivity bar *(multi-device continuity!)*
+2. Watch speaks: **"Plan a 3-day foodie trip to Tokyo"**
+3. VoiceOrb shifts to **thinking** mood (tertiary color, shader blob animates) + thinking earcon
+4. **Surface arrival chime** — agent form slides up with shimmer → spring-physics pop-in
+5. **Travel Concierge** form pre-populated: name, Claude Opus 4.6, all tools ✓, all channels ✓
+6. Speak: **"Save Agent"** → **success earcon** → orb flashes green ✓ → returns Home
 
-### Scene 2: Dashboard (30s)
-1. Speak: "Show my agents"
-2. Adaptive dashboard UI generates on iPad -- agent cards with status
-3. Speak: "Test GitDigest" -- test message sent, response shown
+### Story 2: Plan Trip (65s)
+1. Home dashboard: quick action grid visible, VoiceOrb idle
+2. Speak: **"Plan a trip"** — thinking mood → surface arrival chime
+3. genUI travel setup: 5 cities (Tokyo pre-selected), 3-day, foodie persona
+4. Speak: **"Generate Itinerary"** → thinking earcon while streaming
+5. Itinerary slides in: hero images (full-bleed Unsplash), ANA flight pre-selected above JAL, Hoshinoya hotel
+6. Speak: **"Book Trip"** → success earcon → orb pulses green → **"Booked!"** TTS
+7. Session returns to Home
 
-### Scene 3: Under the Hood (30s)
-Architecture overlay:
-- Voice -> Flutter genUI -> OpenClaw Gateway -> Opus 4.6 -> A2UI -> Flutter
-- "One Opus call generates both the reasoning AND the interface"
+### Under the Hood (20s)
+- Switch to **tablet layout** → split-panel: chat left, live surface right
+- **Health pill bar** with sparkline telemetry (Gateway/LLM/Channels all green)
+- "One Opus call: reasoning + interface. Self-correcting JSON with automatic retries."
 
-### Closing (30s)
-"clawfree breaks the barrier between expert AI tools and everyone else. Built entirely with Opus 4.6 and Claude Code in under a week by Team genUIne."
+### Closing (10s)
+"Built with Opus 4.6 in under a week by Team genUIne."
 
 ---
 

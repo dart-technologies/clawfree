@@ -16,39 +16,43 @@ import '../fixtures/mock_ai_client.dart';
 
 void main() {
   group('ChatSession.retryLastMessage', () {
-    test('retries after error by removing error message and re-generating',
-        () async {
-      // ErrorAiClient always throws — after retries exhausted, error message
-      // appears. Then we swap the client behavior by using FailThenSucceedClient.
-      final client = FailThenSucceedClient(failCount: 3);
-      // failCount=3 means calls 1-3 fail, call 4+ succeed.
-      // sendMessage does 1 initial + 2 retries = 3 calls (all fail).
-      // Then retryLastMessage does 1 initial + ... but callCount is already 3,
-      // so call 4 succeeds.
-      final session = ChatSession(
-        aiClient: client,
-        ttsService: MockTtsService(),
-      );
+    test(
+      'retries after error by removing error message and re-generating',
+      () async {
+        // ErrorAiClient always throws — after retries exhausted, error message
+        // appears. Then we swap the client behavior by using FailThenSucceedClient.
+        final client = FailThenSucceedClient(failCount: 3);
+        // failCount=3 means calls 1-3 fail, call 4+ succeed.
+        // sendMessage does 1 initial + 2 retries = 3 calls (all fail).
+        // Then retryLastMessage does 1 initial + ... but callCount is already 3,
+        // so call 4 succeeds.
+        final session = ChatSession(
+          aiClient: client,
+          ttsService: MockTtsService(),
+        );
 
-      await session.sendMessage('Hello');
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        await session.sendMessage('Hello');
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      // After 3 failures, there should be an error message
-      final errorBefore =
-          session.messages.where((m) => m.isError).toList();
-      expect(errorBefore, isNotEmpty, reason: 'Expected error message');
+        // After 3 failures, there should be an error message
+        final errorBefore = session.messages.where((m) => m.isError).toList();
+        expect(errorBefore, isNotEmpty, reason: 'Expected error message');
 
-      // Now retry — call 4 should succeed
-      await session.retryLastMessage();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        // Now retry — call 4 should succeed
+        await session.retryLastMessage();
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      // Error message should be removed (replaced by successful response)
-      final errorAfter = session.messages.where((m) => m.isError).toList();
-      expect(errorAfter, isEmpty,
-          reason: 'Error message should be removed after retry');
+        // Error message should be removed (replaced by successful response)
+        final errorAfter = session.messages.where((m) => m.isError).toList();
+        expect(
+          errorAfter,
+          isEmpty,
+          reason: 'Error message should be removed after retry',
+        );
 
-      session.dispose();
-    });
+        session.dispose();
+      },
+    );
 
     test('does nothing when no lastPrompt exists', () async {
       final client = MockAiClient();
@@ -116,46 +120,50 @@ void main() {
       session.dispose();
     });
 
-    test('system prompt does not include saved agents section when empty',
-        () async {
-      final client = CapturingAiClient(responses: ['OK']);
-      final session = ChatSession(
-        aiClient: client,
-        ttsService: MockTtsService(),
-        agentStore: AgentStore(),
-      );
-      session.setMode(SessionMode.agentBuilder);
+    test(
+      'system prompt does not include saved agents section when empty',
+      () async {
+        final client = CapturingAiClient(responses: ['OK']);
+        final session = ChatSession(
+          aiClient: client,
+          ttsService: MockTtsService(),
+          agentStore: AgentStore(),
+        );
+        session.setMode(SessionMode.agentBuilder);
 
-      await session.sendMessage('Hello');
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        await session.sendMessage('Hello');
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      expect(client.lastSystemPrompt, isNotNull);
-      expect(client.lastSystemPrompt!, isNot(contains('Saved Agents')));
-      session.dispose();
-    });
+        expect(client.lastSystemPrompt, isNotNull);
+        expect(client.lastSystemPrompt!, isNot(contains('Saved Agents')));
+        session.dispose();
+      },
+    );
 
-    test('system prompt includes active surface IDs after surface creation',
-        () async {
-      // Use a response that creates a surface to populate _activeSurfaceIds
-      // The create response has createSurface + updateComponents
-      // However, surface creation requires genUI pipeline, so we test
-      // that the _systemPrompt getter adds the section when IDs are present.
-      // Since we can't easily trigger surface creation without genUI rendering,
-      // we verify the system prompt structure with no active surfaces first.
-      final client = CapturingAiClient(responses: ['Just text']);
-      final session = ChatSession(
-        aiClient: client,
-        ttsService: MockTtsService(),
-      );
-      session.setMode(SessionMode.agentBuilder);
+    test(
+      'system prompt includes active surface IDs after surface creation',
+      () async {
+        // Use a response that creates a surface to populate _activeSurfaceIds
+        // The create response has createSurface + updateComponents
+        // However, surface creation requires genUI pipeline, so we test
+        // that the _systemPrompt getter adds the section when IDs are present.
+        // Since we can't easily trigger surface creation without genUI rendering,
+        // we verify the system prompt structure with no active surfaces first.
+        final client = CapturingAiClient(responses: ['Just text']);
+        final session = ChatSession(
+          aiClient: client,
+          ttsService: MockTtsService(),
+        );
+        session.setMode(SessionMode.agentBuilder);
 
-      await session.sendMessage('Hello');
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        await session.sendMessage('Hello');
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      // No surfaces created from plain text response
-      expect(client.lastSystemPrompt!, isNot(contains('Active Surfaces')));
-      session.dispose();
-    });
+        // No surfaces created from plain text response
+        expect(client.lastSystemPrompt!, isNot(contains('Active Surfaces')));
+        session.dispose();
+      },
+    );
 
     test('system prompt uses "value" in ChoicePicker documentation', () async {
       final client = CapturingAiClient(responses: ['OK']);
@@ -204,14 +212,15 @@ void main() {
   });
 
   group('MessageItem.isError', () {
-    test('returns true for messages starting with "Error:"', () {
-      final msg = MessageItem.aiText(text: 'Error: Something went wrong');
+    test('returns true for ErrorMessage', () {
+      final msg = MessageItem.error(text: 'Error: Something went wrong');
       expect(msg.isError, isTrue);
     });
 
-    test('returns true for "Error: API error 429: Rate limited"', () {
-      final msg =
-          MessageItem.aiText(text: 'Error: Exception: API error 429: Rate limited');
+    test('returns true for ErrorMessage with API error', () {
+      final msg = MessageItem.error(
+        text: 'Error: Exception: API error 429: Rate limited',
+      );
       expect(msg.isError, isTrue);
     });
 
@@ -220,8 +229,7 @@ void main() {
       expect(msg.isError, isFalse);
     });
 
-    test('returns false for user messages even if text starts with Error:',
-        () {
+    test('returns false for user messages', () {
       final msg = MessageItem.user(text: 'Error: this is user text');
       expect(msg.isError, isFalse);
     });
@@ -231,9 +239,8 @@ void main() {
       expect(msg.isError, isFalse);
     });
 
-    test('returns false for AI messages with null text', () {
+    test('returns false for surface messages with null text', () {
       final msg = MessageItem.surface(surfaceId: 'x');
-      // surfaceId messages have text=null, isUser=false, isSurface=true
       expect(msg.isError, isFalse);
     });
 
@@ -242,89 +249,97 @@ void main() {
       expect(msg.isError, isFalse);
     });
 
-    test('returns false for AI text that contains "Error" but does not start with it',
-        () {
-      final msg =
-          MessageItem.aiText(text: 'There was an Error in the system');
-      expect(msg.isError, isFalse);
-    });
+    test(
+      'returns false for AI text that contains "Error" but is not ErrorMessage',
+      () {
+        final msg = MessageItem.aiText(
+          text: 'There was an Error in the system',
+        );
+        expect(msg.isError, isFalse);
+      },
+    );
   });
 
   group('ChatSession self-correction race fix', () {
-    test('demo surface responses do not produce spurious correction messages',
-        () async {
-      // Regression test: "manage openclaw", "skill library", "analytics", and
-      // "security" demo responses include large JSON payloads. Before the fix,
-      // the 8-microtask yield loop was insufficient for the genUI pipeline to
-      // register the surface, causing _shouldSelfCorrect to fire and producing
-      // a spurious "Let me try a different approach..." message.
-      final prompts = [
-        'Manage OpenClaw',
-        'Show skill library',
-        'Show analytics',
-        'Security overview',
-      ];
+    test(
+      'demo surface responses do not produce spurious correction messages',
+      () async {
+        // Regression test: "manage openclaw", "skill library", "analytics", and
+        // "security" demo responses include large JSON payloads. Before the fix,
+        // the 8-microtask yield loop was insufficient for the genUI pipeline to
+        // register the surface, causing _shouldSelfCorrect to fire and producing
+        // a spurious "Let me try a different approach..." message.
+        final prompts = [
+          'Manage OpenClaw',
+          'Show skill library',
+          'Show analytics',
+          'Security overview',
+        ];
 
-      for (final prompt in prompts) {
+        for (final prompt in prompts) {
+          final client = DemoCacheAiClient(chunkDelay: Duration.zero);
+          final session = ChatSession(
+            aiClient: client,
+            ttsService: MockTtsService(),
+          );
+
+          await session.sendMessage(prompt);
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+
+          final correctionMessages = session.messages.where(
+            (m) =>
+                !m.isUser &&
+                !m.isSurface &&
+                (m.text?.contains('different approach') == true ||
+                    m.text?.contains('regenerate') == true),
+          );
+          expect(
+            correctionMessages,
+            isEmpty,
+            reason: '"$prompt" should not trigger self-correction',
+          );
+
+          session.dispose();
+        }
+      },
+    );
+
+    test(
+      'repeated clicks on same action do not trigger self-correction',
+      () async {
+        // Regression: clicking "manage openclaw" 5 times reuses surfaceId
+        // "manage-001". On the 2nd+ click the surface already exists, so
+        // surfaceCount doesn't change. Self-correction must be skipped
+        // when the response targets an existing surfaceId.
         final client = DemoCacheAiClient(chunkDelay: Duration.zero);
         final session = ChatSession(
           aiClient: client,
           ttsService: MockTtsService(),
         );
 
-        await session.sendMessage(prompt);
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+        // Click 5 times
+        for (var i = 0; i < 5; i++) {
+          await session.sendMessage('Manage OpenClaw');
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+        }
 
         final correctionMessages = session.messages.where(
           (m) =>
               !m.isUser &&
               !m.isSurface &&
               (m.text?.contains('different approach') == true ||
-               m.text?.contains('regenerate') == true),
+                  m.text?.contains('regenerate') == true),
         );
         expect(
           correctionMessages,
           isEmpty,
-          reason: '"$prompt" should not trigger self-correction',
+          reason:
+              'Repeated "Manage OpenClaw" should never trigger self-correction',
         );
 
         session.dispose();
-      }
-    });
-
-    test('repeated clicks on same action do not trigger self-correction',
-        () async {
-      // Regression: clicking "manage openclaw" 5 times reuses surfaceId
-      // "manage-001". On the 2nd+ click the surface already exists, so
-      // surfaceCount doesn't change. Self-correction must be skipped
-      // when the response targets an existing surfaceId.
-      final client = DemoCacheAiClient(chunkDelay: Duration.zero);
-      final session = ChatSession(
-        aiClient: client,
-        ttsService: MockTtsService(),
-      );
-
-      // Click 5 times
-      for (var i = 0; i < 5; i++) {
-        await session.sendMessage('Manage OpenClaw');
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-      }
-
-      final correctionMessages = session.messages.where(
-        (m) =>
-            !m.isUser &&
-            !m.isSurface &&
-            (m.text?.contains('different approach') == true ||
-             m.text?.contains('regenerate') == true),
-      );
-      expect(
-        correctionMessages,
-        isEmpty,
-        reason: 'Repeated "Manage OpenClaw" should never trigger self-correction',
-      );
-
-      session.dispose();
-    });
+      },
+    );
   });
 
   group('ChatSession gateway agent sync', () {
@@ -417,7 +432,10 @@ void main() {
         httpClient: mockHttp,
       );
       final agentStore = AgentStore();
-      agentStore.addAgent({'name': 'ExistingAgent', 'model': 'claude-opus-4-6'});
+      agentStore.addAgent({
+        'name': 'ExistingAgent',
+        'model': 'claude-opus-4-6',
+      });
 
       final client = MockAiClient(responses: ['OK']);
       final session = ChatSession(
@@ -437,24 +455,26 @@ void main() {
   });
 
   group('ChatSession device context awareness', () {
-    test('system prompt contains "iPhone" when deviceFormFactor is phone',
-        () async {
-      final client = CapturingAiClient(responses: ['OK']);
-      final session = ChatSession(
-        aiClient: client,
-        ttsService: MockTtsService(),
-      );
-      session.setMode(SessionMode.agentBuilder);
-      session.deviceFormFactor = DeviceFormFactor.phone;
+    test(
+      'system prompt contains "iPhone" when deviceFormFactor is phone',
+      () async {
+        final client = CapturingAiClient(responses: ['OK']);
+        final session = ChatSession(
+          aiClient: client,
+          ttsService: MockTtsService(),
+        );
+        session.setMode(SessionMode.agentBuilder);
+        session.deviceFormFactor = DeviceFormFactor.phone;
 
-      await session.sendMessage('Hello');
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        await session.sendMessage('Hello');
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      expect(client.lastSystemPrompt, isNotNull);
-      expect(client.lastSystemPrompt!, contains('iPhone'));
-      expect(client.lastSystemPrompt!, contains('Device Context'));
-      session.dispose();
-    });
+        expect(client.lastSystemPrompt, isNotNull);
+        expect(client.lastSystemPrompt!, contains('iPhone'));
+        expect(client.lastSystemPrompt!, contains('Device Context'));
+        session.dispose();
+      },
+    );
 
     test('watch form factor prompt does NOT contain "A2UI JSON"', () async {
       final client = CapturingAiClient(responses: ['OK']);
@@ -521,8 +541,9 @@ void main() {
       }
 
       // Count distinct surface messages
-      final surfaceMessages =
-          session.messages.where((m) => m.isSurface).toList();
+      final surfaceMessages = session.messages
+          .where((m) => m.isSurface)
+          .toList();
 
       // "manage-001" should appear exactly once as a surface message
       expect(
@@ -553,10 +574,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(navigatedBack, isTrue);
-      expect(
-        session.messages.any((m) => m.text == 'Going back.'),
-        isTrue,
-      );
+      expect(session.messages.any((m) => m.text == 'Going back.'), isTrue);
       // Should NOT have called the AI client
       expect(client.sendCount, 0);
       session.dispose();

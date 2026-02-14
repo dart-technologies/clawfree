@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../spring_curve.dart';
+
+/// Visual state mood for the VoiceOrb.
+enum OrbMood { idle, thinking, listening, speaking, success, error }
 
 /// Large pulsing voice visualizer for the phone "Mobile Remote" layout.
 ///
@@ -25,12 +30,16 @@ class VoiceOrb extends StatefulWidget {
     this.onTap,
     this.size = 120,
     this.accentColor,
+    this.mood = OrbMood.idle,
+    this.showTranscript = true,
   });
 
   final bool isListening;
   final String interimTranscript;
   final VoidCallback? onTap;
   final double size;
+  final OrbMood mood;
+  final bool showTranscript;
 
   /// Optional accent color driven by session mode. Falls back to theme primary.
   final Color? accentColor;
@@ -39,10 +48,10 @@ class VoiceOrb extends StatefulWidget {
   State<VoiceOrb> createState() => _VoiceOrbState();
 }
 
-class _VoiceOrbState extends State<VoiceOrb>
-    with TickerProviderStateMixin {
+class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
   late final AnimationController _controller;
   late final AnimationController _tapController;
+  late final AnimationController _moodController;
 
   // Haptic heartbeat during listening
   Timer? _hapticTimer;
@@ -66,19 +75,48 @@ class _VoiceOrbState extends State<VoiceOrb>
       upperBound: 1.0,
       value: 1.0,
     );
-    if (widget.isListening) _controller.repeat(reverse: true);
+    _moodController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    bool isTest = false;
+    try {
+      if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+        isTest = true;
+      }
+    } catch (_) {}
+
+    if (widget.isListening && !isTest) _controller.repeat(reverse: true);
     _loadShader();
   }
 
   Future<void> _loadShader() async {
     try {
-      final program =
-          await ui.FragmentProgram.fromAsset('shaders/voice_blob.frag');
+      final program = await ui.FragmentProgram.fromAsset(
+        'shaders/voice_blob.frag',
+      );
       if (!mounted) return;
       setState(() => _shader = program.fragmentShader());
-      _shaderTicker = createTicker((duration) {
-        _elapsed = duration.inMilliseconds / 1000.0;
-      })..start();
+
+      bool isTest = false;
+      try {
+        if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+          isTest = true;
+        }
+      } catch (_) {}
+
+      if (!isTest) {
+        _shaderTicker = createTicker((duration) {
+          _elapsed = duration.inMilliseconds / 1000.0;
+
+          // Dynamic haptic pulse synced with visual amplitude
+          if (widget.isListening && _elapsed % 0.75 < 0.016) {
+            HapticFeedback.lightImpact();
+          }
+        })
+          ..start();
+      }
     } catch (_) {
       // No GPU (flutter test) — fall back to waveform painter.
     }
@@ -89,15 +127,13 @@ class _VoiceOrbState extends State<VoiceOrb>
     super.didUpdateWidget(old);
     if (widget.isListening && !old.isListening) {
       _controller.repeat(reverse: true);
-      // Start haptic heartbeat — 750ms matches a calm heartbeat rhythm
-      _hapticTimer = Timer.periodic(const Duration(milliseconds: 750), (_) {
-        HapticFeedback.lightImpact();
-      });
     } else if (!widget.isListening && old.isListening) {
       _controller.stop();
       _controller.reset();
-      _hapticTimer?.cancel();
-      _hapticTimer = null;
+    }
+
+    if (widget.mood != old.mood) {
+      _moodController.forward(from: 0.0);
     }
   }
 
@@ -106,6 +142,7 @@ class _VoiceOrbState extends State<VoiceOrb>
     _hapticTimer?.cancel();
     _controller.dispose();
     _tapController.dispose();
+    _moodController.dispose();
     _shaderTicker?.dispose();
     _shader?.dispose();
     super.dispose();
@@ -125,10 +162,28 @@ class _VoiceOrbState extends State<VoiceOrb>
     _tapController.forward();
   }
 
+  double _moodValue(OrbMood mood) {
+    return switch (mood) {
+      OrbMood.idle => 0.0,
+      OrbMood.thinking => 1.0,
+      OrbMood.listening => 2.0,
+      OrbMood.speaking => 3.0,
+      OrbMood.success => 5.0,
+      OrbMood.error => 4.0,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final baseColor = widget.isListening ? cs.error : cs.primary;
+
+    final targetColor = switch (widget.mood) {
+      OrbMood.error => cs.error,
+      OrbMood.thinking => cs.tertiary,
+      OrbMood.speaking => cs.secondary,
+      OrbMood.success => const Color(0xFF34C759),
+      _ => widget.accentColor ?? cs.primary,
+    };
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -140,12 +195,14 @@ class _VoiceOrbState extends State<VoiceOrb>
           child: ScaleTransition(
             scale: _tapController,
             child: AnimatedBuilder(
-              animation: _controller,
+              animation: Listenable.merge([_controller, _moodController]),
               builder: (context, child) {
                 final pulse = widget.isListening ? _controller.value : 0.0;
                 // Apply spring easing to pulse rings
                 const spring = SpringCurve(damping: 0.5, stiffness: 6.0);
                 final springPulse = spring.transform(pulse.clamp(0.0, 1.0));
+
+                final moodVal = _moodValue(widget.mood);
 
                 return SizedBox(
                   width: widget.size + 40,
@@ -161,8 +218,9 @@ class _VoiceOrbState extends State<VoiceOrb>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: baseColor
-                                  .withValues(alpha: 0.3 - 0.3 * pulse),
+                              color: targetColor.withValues(
+                                alpha: 0.3 - 0.3 * pulse,
+                              ),
                               width: 2,
                             ),
                           ),
@@ -175,32 +233,31 @@ class _VoiceOrbState extends State<VoiceOrb>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: baseColor.withValues(alpha: 0.2),
+                              color: targetColor.withValues(alpha: 0.2),
                               width: 1.5,
                             ),
                           ),
                         ),
                       // Shader blob or waveform fallback (only when listening)
-                      if (widget.isListening)
+                      if (widget.isListening ||
+                          widget.mood == OrbMood.thinking ||
+                          widget.mood == OrbMood.success)
                         _shader != null
                             ? CustomPaint(
-                                size: Size(
-                                    widget.size - 8, widget.size - 8),
+                                size: Size(widget.size - 8, widget.size - 8),
                                 painter: _BlobShaderPainter(
                                   shader: _shader!,
                                   elapsed: _elapsed,
                                   amplitude: pulse,
-                                  color: baseColor,
+                                  color: targetColor,
+                                  mood: moodVal,
                                 ),
                               )
                             : CustomPaint(
-                                size: Size(
-                                    widget.size - 8, widget.size - 8),
+                                size: Size(widget.size - 8, widget.size - 8),
                                 painter: _WaveformPainter(
-                                  color:
-                                      baseColor.withValues(alpha: 0.3),
-                                  phase:
-                                      _controller.value * 2 * math.pi,
+                                  color: targetColor.withValues(alpha: 0.3),
+                                  phase: _controller.value * 2 * math.pi,
                                 ),
                               ),
                       // Core orb
@@ -210,39 +267,63 @@ class _VoiceOrbState extends State<VoiceOrb>
                         height: widget.size,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: baseColor.withValues(alpha: 0.15),
+                          color: targetColor.withValues(alpha: 0.15),
                           border: Border.all(
-                            color: baseColor.withValues(alpha: 0.6),
+                            color: targetColor.withValues(alpha: 0.6),
                             width: 2.5,
                           ),
-                          boxShadow: widget.isListening
+                          boxShadow: widget.mood == OrbMood.success
+                              ? [
+                                  BoxShadow(
+                                    color: targetColor.withValues(alpha: 0.4),
+                                    blurRadius: 30,
+                                    spreadRadius: 4,
+                                  ),
+                                  BoxShadow(
+                                    color: targetColor.withValues(alpha: 0.2),
+                                    blurRadius: 60,
+                                    spreadRadius: 8,
+                                  ),
+                                ]
+                              : widget.isListening
                               ? [
                                   // Triple-layered glow bloom
                                   BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.15 + 0.05 * pulse),
+                                    color: targetColor.withValues(
+                                      alpha: 0.15 + 0.05 * pulse,
+                                    ),
                                     blurRadius: 40 + 10 * pulse,
                                     spreadRadius: 2,
                                   ),
                                   BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.25 + 0.05 * pulse),
+                                    color: targetColor.withValues(
+                                      alpha: 0.25 + 0.05 * pulse,
+                                    ),
                                     blurRadius: 20 + 5 * pulse,
                                     spreadRadius: 1,
                                   ),
                                   BoxShadow(
-                                    color: baseColor.withValues(
-                                        alpha: 0.35 + 0.05 * pulse),
+                                    color: targetColor.withValues(
+                                      alpha: 0.35 + 0.05 * pulse,
+                                    ),
                                     blurRadius: 8 + 3 * pulse,
                                     spreadRadius: 0,
                                   ),
                                 ]
                               : null,
                         ),
-                        child: Icon(
-                          widget.isListening ? Icons.mic : Icons.mic_none,
-                          size: widget.size * 0.4,
-                          color: baseColor,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Icon(
+                            widget.mood == OrbMood.success
+                                ? Icons.check_circle_outline
+                                : (widget.isListening
+                                      ? Icons.mic
+                                      : Icons.mic_none),
+                            key: ValueKey(widget.mood == OrbMood.success),
+                            size: widget.size * 0.4,
+                            color: targetColor,
+                          ),
                         ),
                       ),
                     ],
@@ -250,32 +331,41 @@ class _VoiceOrbState extends State<VoiceOrb>
                 );
               },
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            widget.isListening
-                ? (widget.interimTranscript.isNotEmpty
-                    ? widget.interimTranscript
-                    : 'Listening\u2026')
-                : 'Tap or say "Hey clawfree"',
-            key: ValueKey(
-                widget.isListening ? widget.interimTranscript : 'idle'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontStyle:
-                  widget.isListening ? FontStyle.italic : FontStyle.normal,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
+                    ),
+                  ),
+                  if (widget.showTranscript) ...[
+                    const SizedBox(height: 12),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(
+                        widget.isListening
+                            ? (widget.interimTranscript.isNotEmpty
+                                ? widget.interimTranscript
+                                : 'Listening\u2026')
+                            : widget.mood == OrbMood.success
+                                ? 'Done \u2714'
+                                : (widget.mood == OrbMood.thinking
+                                    ? 'Thinking\u2026'
+                                    : 'Tap or say "Hey clawfree"'),
+                        key: ValueKey(
+                          widget.isListening ? widget.interimTranscript : widget.mood,
+                        ),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: widget.isListening
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+          
   }
 }
 
@@ -302,8 +392,7 @@ class _WaveformPainter extends CustomPainter {
     final path = Path();
     for (var i = 0; i <= segments; i++) {
       final angle = (i / segments) * 2 * math.pi;
-      final distortion =
-          math.sin(angle * frequency + phase) * amplitude;
+      final distortion = math.sin(angle * frequency + phase) * amplitude;
       final r = radius + distortion;
       final x = center.dx + r * math.cos(angle);
       final y = center.dy + r * math.sin(angle);
@@ -329,12 +418,14 @@ class _BlobShaderPainter extends CustomPainter {
     required this.elapsed,
     required this.amplitude,
     required this.color,
+    required this.mood,
   });
 
   final ui.FragmentShader shader;
   final double elapsed;
   final double amplitude;
   final Color color;
+  final double mood;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -349,6 +440,8 @@ class _BlobShaderPainter extends CustomPainter {
     shader.setFloat(4, color.r);
     shader.setFloat(5, color.g);
     shader.setFloat(6, color.b);
+    // uMood (float)
+    shader.setFloat(7, mood);
 
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),

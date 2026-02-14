@@ -45,8 +45,15 @@ void main() {
 
     testWidgets('SkeletonType enum has four values', (tester) async {
       expect(SkeletonType.values.length, 4);
-      expect(SkeletonType.values,
-          containsAll([SkeletonType.text, SkeletonType.form, SkeletonType.table, SkeletonType.card]));
+      expect(
+        SkeletonType.values,
+        containsAll([
+          SkeletonType.text,
+          SkeletonType.form,
+          SkeletonType.table,
+          SkeletonType.card,
+        ]),
+      );
     });
   });
 }

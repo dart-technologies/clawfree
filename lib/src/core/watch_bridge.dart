@@ -27,10 +27,8 @@ class WatchVoiceEvent {
 class WatchBridge {
   WatchBridge._();
 
-  static const _methodChannel =
-      MethodChannel('art.dart.clawfree/watch');
-  static const _eventChannel =
-      EventChannel('art.dart.clawfree/watch_events');
+  static const _methodChannel = MethodChannel('art.dart.clawfree/watch');
+  static const _eventChannel = EventChannel('art.dart.clawfree/watch_events');
 
   /// Stream of voice events received from the Watch.
   ///
@@ -49,8 +47,7 @@ class WatchBridge {
 
   /// Returns `true` if the paired Watch is currently reachable.
   static Future<bool> get isWatchReachable async {
-    final result =
-        await _methodChannel.invokeMethod<bool>('isWatchReachable');
+    final result = await _methodChannel.invokeMethod<bool>('isWatchReachable');
     return result ?? false;
   }
 }

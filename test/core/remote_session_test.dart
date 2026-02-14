@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import 'package:clawfree/src/core/platform_config.dart';
 import 'package:clawfree/src/core/remote_session.dart';
@@ -60,12 +60,12 @@ void main() {
   });
 
   group('defaultDemoSessions', () {
-    test('excludes phone when self is phone', () {
+    test('returns all 5 demo devices regardless of self', () {
       final sessions = defaultDemoSessions(DeviceFormFactor.phone);
-      expect(sessions.length, 3);
+      expect(sessions.length, 5);
       expect(
         sessions.any((s) => s.deviceType == DeviceFormFactor.phone),
-        isFalse,
+        isTrue,
       );
       expect(
         sessions.any((s) => s.deviceType == DeviceFormFactor.desktop),
@@ -81,49 +81,47 @@ void main() {
       );
     });
 
-    test('excludes tablet when self is tablet', () {
+    test('Mac is first, iPad is second', () {
       final sessions = defaultDemoSessions(DeviceFormFactor.tablet);
-      expect(sessions.length, 3);
-      expect(
-        sessions.any((s) => s.deviceType == DeviceFormFactor.tablet),
-        isFalse,
-      );
+      expect(sessions.length, 5);
+      expect(sessions[0].deviceName, 'Mac');
+      expect(sessions[1].deviceName, 'iPad');
     });
 
-    test('excludes desktop when self is desktop', () {
+    test('includes all device types for desktop self', () {
       final sessions = defaultDemoSessions(DeviceFormFactor.desktop);
-      expect(sessions.length, 3);
+      expect(sessions.length, 5);
       expect(
         sessions.any((s) => s.deviceType == DeviceFormFactor.desktop),
-        isFalse,
+        isTrue,
       );
     });
 
-    test('excludes watch when self is watch', () {
+    test('includes all device types for watch self', () {
       final sessions = defaultDemoSessions(DeviceFormFactor.watch);
-      expect(sessions.length, 3);
+      expect(sessions.length, 5);
       expect(
         sessions.any((s) => s.deviceType == DeviceFormFactor.watch),
-        isFalse,
+        isTrue,
       );
     });
   });
 
   group('iconForDeviceType', () {
     test('returns correct icon for desktop', () {
-      expect(iconForDeviceType(DeviceFormFactor.desktop), Icons.desktop_mac);
+      expect(iconForDeviceType(DeviceFormFactor.desktop), Symbols.desktop_mac);
     });
 
     test('returns correct icon for tablet', () {
-      expect(iconForDeviceType(DeviceFormFactor.tablet), Icons.tablet_mac);
+      expect(iconForDeviceType(DeviceFormFactor.tablet), Symbols.tablet_mac);
     });
 
     test('returns correct icon for phone', () {
-      expect(iconForDeviceType(DeviceFormFactor.phone), Icons.phone_iphone);
+      expect(iconForDeviceType(DeviceFormFactor.phone), Symbols.phone_iphone);
     });
 
     test('returns correct icon for watch', () {
-      expect(iconForDeviceType(DeviceFormFactor.watch), Icons.watch);
+      expect(iconForDeviceType(DeviceFormFactor.watch), Symbols.watch);
     });
   });
 }

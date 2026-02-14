@@ -82,18 +82,12 @@ void main() {
       final history = <Map<String, String>>[
         {
           'role': 'user',
-          'content': jsonEncode({
-            'path': '/submit',
-            '/agent/name': 'OldBot',
-          }),
+          'content': jsonEncode({'path': '/submit', '/agent/name': 'OldBot'}),
         },
         {'role': 'assistant', 'content': 'Saved!'},
         {
           'role': 'user',
-          'content': jsonEncode({
-            'path': '/submit',
-            '/agent/name': 'NewBot',
-          }),
+          'content': jsonEncode({'path': '/submit', '/agent/name': 'NewBot'}),
         },
       ];
       final config = AgentConfigParser.fromHistory(history);

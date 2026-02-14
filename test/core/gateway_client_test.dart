@@ -57,11 +57,13 @@ void main() {
 
       await expectLater(
         () => client.health(),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          500,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            500,
+          ),
+        ),
       );
       client.dispose();
     });
@@ -159,11 +161,13 @@ void main() {
 
       await expectLater(
         () => client.fetchAgents(),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          404,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            404,
+          ),
+        ),
       );
       client.dispose();
     });
@@ -243,11 +247,13 @@ void main() {
 
       await expectLater(
         () => client.fetchSessions(),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          404,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            404,
+          ),
+        ),
       );
       client.dispose();
     });
@@ -286,11 +292,13 @@ void main() {
 
       await expectLater(
         () => client.onboard(),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          401,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            401,
+          ),
+        ),
       );
       client.dispose();
     });
@@ -305,7 +313,11 @@ void main() {
         expect(body['name'], 'TestBot');
         expect(body['model'], 'claude-opus-4-6');
         return http.Response(
-          jsonEncode({'name': 'TestBot', 'id': 'agent-001', 'status': 'active'}),
+          jsonEncode({
+            'name': 'TestBot',
+            'id': 'agent-001',
+            'status': 'active',
+          }),
           201,
         );
       });
@@ -328,10 +340,7 @@ void main() {
 
     test('accepts 200 as success', () async {
       final mockHttp = _mockClient((request) async {
-        return http.Response(
-          jsonEncode({'name': 'Bot', 'status': 'ok'}),
-          200,
-        );
+        return http.Response(jsonEncode({'name': 'Bot', 'status': 'ok'}), 200);
       });
       final client = GatewayClient(
         baseUrl: 'http://localhost:18789',
@@ -354,11 +363,13 @@ void main() {
 
       await expectLater(
         () => client.createAgent({'name': ''}),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          400,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            400,
+          ),
+        ),
       );
       client.dispose();
     });
@@ -374,11 +385,13 @@ void main() {
 
       await expectLater(
         () => client.createAgent({'name': 'Bot'}),
-        throwsA(isA<GatewayException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          500,
-        )),
+        throwsA(
+          isA<GatewayException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            500,
+          ),
+        ),
       );
       client.dispose();
     });

@@ -248,25 +248,28 @@ void main() {
       gateway.dispose();
     });
 
-    test('sessions empty by default when gateway returns health JSON for /sessions', () async {
-      // Mock returns health-shaped JSON for all paths, which is not a valid
-      // sessions response — sessions should default to empty.
-      final mockHttp = http_testing.MockClient(
-        (request) async => _healthResponse(),
-      );
-      final gateway = GatewayClient(
-        baseUrl: 'http://localhost:18789',
-        httpClient: mockHttp,
-      );
-      final poller = HealthPoller(gatewayClient: gateway);
+    test(
+      'sessions empty by default when gateway returns health JSON for /sessions',
+      () async {
+        // Mock returns health-shaped JSON for all paths, which is not a valid
+        // sessions response — sessions should default to empty.
+        final mockHttp = http_testing.MockClient(
+          (request) async => _healthResponse(),
+        );
+        final gateway = GatewayClient(
+          baseUrl: 'http://localhost:18789',
+          httpClient: mockHttp,
+        );
+        final poller = HealthPoller(gatewayClient: gateway);
 
-      await poller.pollOnce();
+        await poller.pollOnce();
 
-      expect(poller.sessions, isEmpty);
+        expect(poller.sessions, isEmpty);
 
-      poller.dispose();
-      gateway.dispose();
-    });
+        poller.dispose();
+        gateway.dispose();
+      },
+    );
 
     test('parses sessions from gateway', () async {
       final mockHttp = http_testing.MockClient((request) async {
@@ -346,42 +349,45 @@ void main() {
       gateway.dispose();
     });
 
-    test('falls back to demoSessions after 3 consecutive session errors', () async {
-      final mockHttp = http_testing.MockClient((request) async {
-        if (request.url.path == '/sessions') {
-          return http.Response('Not Found', 404);
-        }
-        return _healthResponse();
-      });
-      final gateway = GatewayClient(
-        baseUrl: 'http://localhost:18789',
-        httpClient: mockHttp,
-      );
-      final demoSessions = [
-        const RemoteSession(
-          sessionId: 'demo-1',
-          deviceType: DeviceFormFactor.phone,
-          deviceName: 'Demo Phone',
-        ),
-      ];
-      final poller = HealthPoller(
-        gatewayClient: gateway,
-        demoSessions: demoSessions,
-      );
+    test(
+      'falls back to demoSessions after 3 consecutive session errors',
+      () async {
+        final mockHttp = http_testing.MockClient((request) async {
+          if (request.url.path == '/sessions') {
+            return http.Response('Not Found', 404);
+          }
+          return _healthResponse();
+        });
+        final gateway = GatewayClient(
+          baseUrl: 'http://localhost:18789',
+          httpClient: mockHttp,
+        );
+        final demoSessions = [
+          const RemoteSession(
+            sessionId: 'demo-1',
+            deviceType: DeviceFormFactor.phone,
+            deviceName: 'Demo Phone',
+          ),
+        ];
+        final poller = HealthPoller(
+          gatewayClient: gateway,
+          demoSessions: demoSessions,
+        );
 
-      // First two failures: sessions remain empty
-      await poller.pollOnce();
-      expect(poller.sessions, isEmpty);
-      await poller.pollOnce();
-      expect(poller.sessions, isEmpty);
+        // First two failures: sessions remain empty
+        await poller.pollOnce();
+        expect(poller.sessions, isEmpty);
+        await poller.pollOnce();
+        expect(poller.sessions, isEmpty);
 
-      // Third failure: fall back to demoSessions
-      await poller.pollOnce();
-      expect(poller.sessions, hasLength(1));
-      expect(poller.sessions[0].deviceName, 'Demo Phone');
+        // Third failure: fall back to demoSessions
+        await poller.pollOnce();
+        expect(poller.sessions, hasLength(1));
+        expect(poller.sessions[0].deviceName, 'Demo Phone');
 
-      poller.dispose();
-      gateway.dispose();
-    });
+        poller.dispose();
+        gateway.dispose();
+      },
+    );
   });
 }
