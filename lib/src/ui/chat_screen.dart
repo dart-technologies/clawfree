@@ -165,6 +165,13 @@ class _ChatScreenState extends State<ChatScreen> {
             if (mounted) setState(() { _watchUIState = event.uiState; });
           } else if (event.isTextCommand && event.text!.isNotEmpty) {
             debugPrint('[ChatScreen] Forwarding Watch command to chat: "${event.text}"');
+            // (a) Display in input field
+            if (mounted) {
+              setState(() {
+                _textController.text = event.text!;
+              });
+            }
+            // (b) Auto-send to ChatSession
             _send(event.text!, source: InputSource.watch);
             WatchBridge.broadcastToRelay(event);
           }

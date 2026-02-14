@@ -176,7 +176,7 @@ struct PulseMonitorView: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "cpu")
                                     .font(.system(size: 8))
-                                Text("建 Agent")
+                                Text("Create Agent")
                                     .font(.system(size: 9))
                             }
                             .padding(.horizontal, 6)
@@ -189,7 +189,7 @@ struct PulseMonitorView: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "airplane")
                                     .font(.system(size: 8))
-                                Text("規劃旅行")
+                                Text("Plan Trip")
                                     .font(.system(size: 9))
                             }
                             .padding(.horizontal, 6)

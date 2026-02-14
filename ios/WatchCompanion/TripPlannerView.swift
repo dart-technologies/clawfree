@@ -85,6 +85,8 @@ struct TripPlannerView: View {
         .onAppear {
             attractions = cityAttractions[selectedCity]
             syncState()
+            // TTS: "Where would you like to travel?"
+            WatchTTSService.shared.speak("Where would you like to travel?")
         }
         .onChange(of: selectedCity) { newVal in
             if newVal < cityAttractions.count {
@@ -92,7 +94,13 @@ struct TripPlannerView: View {
             }
             syncState()
         }
-        .onChange(of: step) { _ in syncState() }
+        .onChange(of: step) { newStep in
+            syncState()
+            // TTS when entering days step
+            if newStep == 1 {
+                WatchTTSService.shared.speak("How many days?")
+            }
+        }
         .onChange(of: selectedDays) { _ in syncState() }
     }
 
@@ -122,10 +130,10 @@ struct TripPlannerView: View {
         ])
     }
 
-    // MARK: - Step 0: 選目的地（橫滑卡片）
+    // MARK: - Step 0: Select Destination
     private var cityStep: some View {
         VStack(spacing: 6) {
-            Text("🌍 去哪裡？")
+            Text("🌍 Where to?")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
 
@@ -155,7 +163,7 @@ struct TripPlannerView: View {
             .frame(height: 100)
 
             Button(action: { withAnimation { step = 1 } }) {
-                Text("選 \(cities[selectedCity].name) →")
+                Text("Select \(cities[selectedCity].name) →")
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -165,10 +173,10 @@ struct TripPlannerView: View {
         }
     }
 
-    // MARK: - Step 1: 選天數
+    // MARK: - Step 1: Select Duration
     private var daysStep: some View {
         VStack(spacing: 10) {
-            Text("📅 幾天？")
+            Text("📅 How many days?")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
 
@@ -182,7 +190,7 @@ struct TripPlannerView: View {
                         VStack(spacing: 2) {
                             Text("\(daysOptions[i])")
                                 .font(.system(size: 22, weight: .bold))
-                            Text("天")
+                            Text("days")
                                 .font(.system(size: 10))
                         }
                         .frame(width: 48, height: 48)
@@ -201,11 +209,11 @@ struct TripPlannerView: View {
             }
 
             HStack(spacing: 8) {
-                Button("← 返回") { withAnimation { step = 0 } }
+                Button("← Back") { withAnimation { step = 0 } }
                     .font(.system(size: 11))
                     .buttonStyle(.bordered)
 
-                Button("下一步 →") { withAnimation { step = 2 } }
+                Button("Next →") { withAnimation { step = 2 } }
                     .font(.system(size: 11))
                     .buttonStyle(.borderedProminent)
                     .tint(teal)
@@ -213,10 +221,10 @@ struct TripPlannerView: View {
         }
     }
 
-    // MARK: - Step 2: 選景點（Checkbox）
+    // MARK: - Step 2: Select Attractions
     private var attractionsStep: some View {
         VStack(spacing: 4) {
-            Text("📍 選景點")
+            Text("📍 Select Attractions")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
 
@@ -244,11 +252,11 @@ struct TripPlannerView: View {
             .frame(maxHeight: 95)
 
             HStack(spacing: 8) {
-                Button("← 返回") { withAnimation { step = 1 } }
+                Button("← Back") { withAnimation { step = 1 } }
                     .font(.system(size: 11))
                     .buttonStyle(.bordered)
 
-                Button("規劃 →") { withAnimation { step = 3 } }
+                Button("Plan →") { withAnimation { step = 3 } }
                     .font(.system(size: 11))
                     .buttonStyle(.borderedProminent)
                     .tint(teal)
@@ -263,7 +271,7 @@ struct TripPlannerView: View {
             Text(cities[selectedCity].emoji)
                 .font(.system(size: 28))
 
-            Text("\(cities[selectedCity].name) \(daysOptions[selectedDays]) 天")
+            Text("\(cities[selectedCity].name) \(daysOptions[selectedDays]) days")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.white)
 
@@ -271,12 +279,12 @@ struct TripPlannerView: View {
             Text(selected.map(\.emoji).joined(separator: " "))
                 .font(.system(size: 16))
 
-            Text("\(selected.count) 個景點")
+            Text("\(selected.count) attractions")
                 .font(.system(size: 10))
                 .foregroundColor(.gray)
 
             HStack(spacing: 8) {
-                Button("← 修改") { withAnimation { step = 2 } }
+                Button("← Edit") { withAnimation { step = 2 } }
                     .font(.system(size: 11))
                     .buttonStyle(.bordered)
 
@@ -287,7 +295,7 @@ struct TripPlannerView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "paperplane.fill")
-                        Text("開始規劃")
+                        Text("Start Planning")
                     }
                     .font(.system(size: 12, weight: .semibold))
                 }

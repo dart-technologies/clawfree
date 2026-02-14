@@ -96,7 +96,7 @@ class WatchFlowOverlay extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '🔧 建立 Agent',
+          '🔧 Create Agent',
           style: TextStyle(
             color: const Color(0xFFFF6B35),
             fontSize: 16,
@@ -105,16 +105,16 @@ class WatchFlowOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Step 0: 選模型
-        _stepRow(0, step, '$modelEmoji 模型', model.isEmpty ? '選擇中...' : model),
+        // Step 0: Select Model
+        _stepRow(0, step, '$modelEmoji Model', model.isEmpty ? 'Selecting...' : model),
 
-        // Step 1: 選技能
-        _stepRow(1, step, '🛠️ 技能',
-            skills.isEmpty ? '選擇中...' : skills.join(', ')),
+        // Step 1: Select Skills
+        _stepRow(1, step, '🛠️ Skills',
+            skills.isEmpty ? 'Selecting...' : skills.join(', ')),
 
-        // Step 2: 確認
+        // Step 2: Confirm
         if (step >= 2)
-          _stepRow(2, step, '✅ 確認', '準備建立'),
+          _stepRow(2, step, '✅ Confirm', 'Ready to create'),
       ],
     );
   }
@@ -130,7 +130,7 @@ class WatchFlowOverlay extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '🗾 規劃旅行',
+          '🗾 Plan Trip',
           style: TextStyle(
             color: const Color(0xFF00BFA5),
             fontSize: 16,
@@ -139,19 +139,19 @@ class WatchFlowOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Step 0: 目的地
-        _stepRow(0, step, '$cityEmoji 目的地', city.isEmpty ? '選擇中...' : city),
+        // Step 0: Destination
+        _stepRow(0, step, '$cityEmoji Destination', city.isEmpty ? 'Selecting...' : city),
 
-        // Step 1: 天數
-        _stepRow(1, step, '📅 天數', days > 0 ? '$days 天' : '選擇中...'),
+        // Step 1: Duration
+        _stepRow(1, step, '📅 Duration', days > 0 ? '$days days' : 'Selecting...'),
 
-        // Step 2: 景點
-        _stepRow(2, step, '📍 景點',
-            attractions.isEmpty ? '選擇中...' : '${attractions.length} 個景點'),
+        // Step 2: Attractions
+        _stepRow(2, step, '📍 Attractions',
+            attractions.isEmpty ? 'Selecting...' : '${attractions.length} attractions'),
 
-        // Step 3: 確認
+        // Step 3: Confirm
         if (step >= 3)
-          _stepRow(3, step, '✈️ 出發', '$city $days 天之旅'),
+          _stepRow(3, step, '✈️ Depart', '$city $days-day trip'),
       ],
     );
   }
