@@ -71,6 +71,20 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// 傳送 Watch UI 狀態到 iPhone（即時同步每一步操作）
+    func sendUIState(_ state: [String: Any]) {
+        guard WCSession.default.activationState == .activated else { return }
+        var payload = state
+        payload["type"] = "ui_state"
+        payload["timestamp"] = Int(Date().timeIntervalSince1970 * 1000)
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: { error in
+                print("[Watch→Phone] UI state send failed: \(error.localizedDescription)")
+            })
+        }
+    }
+
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {

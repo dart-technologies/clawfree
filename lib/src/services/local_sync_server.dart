@@ -14,6 +14,12 @@ class LocalSyncServer extends ChangeNotifier {
   final int port;
   HttpServer? _server;
   final List<WebSocket> _clients = [];
+  final _incomingController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// 從 client 裝置收到的訊息 stream（供 host 處理）。
+  Stream<Map<String, dynamic>> get incomingMessages =>
+      _incomingController.stream;
 
   /// Number of currently connected clients.
   int get clientCount => _clients.length;
@@ -49,7 +55,7 @@ class LocalSyncServer extends ChangeNotifier {
       notifyListeners();
 
       ws.listen(
-        (_) {}, // clients don't send data in this protocol
+        (data) => _handleClientMessage(ws, data),
         onDone: () => _removeClient(ws),
         onError: (_) => _removeClient(ws),
       );
@@ -58,10 +64,43 @@ class LocalSyncServer extends ChangeNotifier {
     }
   }
 
+  /// 處理來自 client 的訊息，轉發給其他 clients 並通知 host。
+  void _handleClientMessage(WebSocket sender, dynamic rawData) {
+    try {
+      final map = jsonDecode(rawData as String) as Map<String, dynamic>;
+      debugPrint('[LocalSyncServer] received from client: ${map['type']}');
+
+      // 通知 host（透過 stream）
+      _incomingController.add(map);
+
+      // 轉發給其他 clients（排除發送者）
+      final json = jsonEncode(map);
+      final dead = <WebSocket>[];
+      for (final ws in _clients) {
+        if (ws == sender) continue;
+        try {
+          ws.add(json);
+        } catch (_) {
+          dead.add(ws);
+        }
+      }
+      for (final ws in dead) {
+        _removeClient(ws);
+      }
+    } catch (e) {
+      debugPrint('[LocalSyncServer] client message parse error: $e');
+    }
+  }
+
   void _removeClient(WebSocket ws) {
     _clients.remove(ws);
     debugPrint('[LocalSyncServer] client disconnected (${_clients.length} remaining)');
     notifyListeners();
+  }
+
+  /// 廣播原始 JSON 資料到所有 client（Watch UI 狀態同步用）。
+  void broadcastRaw(Map<String, dynamic> data) {
+    _broadcast(data);
   }
 
   /// Broadcast a user message to all connected clients.
@@ -117,6 +156,7 @@ class LocalSyncServer extends ChangeNotifier {
   @override
   void dispose() {
     stop();
+    _incomingController.close();
     super.dispose();
   }
 }

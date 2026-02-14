@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'watch_flow_overlay.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/chat_session.dart';
@@ -78,6 +80,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final _roleDetector = DeviceRoleDetector();
   LocalSyncServer? _syncServer;
   LocalSyncClient? _syncClient;
+
+  /// Watch 互動流程的即時狀態（從 Watch 同步過來）
+  Map<String, dynamic>? _watchUIState;
   StreamSubscription<SyncEvent>? _syncSub;
 
   @override
@@ -153,7 +158,12 @@ class _ChatScreenState extends State<ChatScreen> {
       _watchSub = WatchBridge.onVoiceReceived.listen(
         (event) {
           debugPrint('[ChatScreen] Watch event received: type=${event.type} text="${event.text}" isTextCommand=${event.isTextCommand}');
-          if (event.isTextCommand && event.text!.isNotEmpty) {
+          if (event.isUIState && event.uiState != null) {
+            // Watch UI 狀態同步 → 廣播到 iPad/macOS + 更新本機顯示
+            debugPrint('[ChatScreen] Watch UI state: ${event.uiState}');
+            _syncServer?.broadcastRaw(event.uiState!);
+            if (mounted) setState(() { _watchUIState = event.uiState; });
+          } else if (event.isTextCommand && event.text!.isNotEmpty) {
             debugPrint('[ChatScreen] Forwarding Watch command to chat: "${event.text}"');
             _send(event.text!, source: InputSource.watch);
             WatchBridge.broadcastToRelay(event);
@@ -317,15 +327,37 @@ class _ChatScreenState extends State<ChatScreen> {
     final formFactor = PlatformConfig.formFactor(context);
     _session.deviceFormFactor = formFactor;
 
+    Widget layout;
     switch (formFactor) {
       case DeviceFormFactor.phone:
-        return _buildPhoneLayout();
+        layout = _buildPhoneLayout();
       case DeviceFormFactor.tablet:
       case DeviceFormFactor.desktop:
-        return _buildTabletLayout(context);
+        layout = _buildTabletLayout(context);
       case DeviceFormFactor.watch:
-        return _buildWatchLayout();
+        layout = _buildWatchLayout();
     }
+
+    // Watch UI 狀態同步覆蓋層
+    if (_watchUIState != null) {
+      return Stack(
+        children: [
+          layout,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 80,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: WatchFlowOverlay(state: _watchUIState!),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return layout;
   }
 
   // ---------------------------------------------------------------------------
@@ -649,12 +681,19 @@ class _ChatScreenState extends State<ChatScreen> {
           if (mounted) setState(() {});
         });
         _syncServer!.start();
+        // 監聽從 client 裝置傳來的訊息
+        _syncServer!.incomingMessages.listen((msg) {
+          if (!mounted) return;
+          final type = msg['type'] as String? ?? '';
+          final text = msg['text'] as String? ?? '';
+          if (type == 'user_message' && text.isNotEmpty) {
+            _session.sendMessage(text);
+          }
+        });
       } else {
-        // Client mode — connect if host IP is known
-        final ip = _roleDetector.hostIp;
-        if (ip != null) {
-          _startSyncClient(ip);
-        }
+        // Client 模式 — 嘗試連線到 host
+        final ip = _roleDetector.hostIp ?? '127.0.0.1';
+        _startSyncClient(ip);
       }
     });
   }
@@ -667,6 +706,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _syncSub = _syncClient!.events.listen((event) {
       if (event.type == 'user_message') {
         _session.sendMessage(event.text);
+      } else if (event.type == 'ui_state') {
+        // Watch UI 狀態從 server 同步過來
+        if (mounted) setState(() { _watchUIState = event.data; });
       }
       // ai_response events update via the normal ChatSession flow
     });
@@ -703,6 +745,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ? 'voice'
               : 'keyboard';
       _syncServer?.broadcastUserMessage(immediate, source: srcName);
+      // Client 模式：傳送訊息到 server 轉發給其他裝置
+      _syncClient?.sendUserMessage(immediate, source: srcName);
     }
   }
 

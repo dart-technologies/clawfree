@@ -130,14 +130,18 @@ import WatchConnectivity
 
   /// Common handler for voice commands from Watch (any delivery method).
   private func handleWatchVoiceCommand(_ message: [String: Any]) {
-      if let type = message["type"] as? String, type == "voice_command",
-         let text = message["text"] as? String {
+      guard let type = message["type"] as? String else { return }
+
+      if type == "voice_command", let text = message["text"] as? String {
           let event: [String: Any] = [
               "type": "voice_command",
               "text": text,
               "timestamp": message["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000),
           ]
           WatchEventStreamHandler.shared.send(event)
+      } else if type == "ui_state" {
+          // Watch UI 狀態同步 → 直接轉發到 Flutter
+          WatchEventStreamHandler.shared.send(message)
       }
   }
 }
