@@ -6,6 +6,15 @@ struct PulseMonitorView: View {
     @StateObject private var connectivity = ConnectivityProvider()
     @StateObject private var tts = WatchTTSService.shared
 
+    /// 當前顯示的互動流程
+    @State private var activeFlow: InteractiveFlow = .none
+
+    enum InteractiveFlow {
+        case none           // 主畫面（語音）
+        case agentConfig    // 建 Agent 流程
+        case tripPlanner    // 規劃旅行流程
+    }
+
     /// Current UI phase
     @State private var phase: VoicePhase = .idle
     /// Pulsing animation scale for the mic ring
@@ -44,7 +53,47 @@ struct PulseMonitorView: View {
         ZStack {
             darkBg.ignoresSafeArea()
 
-            VStack(spacing: 8) {
+            // 互動流程覆蓋主畫面
+            switch activeFlow {
+            case .agentConfig:
+                AgentConfigView(
+                    connectivity: connectivity,
+                    onComplete: { command in
+                        connectivity.sendVoiceCommand(command)
+                        withAnimation { activeFlow = .none; phase = .sending }
+                    },
+                    onCancel: { withAnimation { activeFlow = .none } }
+                )
+            case .tripPlanner:
+                TripPlannerView(
+                    connectivity: connectivity,
+                    onComplete: { command in
+                        connectivity.sendVoiceCommand(command)
+                        withAnimation { activeFlow = .none; phase = .sending }
+                    },
+                    onCancel: { withAnimation { activeFlow = .none } }
+                )
+            case .none:
+                mainVoiceView
+            }
+        }
+        .sheet(isPresented: $showDictation) {
+            DictationSheet(text: $dictatedText, onDone: handleDictationDone)
+        }
+        .onAppear { startIdlePulse() }
+        .onChange(of: connectivity.lastAiReply) { newReply in
+            if newReply != nil && phase == .sending {
+                withAnimation(.easeInOut(duration: 0.3)) { phase = .reply }
+                if let r = newReply {
+                    WatchTTSService.shared.speak(r)
+                }
+            }
+        }
+    }
+
+    // MARK: - 主語音畫面
+    private var mainVoiceView: some View {
+        VStack(spacing: 8) {
                 // Branding bar
                 HStack(spacing: 4) {
                     Image(systemName: "hand.raised.slash.fill")
@@ -118,23 +167,42 @@ struct PulseMonitorView: View {
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
-                .padding(.bottom, 4)
-            }
-        }
-        .sheet(isPresented: $showDictation) {
-            DictationSheet(text: $dictatedText, onDone: handleDictationDone)
-        }
-        .onAppear { startIdlePulse() }
-        .onChange(of: connectivity.lastAiReply) { newReply in
-            if newReply != nil && phase == .sending {
-                withAnimation(.easeInOut(duration: 0.3)) { phase = .reply }
-                // Auto-speak
-                if let r = newReply {
-                    WatchTTSService.shared.speak(r)
+                .padding(.bottom, 2)
+
+                // 快捷操作按鈕（idle 或 reply 時顯示）
+                if phase == .idle || phase == .reply {
+                    HStack(spacing: 6) {
+                        Button(action: { withAnimation { activeFlow = .agentConfig } }) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "cpu")
+                                    .font(.system(size: 8))
+                                Text("建 Agent")
+                                    .font(.system(size: 9))
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(lobsterOrange)
+
+                        Button(action: { withAnimation { activeFlow = .tripPlanner } }) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "airplane")
+                                    .font(.system(size: 8))
+                                Text("規劃旅行")
+                                    .font(.system(size: 9))
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(teal)
+                    }
+                    .padding(.bottom, 2)
                 }
             }
         }
-    }
+    
 
     // MARK: - Sub‑views
 
@@ -222,7 +290,19 @@ struct PulseMonitorView: View {
             withAnimation { phase = .idle }
             return
         }
-        // Send to iPhone
+        let lower = trimmed.lowercased()
+
+        // 語音觸發互動流程
+        if lower.contains("create") && lower.contains("agent") {
+            withAnimation { phase = .idle; activeFlow = .agentConfig }
+            return
+        }
+        if lower.contains("plan") && (lower.contains("trip") || lower.contains("travel")) {
+            withAnimation { phase = .idle; activeFlow = .tripPlanner }
+            return
+        }
+
+        // 一般語音指令 → 直接發送到 iPhone
         withAnimation(.easeInOut(duration: 0.2)) { phase = .sending }
         connectivity.sendVoiceCommand(trimmed)
     }
