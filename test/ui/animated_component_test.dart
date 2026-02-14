@@ -4,15 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/animated_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-animated';
-  @override
-  ChildBuilderCallback get buildChild =>
-      (String id, [DataContext? dc]) => Text('Animated: $id');
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-animated',
+    type: 'Animated',
+    buildChild: (id, [dc]) => Text('Animated: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -22,10 +26,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: animatedCatalogBuilder(_MockContext({
-              'child': 'inner',
-              'animation': 'fadeIn',
-            })),
+            body: Builder(
+              builder: (context) => animatedCatalogBuilder(_createContext({
+                'child': 'inner',
+                'animation': 'fadeIn',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -41,10 +47,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: animatedCatalogBuilder(_MockContext({
-              'child': 'slide-child',
-              'animation': 'slideUp',
-            })),
+            body: Builder(
+              builder: (context) => animatedCatalogBuilder(_createContext({
+                'child': 'slide-child',
+                'animation': 'slideUp',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -60,9 +68,11 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: animatedCatalogBuilder(_MockContext({
-              'child': 'default-anim',
-            })),
+            body: Builder(
+              builder: (context) => animatedCatalogBuilder(_createContext({
+                'child': 'default-anim',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -74,12 +84,18 @@ void main() {
     });
 
     testWidgets('returns SizedBox.shrink for non-string child', (tester) async {
-      final widget = animatedCatalogBuilder(_MockContext({
-        'child': 123,
-      }));
-
-      // Direct check — should be SizedBox.shrink
-      expect(widget, isA<SizedBox>());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(builder: (context) {
+            final widget = animatedCatalogBuilder(_createContext({
+              'child': 123,
+            }, context));
+            return widget;
+          }),
+        ),
+      );
+      
+      expect(find.byType(SizedBox), findsOneWidget);
     });
   });
 }

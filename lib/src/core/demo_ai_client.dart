@@ -743,49 +743,49 @@ class DemoCacheAiClient implements AiClient {
     {"id": "log-1-row", "component": "Row", "children": ["log-1-icon", "log-1-info"]},
     {"id": "log-1-icon", "component": "Icon", "icon": "check", "size": "small"},
     {"id": "log-1-info", "component": "Column", "children": ["log-1-title", "log-1-time"]},
-    {"id": "log-1-title", "component": "Text", "text": "Agent 'GitDigest Bot' deployed successfully", "variant": "body1"},
+    {"id": "log-1-title", "component": "Text", "text": "Agent 'GitDigest Bot' deployed successfully", "variant": "body"},
     {"id": "log-1-time", "component": "Text", "text": "2 min ago \u2022 Agent", "variant": "caption"},
     {"id": "log-2", "component": "Card", "child": "log-2-row"},
     {"id": "log-2-row", "component": "Row", "children": ["log-2-icon", "log-2-info"]},
     {"id": "log-2-icon", "component": "Icon", "icon": "lock", "size": "small"},
     {"id": "log-2-info", "component": "Column", "children": ["log-2-title", "log-2-time"]},
-    {"id": "log-2-title", "component": "Text", "text": "API key rotated for Anthropic provider", "variant": "body1"},
+    {"id": "log-2-title", "component": "Text", "text": "API key rotated for Anthropic provider", "variant": "body"},
     {"id": "log-2-time", "component": "Text", "text": "8 min ago \u2022 Security", "variant": "caption"},
     {"id": "log-3", "component": "Card", "child": "log-3-row"},
     {"id": "log-3-row", "component": "Row", "children": ["log-3-icon", "log-3-info"]},
     {"id": "log-3-icon", "component": "Icon", "icon": "check", "size": "small"},
     {"id": "log-3-info", "component": "Column", "children": ["log-3-title", "log-3-time"]},
-    {"id": "log-3-title", "component": "Text", "text": "Health check passed \u2014 all services nominal", "variant": "body1"},
+    {"id": "log-3-title", "component": "Text", "text": "Health check passed \u2014 all services nominal", "variant": "body"},
     {"id": "log-3-time", "component": "Text", "text": "15 min ago \u2022 System", "variant": "caption"},
     {"id": "log-4", "component": "Card", "child": "log-4-row"},
     {"id": "log-4-row", "component": "Row", "children": ["log-4-icon", "log-4-info"]},
     {"id": "log-4-icon", "component": "Icon", "icon": "warning", "size": "small"},
     {"id": "log-4-info", "component": "Column", "children": ["log-4-title", "log-4-time"]},
-    {"id": "log-4-title", "component": "Text", "text": "Rate limit threshold reached for Slack Connector", "variant": "body1"},
+    {"id": "log-4-title", "component": "Text", "text": "Rate limit threshold reached for Slack Connector", "variant": "body"},
     {"id": "log-4-time", "component": "Text", "text": "22 min ago \u2022 Agent", "variant": "caption"},
     {"id": "log-5", "component": "Card", "child": "log-5-row"},
     {"id": "log-5-row", "component": "Row", "children": ["log-5-icon", "log-5-info"]},
     {"id": "log-5-icon", "component": "Icon", "icon": "check", "size": "small"},
     {"id": "log-5-info", "component": "Column", "children": ["log-5-title", "log-5-time"]},
-    {"id": "log-5-title", "component": "Text", "text": "Skill 'Secret Scanner' completed sweep \u2014 0 findings", "variant": "body1"},
+    {"id": "log-5-title", "component": "Text", "text": "Skill 'Secret Scanner' completed sweep \u2014 0 findings", "variant": "body"},
     {"id": "log-5-time", "component": "Text", "text": "31 min ago \u2022 Security", "variant": "caption"},
     {"id": "log-6", "component": "Card", "child": "log-6-row"},
     {"id": "log-6-row", "component": "Row", "children": ["log-6-icon", "log-6-info"]},
     {"id": "log-6-icon", "component": "Icon", "icon": "check", "size": "small"},
     {"id": "log-6-info", "component": "Column", "children": ["log-6-title", "log-6-time"]},
-    {"id": "log-6-title", "component": "Text", "text": "Gateway upgraded to v2026.2.9", "variant": "body1"},
+    {"id": "log-6-title", "component": "Text", "text": "Gateway upgraded to v2026.2.9", "variant": "body"},
     {"id": "log-6-time", "component": "Text", "text": "1h ago \u2022 System", "variant": "caption"},
     {"id": "log-7", "component": "Card", "child": "log-7-row"},
     {"id": "log-7-row", "component": "Row", "children": ["log-7-icon", "log-7-info"]},
     {"id": "log-7-icon", "component": "Icon", "icon": "lock", "size": "small"},
     {"id": "log-7-info", "component": "Column", "children": ["log-7-title", "log-7-time"]},
-    {"id": "log-7-title", "component": "Text", "text": "New device paired via QR code", "variant": "body1"},
+    {"id": "log-7-title", "component": "Text", "text": "New device paired via QR code", "variant": "body"},
     {"id": "log-7-time", "component": "Text", "text": "1h 15m ago \u2022 Security", "variant": "caption"},
     {"id": "log-8", "component": "Card", "child": "log-8-row"},
     {"id": "log-8-row", "component": "Row", "children": ["log-8-icon", "log-8-info"]},
     {"id": "log-8-icon", "component": "Icon", "icon": "warning", "size": "small"},
     {"id": "log-8-info", "component": "Column", "children": ["log-8-title", "log-8-time"]},
-    {"id": "log-8-title", "component": "Text", "text": "TLS certificate for api.example.com expires in 14 days", "variant": "body1"},
+    {"id": "log-8-title", "component": "Text", "text": "TLS certificate for api.example.com expires in 14 days", "variant": "body"},
     {"id": "log-8-time", "component": "Text", "text": "2h ago \u2022 Security", "variant": "caption"}
   ]}}
 ]
@@ -990,8 +990,7 @@ class DemoCacheAiClient implements AiClient {
 ]
 ```''';
 
-  static const _catalogId =
-      'https://a2ui.org/specification/v0_9/standard_catalog.json';
+  static const _catalogId = 'clawfree-catalog';
 
   static const _createAgentResponse =
       '''Configure your new agent's intelligence and capabilities below.

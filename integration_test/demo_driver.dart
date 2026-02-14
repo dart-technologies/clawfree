@@ -175,9 +175,12 @@ void main() {
     //   → Scroll to and tap "Book Trip".
     // -----------------------------------------------------------------------
     
+    // Poll until "Book Trip" button renders (surface components load async).
+    await _pumpUntilText(tester, 'Book Trip');
+
     final bookBtn = find.text('Book Trip');
     expect(bookBtn, findsOneWidget);
-    
+
     // Ensure button is visible before tapping (it's at the bottom of a scrollable list).
     await tester.ensureVisible(bookBtn);
     await tester.tap(bookBtn);
@@ -230,6 +233,15 @@ Future<void> _pumpSettle(WidgetTester tester, {int frames = 10}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 16));
   }
+}
+
+/// Pumps frames until a widget with the given text appears in the tree.
+Future<void> _pumpUntilText(WidgetTester tester, String text) async {
+  for (var i = 0; i < _maxPumps; i++) {
+    await tester.pump(_frameDuration);
+    if (find.text(text).evaluate().isNotEmpty) return;
+  }
+  throw Exception('Timeout waiting for text "$text"');
 }
 
 /// Pumps frames until a specific surface ID appears in the session.

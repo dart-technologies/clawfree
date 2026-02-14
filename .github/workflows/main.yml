@@ -47,15 +47,23 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        
-      - name: Verify FFmpeg frameworks
+
+      - name: Boot iOS Simulator
         run: |
-          chmod +x scripts/rebuild_ffmpeg_arm64_sim.sh
-          ./scripts/rebuild_ffmpeg_arm64_sim.sh verify
-          
+          # WatchOS companion requires a device ID — boot one for CI
+          DEVICE_ID=$(xcrun simctl list devices available iPhone -j | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for runtime, devices in data['devices'].items():
+            for d in devices:
+              if 'iPhone' in d['name'] and d['isAvailable']:
+                print(d['udid']); sys.exit()
+          ")
+          xcrun simctl boot "$DEVICE_ID"
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+
       - name: iOS Simulator Build (Dry run)
         run: |
-          # Inject SDKROOT to avoid the native_assets error discovered during development
           export SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
           export DEVELOPER_DIR=$(xcode-select -p)
-          flutter build ios --simulator --debug --no-codesign
+          flutter build ios --simulator --debug --no-codesign -d "$DEVICE_ID"

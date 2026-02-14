@@ -5,12 +5,19 @@ import 'package:clawfree/src/ui/chat/badge_component.dart';
 import 'package:clawfree/src/ui/chat/icon_resolver.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-badge';
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-badge',
+    type: 'Badge',
+    buildChild: (id, [dc]) => Text('BadgeChild: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -20,8 +27,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: badgeCatalogBuilder(
-              _MockContext({'text': 'Active'}),
+            body: Builder(
+              builder: (context) => badgeCatalogBuilder(
+                _createContext({'text': 'Active'}, context),
+              ),
             ),
           ),
         ),
@@ -35,8 +44,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: badgeCatalogBuilder(
-              _MockContext({'text': 'OK', 'variant': 'success'}),
+            body: Builder(
+              builder: (context) => badgeCatalogBuilder(
+                _createContext({'text': 'OK', 'variant': 'success'}, context),
+              ),
             ),
           ),
         ),
@@ -53,8 +64,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: badgeCatalogBuilder(
-              _MockContext({'text': 'Done', 'icon': 'check'}),
+            body: Builder(
+              builder: (context) => badgeCatalogBuilder(
+                _createContext({'text': 'Done', 'icon': 'check'}, context),
+              ),
             ),
           ),
         ),
@@ -69,8 +82,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: badgeCatalogBuilder(
-              _MockContext({'text': 'Default'}),
+            body: Builder(
+              builder: (context) => badgeCatalogBuilder(
+                _createContext({'text': 'Default'}, context),
+              ),
             ),
           ),
         ),

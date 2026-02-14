@@ -4,24 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/text_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockDataContext extends Fake implements DataContext {
-  ValueNotifier<String?> subscribeToString(Object? value) {
-    if (value is String) return ValueNotifier<String?>(value);
-    return ValueNotifier<String?>(null);
-  }
-
-  @override
-  noSuchMethod(Invocation invocation) => null;
-}
-
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-text';
-  @override
-  DataContext get dataContext => _MockDataContext();
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-text',
+    type: 'Text',
+    buildChild: (id, [dc]) => Text('Child: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -31,10 +26,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'Hello world',
-              'variant': 'body',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'Hello world',
+                'variant': 'body',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -47,10 +44,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'status ok',
-              'variant': 'technical',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'status ok',
+                'variant': 'technical',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -63,10 +62,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'section header',
-              'variant': 'label',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'section header',
+                'variant': 'label',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -79,10 +80,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'overline text',
-              'variant': 'overline',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'overline text',
+                'variant': 'overline',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -95,9 +98,11 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'default text',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'default text',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -110,14 +115,16 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'custom tech',
-              'variant': 'technical',
-              'fontSize': 16,
-              'fontWeight': 800,
-              'letterSpacing': 2.0,
-              'color': '#00FF88',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'custom tech',
+                'variant': 'technical',
+                'fontSize': 16,
+                'fontWeight': 800,
+                'letterSpacing': 2.0,
+                'color': '#00FF88',
+              }, context)),
+            ),
           ),
         ),
       );
@@ -130,10 +137,12 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: textOverrideCatalogBuilder(_MockContext({
-              'text': 'small body text',
-              'variant': 'body2',
-            })),
+            body: Builder(
+              builder: (context) => textOverrideCatalogBuilder(_createContext({
+                'text': 'small body text',
+                'variant': 'body2',
+              }, context)),
+            ),
           ),
         ),
       );

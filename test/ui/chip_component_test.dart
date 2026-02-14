@@ -4,17 +4,19 @@ import 'package:genui/genui.dart';
 import 'package:clawfree/src/ui/chat/chip_component.dart';
 import 'package:clawfree/src/ui/theme.dart';
 
-class _MockContext extends Fake implements CatalogItemContext {
-  _MockContext(this.data);
-  @override
-  final Object data;
-  @override
-  String get id => 'test-chip';
-
-  final dispatchedEvents = <UiEvent>[];
-  @override
-  DispatchEventCallback get dispatchEvent =>
-      (UiEvent event) => dispatchedEvents.add(event);
+CatalogItemContext _createContext(Object data, BuildContext context) {
+  return CatalogItemContext(
+    data: data,
+    id: 'test-chip',
+    type: 'Chip',
+    buildChild: (id, [dc]) => Text('ChipChild: $id'),
+    dispatchEvent: (event) {},
+    buildContext: context,
+    dataContext: DataContext(DataModel(), '/'),
+    getComponent: (id) => null,
+    getCatalogItem: (type) => null,
+    surfaceId: 'test-surface',
+  );
 }
 
 void main() {
@@ -24,8 +26,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: chipCatalogBuilder(
-              _MockContext({'label': 'Flutter'}),
+            body: Builder(
+              builder: (context) => chipCatalogBuilder(
+                _createContext({'label': 'Flutter'}, context),
+              ),
             ),
           ),
         ),
@@ -40,8 +44,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: chipCatalogBuilder(
-              _MockContext({'label': 'Star', 'icon': 'star'}),
+            body: Builder(
+              builder: (context) => chipCatalogBuilder(
+                _createContext({'label': 'Star', 'icon': 'star'}, context),
+              ),
             ),
           ),
         ),
@@ -55,8 +61,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: chipCatalogBuilder(
-              _MockContext({'label': 'Filled', 'variant': 'filled'}),
+            body: Builder(
+              builder: (context) => chipCatalogBuilder(
+                _createContext({'label': 'Filled', 'variant': 'filled'}, context),
+              ),
             ),
           ),
         ),
@@ -72,8 +80,10 @@ void main() {
         MaterialApp(
           theme: ClawfreeTheme.light,
           home: Scaffold(
-            body: chipCatalogBuilder(
-              _MockContext({'label': 'Remove', 'deletable': true}),
+            body: Builder(
+              builder: (context) => chipCatalogBuilder(
+                _createContext({'label': 'Remove', 'deletable': true}, context),
+              ),
             ),
           ),
         ),
