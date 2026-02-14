@@ -13,6 +13,7 @@ import '../ui/chat/progress_bar_component.dart';
 import '../ui/chat/responsive_container.dart';
 import '../ui/chat/stack_component.dart';
 import '../ui/chat/text_component.dart';
+import '../ui/chat/text_field_override.dart';
 import '../ui/chat/trip_map_component.dart';
 import '../ui/chat/video_player_component.dart';
 import '../ui/clawfree_assets.dart';
@@ -143,6 +144,11 @@ Catalog getClawfreeCatalog() {
       name: 'ChoicePicker',
       dataSchema: choicePickerOverrideSchema,
       widgetBuilder: choicePickerOverrideCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'TextField',
+      dataSchema: textFieldOverrideSchema,
+      widgetBuilder: textFieldOverrideCatalogBuilder,
     ),
   ]);
 }

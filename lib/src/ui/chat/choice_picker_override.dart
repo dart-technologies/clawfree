@@ -56,6 +56,13 @@ Widget choicePickerOverrideCatalogBuilder(CatalogItemContext itemContext) {
       ? valueRef['path'] as String
       : '${itemContext.id}.value';
 
+  // Seed initial value if it's a literal and the path doesn't have data yet.
+  // This ensures pre-populated options (like "Opus 4.6") are selected.
+  if (valueRef is List && valueRef.isNotEmpty) {
+    // We update the data context so the UI and any dependent buttons find the value.
+    itemContext.dataContext.update(path, valueRef);
+  }
+
   if (variant == 'mutuallyExclusive') {
     return _ExclusivePicker(
       itemContext: itemContext,
@@ -117,7 +124,6 @@ class _ExclusivePickerState extends State<_ExclusivePicker> {
 
   @override
   void dispose() {
-    _valueNotifier.dispose();
     super.dispose();
   }
 
@@ -164,7 +170,7 @@ class _ExclusivePickerState extends State<_ExclusivePicker> {
           ),
         ValueListenableBuilder<Object?>(
           valueListenable: _valueNotifier,
-          builder: (context, _, __) {
+          builder: (context, value, child) {
             final idx = _selectedIndex();
             // iOS-style segmented control: solid track, floating selected pill.
             return Container(
@@ -315,7 +321,6 @@ class _MultiPickerState extends State<_MultiPicker> {
 
   @override
   void dispose() {
-    _valueNotifier.dispose();
     super.dispose();
   }
 
@@ -357,7 +362,7 @@ class _MultiPickerState extends State<_MultiPicker> {
           ),
         ValueListenableBuilder<Object?>(
           valueListenable: _valueNotifier,
-          builder: (context, _, __) {
+          builder: (context, value, child) {
             final selected = _selectedValues();
             return Wrap(
               spacing: 8,

@@ -2,7 +2,7 @@
 
 ## Project
 
-**clawfree** is a hands-free, voice-enabled Flutter genUI frontend for OpenClaw, built for the Anthropic Opus 4.6 hackathon (Feb 10-16, 2026).
+**clawfree** is a hands-free AI agent orchestrator powered by Flutter genUI, built for the Anthropic Opus 4.6 hackathon (Feb 10-16, 2026).
 
 Team **genUIne**: [Mike](https://cerebralvalley.ai/u/michow) (Flutter/infra) + [Roy](https://cerebralvalley.ai/u/roylin) (voice/OpenClaw)
 
@@ -54,10 +54,11 @@ clawfree/
 │       ├── video/            # ItineraryVideoGenerator (FFmpeg), VideoImageDownloader
 │       └── ui/
 │           ├── chat/         # A2UI components: badge, button (override), card (override),
-│           │                 # chip, choice_picker (override), text (override), animated,
-│           │                 # gap, grid, stack, progress_bar, icon_resolver,
-│           │                 # responsive_container, trip_map, video_player,
-│           │                 # input bar, message bubble/list, surface panel/view
+│           │                 # chip, choice_picker (override), text (override),
+│           │                 # text_field (override), animated, gap, grid, stack,
+│           │                 # progress_bar, icon_resolver, responsive_container,
+│           │                 # trip_map, video_player, input bar, message bubble/list,
+│           │                 # surface panel/view
 │           ├── health/       # HealthIndicators, HealthSparkline (vital signs framework)
 │           ├── layouts/      # PhoneLayout, TabletLayout, VoiceOrb (shader-driven)
 │           ├── mixins/       # HealthMonitorMixin, WatchSyncManager
@@ -68,6 +69,7 @@ clawfree/
 │           ├── clawfree_icons.dart
 │           ├── spring_curve.dart
 │           └── theme.dart         # Glassmorphism theme with JetBrainsMono typography
+├── .github/workflows/        # CI: Flutter Analyze + Test + iOS Simulator Build
 ├── infra/                    # Docker Compose, Dockerfile, configs
 ├── docs/
 │   ├── HACKATHON-PLAN.md     # Sprint plan + TODO checklist
@@ -76,7 +78,7 @@ clawfree/
 │   ├── INTEGRATION_MERGE.md  # ChatClaw merge spec
 │   ├── WATCH_VOICE.md        # WatchOS voice implementation
 │   └── background/           # Concise reference primers
-├── test/                     # 462 tests (unit + widget + e2e)
+├── test/                     # 483+ tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
 
@@ -91,6 +93,7 @@ clawfree/
 - `path_provider` — temp/cache directory resolution
 - `json_schema_builder` — A2UI component schema definitions
 - `logging` — structured logging
+- `mocktail` (dev) — mock generation for unit tests
 
 ## Conventions
 
@@ -103,7 +106,7 @@ clawfree/
 - **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs)
 - **Theme**: glassmorphism design with `ClawfreeTheme.glassDecoration()`, transparent AppBar, `SpringCurve` animations
 - **Typography**: JetBrainsMono font family throughout (w800 headlines, w700 titles, w400 body)
-- **A2UI Catalog**: 35 components total — 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 4 core overrides (Card, Button, Text, ChoicePicker) + ~19 genUI core. Registered in `catalog.dart`.
+- **A2UI Catalog**: 36 components total — 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + ~19 genUI core. Registered in `catalog.dart`.
 - Border radii standardized via `ClawfreeBorderRadius` constants (surface=20, interactive=16, element=12, small=8, tiny=4)
 - Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets
 

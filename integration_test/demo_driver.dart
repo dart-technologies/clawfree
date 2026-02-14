@@ -1,14 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:genui/genui.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:clawfree/src/core/agent_store.dart';
 import 'package:clawfree/src/core/chat_session.dart';
 import 'package:clawfree/src/core/demo_ai_client.dart';
-import 'package:clawfree/src/core/interaction_router.dart';
 import 'package:clawfree/src/core/prompt_library.dart';
 import 'package:clawfree/src/ui/chat_screen.dart';
 import 'package:clawfree/src/ui/theme.dart';
@@ -96,38 +92,31 @@ void main() {
       reason: 'Agent form surface should appear after create command',
     );
 
-    // Let TTS finish reading + breathing room.
+    // Let TTS finish reading + breathing room for widget init.
     await _pumpUntilTtsDone(tester, ttsService);
-    await _pumpBreathing(tester);
+    await _pumpBreathing(tester, frames: 20);
 
     // -----------------------------------------------------------------------
-    // Step 2: Save Agent (button click simulation via router)
-    //   → Success chime, TTS confirms save, mode → home.
+    // Step 2: Save Agent (True UI Interaction)
+    //   → Verify pre-populated fields, then tap "Save Agent".
     // -----------------------------------------------------------------------
-    final saveEvent = _buildInteractionEvent({
-      'action': {
-        'name': 'save_agent',
-        'context': {
-          'name': 'Travel Concierge',
-          'model': ['claude-opus-4-6'],
-          'tools': ['browser', 'code', 'search', 'api'],
-          'channels': ['telegram', 'slack', 'discord'],
-        },
-      },
-    });
-
-    final router = session.interactionRouterForTest;
-    final saveResult = router.handle(saveEvent);
-    expect(saveResult, isA<ModeSwitchResult>());
-
-    final modeSwitchResult = saveResult as ModeSwitchResult;
-    session.setMode(modeSwitchResult.targetMode);
-
-    // Speak the feedback and play success chime (as _handleSurfaceInteraction would).
-    earcon.playBookingConfirm();
-    voiceController.speak(modeSwitchResult.message.text ?? '');
+    
+    // Verify "Travel Concierge" is in the name field and ensure it's synced.
+    final nameFieldFinder = find.byType(TextField);
+    expect(find.text('Travel Concierge'), findsOneWidget);
+    await tester.enterText(nameFieldFinder, 'Travel Concierge');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpSettle(tester);
+    
+    // Find and tap the "Save Agent" button.
+    final saveBtn = find.text('Save Agent');
+    expect(saveBtn, findsOneWidget);
+    await tester.ensureVisible(saveBtn);
+    await tester.tap(saveBtn);
     await _pumpSettle(tester);
 
+    // ChatSession._handleSurfaceInteraction handles mode switching.
+    
     expect(agentStore.agents.length, 1);
     expect(agentStore.agents.first['name'], 'Travel Concierge');
     expect(session.sessionMode, SessionMode.home);
@@ -153,25 +142,22 @@ void main() {
     await _pumpBreathing(tester);
 
     // -----------------------------------------------------------------------
-    // Step 4: Generate Itinerary (button click → sendMessage)
-    //   → Full itinerary with map, flights, hotels renders.
+    // Step 4: Generate Itinerary (True UI Interaction)
+    //   → Verify "Tokyo", "Foodie", "3 Days" are pre-selected, then tap.
     // -----------------------------------------------------------------------
-    final genEvent = _buildInteractionEvent({
-      'action': {
-        'name': 'generate_itinerary',
-        'context': {
-          'city': ['tokyo'],
-          'persona': ['foodie'],
-          'days': ['3'],
-        },
-      },
-    });
+    
+    // Verify pre-selected values are visible.
+    expect(find.text('Tokyo'), findsWidgets);
+    expect(find.text('Foodie'), findsWidgets);
+    expect(find.text('3 Days'), findsWidgets);
 
-    final genResult = router.handle(genEvent);
-    expect(genResult, isA<UserInputResult>());
-    final genInput = genResult as UserInputResult;
-
-    await _pumpSendMessage(tester, session, genInput.text);
+    final genBtn = find.text('Generate Itinerary');
+    expect(genBtn, findsOneWidget);
+    await tester.ensureVisible(genBtn);
+    await tester.tap(genBtn);
+    
+    // Wait for the itinerary surface to appear (AI generation takes time).
+    await _pumpUntilSurface(tester, session, 'tokyo-itin-001');
 
     expect(
       session.messages.any(
@@ -185,32 +171,25 @@ void main() {
     await _pumpBreathing(tester);
 
     // -----------------------------------------------------------------------
-    // Step 5: Book Trip (button click)
-    //   → Booking confirmation, success chime, mode → home.
+    // Step 5: Book Trip (True UI Interaction)
+    //   → Scroll to and tap "Book Trip".
     // -----------------------------------------------------------------------
-    final bookEvent = _buildInteractionEvent({
-      'action': {
-        'name': 'book_trip',
-        'context': {
-          'city': 'tokyo',
-          'days': 3,
-          'persona': 'foodie',
-          'flight': 'ANA',
-        },
-      },
-    });
+    
+    final bookBtn = find.text('Book Trip');
+    expect(bookBtn, findsOneWidget);
+    
+    // Ensure button is visible before tapping (it's at the bottom of a scrollable list).
+    await tester.ensureVisible(bookBtn);
+    await tester.tap(bookBtn);
+    
+    // Wait for mode switch back to home.
+    await _pumpUntilMode(tester, session, SessionMode.home);
 
-    final bookResult = router.handle(bookEvent);
-    expect(bookResult, isA<ModeSwitchResult>());
-    final bookSwitch = bookResult as ModeSwitchResult;
-    expect(bookSwitch.targetMode, SessionMode.home);
-    expect(bookSwitch.message.text?.toLowerCase(), contains('booked'));
+    expect(session.sessionMode, SessionMode.home);
+    expect(session.messages.last.text?.toLowerCase(), contains('booked'));
 
-    session.setMode(bookSwitch.targetMode);
-
-    // Speak booking confirmation and play success chime.
+    // Play booking confirm earcon.
     earcon.playBookingConfirm();
-    voiceController.speak(bookSwitch.message.text ?? '');
     await _pumpSettle(tester);
 
     // Let final TTS play out before cleanup.
@@ -221,15 +200,11 @@ void main() {
     // Final assertions
     // -----------------------------------------------------------------------
     expect(agentStore.agents.length, 1);
+    expect(agentStore.agents.first['name'], 'Travel Concierge');
     expect(session.sessionMode, SessionMode.home);
 
-    final allSurfaces = session.messages.where((m) => m.isSurface).toList();
-    expect(allSurfaces.length, greaterThanOrEqualTo(2));
-
-    final surfaceIds = allSurfaces.map((s) => s.surfaceId).toSet();
-    expect(surfaceIds, contains('agent-form-001'));
-    expect(surfaceIds, contains('travel-setup-001'));
-    expect(surfaceIds, contains('tokyo-itin-001'));
+    // Note: ChatSession clears messages/surfaces when switching to home mode
+    // to provide a clean state for the user. So we don't assert on message count here.
 
     // Cleanup.
     session.dispose();
@@ -257,6 +232,32 @@ Future<void> _pumpSettle(WidgetTester tester, {int frames = 10}) async {
   }
 }
 
+/// Pumps frames until a specific surface ID appears in the session.
+Future<void> _pumpUntilSurface(
+  WidgetTester tester,
+  ChatSession session,
+  String surfaceId,
+) async {
+  for (var i = 0; i < _maxPumps; i++) {
+    await tester.pump(_frameDuration);
+    if (session.messages.any((m) => m.surfaceId == surfaceId)) return;
+  }
+  throw Exception('Timeout waiting for surface $surfaceId');
+}
+
+/// Pumps frames until the session enters a specific mode.
+Future<void> _pumpUntilMode(
+  WidgetTester tester,
+  ChatSession session,
+  SessionMode mode,
+) async {
+  for (var i = 0; i < _maxPumps; i++) {
+    await tester.pump(_frameDuration);
+    if (session.sessionMode == mode) return;
+  }
+  throw Exception('Timeout waiting for mode $mode');
+}
+
 /// Drives a voice command while pumping frames so the VoiceOrb animation
 /// and word-by-word transcript are visible during screen recording.
 ///
@@ -278,23 +279,6 @@ Future<void> _pumpVoiceCommand(
   await _pumpSettle(tester);
 }
 
-/// Drives a sendMessage while pumping frames so AI streaming text and
-/// surface creation are visible.
-Future<void> _pumpSendMessage(
-  WidgetTester tester,
-  ChatSession session,
-  String text,
-) async {
-  var done = false;
-  session.sendMessage(text).whenComplete(() => done = true);
-
-  for (var i = 0; i < _maxPumps && !done; i++) {
-    await tester.pump(_frameDuration);
-  }
-  expect(done, isTrue, reason: 'sendMessage should complete');
-  await _pumpSettle(tester);
-}
-
 /// Pump frames until TTS finishes speaking (bounded to 10 seconds).
 /// Prevents the next step from cutting off the current utterance.
 Future<void> _pumpUntilTtsDone(
@@ -312,12 +296,4 @@ Future<void> _pumpBreathing(WidgetTester tester, {int frames = 40}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(_frameDuration);
   }
-}
-
-/// Builds a [ChatMessage] simulating a surface interaction event with JSON.
-ChatMessage _buildInteractionEvent(Map<String, dynamic> payload) {
-  return ChatMessage(
-    role: ChatMessageRole.user,
-    parts: [TextPart(jsonEncode(payload))],
-  );
 }

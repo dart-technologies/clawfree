@@ -9,6 +9,7 @@ void main() {
     testWidgets('App launches with icon and API key screen', (
       WidgetTester tester,
     ) async {
+      setTestViewport(tester, size: const Size(1200, 1600));
       await tester.pumpWidget(const ClawfreeApp());
 
       // App bar or title
@@ -24,6 +25,7 @@ void main() {
     testWidgets('empty key shows snackbar on non-web', (
       WidgetTester tester,
     ) async {
+      setTestViewport(tester, size: const Size(1200, 1600));
       await tester.pumpWidget(const ClawfreeApp());
 
       // Tap start without key
@@ -50,6 +52,7 @@ void main() {
     testWidgets('toggling demo mode hides API key field', (
       WidgetTester tester,
     ) async {
+      setTestViewport(tester, size: const Size(1200, 1600));
       await tester.pumpWidget(const ClawfreeApp());
 
       // Initially, API key field should be visible

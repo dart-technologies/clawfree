@@ -1,7 +1,7 @@
 # clawfree Architecture
 
 ## System Overview
-**clawfree** is a distributed AI Companion system using the **A2UI v0.9** protocol. It separates high-fidelity user interaction (Voice/genUI) from agent orchestration (CLI/Execution).
+**clawfree** is a hands-free AI agent orchestrator powered by Flutter genUI, built with the **A2UI v0.9** protocol. It separates high-fidelity visual interaction from agent orchestration.
 
 ```mermaid
 graph TD

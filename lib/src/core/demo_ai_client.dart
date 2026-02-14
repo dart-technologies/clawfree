@@ -980,7 +980,7 @@ class DemoCacheAiClient implements AiClient {
   {"version": "v0.9", "updateComponents": {"surfaceId": "agent-form-001", "components": [
     {"id": "root", "component": "Column", "children": ["title", "name-field", "model-picker", "tools-picker", "channels-picker", "save-btn"]},
     {"id": "title", "component": "Text", "text": "Create New Agent", "variant": "h4"},
-    {"id": "name-field", "component": "TextField", "label": "Agent Name", "text": "Travel Concierge"},
+    {"id": "name-field", "component": "TextField", "label": "Agent Name", "value": "Travel Concierge"},
     {"id": "model-picker", "component": "ChoicePicker", "label": "AI Model", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}, {"label": "GPT-4o", "value": "gpt-4o"}], "value": ["claude-opus-4-6"]},
     {"id": "tools-picker", "component": "ChoicePicker", "label": "Tools", "variant": "multipleSelection", "options": [{"label": "Browser", "value": "browser"}, {"label": "Code Execution", "value": "code"}, {"label": "Web Search", "value": "search"}, {"label": "API Integration", "value": "api"}], "value": ["browser", "code", "search", "api"]},
     {"id": "channels-picker", "component": "ChoicePicker", "label": "Channels", "variant": "multipleSelection", "options": [{"label": "Telegram", "value": "telegram"}, {"label": "Slack", "value": "slack"}, {"label": "Discord", "value": "discord"}], "value": ["telegram", "slack", "discord"]},
@@ -1005,7 +1005,7 @@ class DemoCacheAiClient implements AiClient {
     {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "AGENT ASSEMBLY \u2022 STEP 1 OF 1", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
     {"id": "gap-top", "component": "Gap", "height": 16},
 
-    {"id": "name-field", "component": "TextField", "label": "Agent Name", "text": "My Agent"},
+    {"id": "name-field", "component": "TextField", "label": "Agent Name", "value": "My Agent"},
     {"id": "gap-name", "component": "Gap", "height": 12},
 
     {"id": "intel-card", "component": "Card", "child": "intel-col"},
@@ -1064,7 +1064,7 @@ class DemoCacheAiClient implements AiClient {
 ```json
 [
   {"version": "v0.9", "updateComponents": {"surfaceId": "agent-form-001", "components": [
-    {"id": "name-field", "component": "TextField", "label": "Agent Name", "text": "GitHub Digest Bot"}
+    {"id": "name-field", "component": "TextField", "label": "Agent Name", "value": "GitHub Digest Bot"}
   ]}}
 ]
 ```''';
@@ -1259,8 +1259,8 @@ class DemoCacheAiClient implements AiClient {
     {"id": "root", "component": "Column", "children": ["title", "desc", "url-field", "token-field", "connect-btn"]},
     {"id": "title", "component": "Text", "text": "Connect to Gateway", "variant": "h4"},
     {"id": "desc", "component": "Text", "text": "Enter the URL and authentication token for your existing OpenClaw gateway. You can find these in your gateway's dashboard or config file."},
-    {"id": "url-field", "component": "TextField", "label": "Gateway URL", "text": "ws://localhost:18789"},
-    {"id": "token-field", "component": "TextField", "label": "Gateway Token", "text": ""},
+    {"id": "url-field", "component": "TextField", "label": "Gateway URL", "value": "ws://localhost:18789"},
+    {"id": "token-field", "component": "TextField", "label": "Gateway Token", "value": ""},
     {"id": "connect-btn", "component": "Button", "child": "connect-btn-text", "variant": "primary", "action": {"event": {"name": "connect_gateway", "context": {"gateway_url": {"path": "url-field.value"}, "gateway_token": {"path": "token-field.value"}}}}},
     {"id": "connect-btn-text", "component": "Text", "text": "Connect"}
   ]}}
@@ -1411,7 +1411,7 @@ class DemoCacheAiClient implements AiClient {
     {"id": "book-col", "component": "Column", "children": ["book-summary", "book-total", "book-btn"]},
     {"id": "book-summary", "component": "Text", "text": "3 nights at Hoshinoya Tokyo + round-trip ANA flights + 12 restaurant reservations", "variant": "body2"},
     {"id": "book-total", "component": "Text", "text": "Estimated total from **\$3,740**", "variant": "h5"},
-    {"id": "book-btn", "component": "Button", "child": "book-btn-text", "variant": "primary", "action": {"event": {"name": "book_trip", "context": {"city": "tokyo", "days": 3, "persona": "foodie", "flight": "ANA"}}}},
+    {"id": "book-btn", "component": "Button", "child": "book-btn-text", "variant": "primary", "action": {"event": {"name": "book_trip", "context": {"city": {"path": "city-picker.value"}, "days": {"path": "days-picker.value"}, "persona": {"path": "persona-picker.value"}, "flight": "ANA"}}}},
     {"id": "book-btn-text", "component": "Text", "text": "Book Trip"}
   ]}}
 ]

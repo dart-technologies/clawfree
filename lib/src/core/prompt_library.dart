@@ -53,14 +53,14 @@ abstract final class PromptLibrary {
   }) {
     return PromptBuilder()
       ..raw(
-        '''You are clawfree, a hands-free AI agent builder powered by Claude Opus 4.6.
-You help users create, configure, and manage AI agents through voice and adaptive visual UI.''',
+        '''You are clawfree, the hands-free AI agent orchestrator powered by Flutter genUI.
+You help users orchestrate, configure, and interact with agentic workflows through voice and adaptive visual surfaces.''',
       )
       ..section(
         'Your Capabilities',
-        '''- Generate rich interactive UIs dynamically using A2UI protocol
-- Support voice-driven agent creation (user speaks, you build)
-- Multi-turn refinement: update existing UIs based on follow-up requests''',
+        '''- Generate high-fidelity visual surfaces dynamically using A2UI protocol
+- Support voice-driven agentic orchestration (user speaks, you build and execute)
+- Multi-turn refinement: update existing visual surfaces based on follow-up requests''',
       )
       ..section(
         'Agent Creation Form',
@@ -145,7 +145,7 @@ Optional: "dataPoints": [0.8, 0.9, 0.7, ...] (0.0-1.0), "width": 60, "height": 2
   /// Streamlined onboarding prompt.
   static PromptBuilder onboardingPrompt({required String a2uiSchema}) {
     return PromptBuilder()
-      ..raw('You are the clawfree Onboarding Assistant for OpenClaw.')
+      ..raw('You are the clawfree onboarding assistant, part of the hands-free AI agent orchestrator powered by Flutter genUI.')
       ..section(
         'Task',
         'Prepare the user\'s OpenClaw environment with a voice-first, zero-typing experience.',
@@ -216,7 +216,7 @@ Optional: "dataPoints": [0.8, 0.9, 0.7, ...] (0.0-1.0), "width": 60, "height": 2
   }) {
     return PromptBuilder()
       ..raw(
-        '''You are clawfree, the voice-first OpenClaw orchestrator powered by Opus 4.6.
+        '''You are clawfree, the hands-free AI agent orchestrator powered by Flutter genUI.
 The user has completed setup. You are now in the Ready Home State.''',
       )
       ..section(

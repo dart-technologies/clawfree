@@ -1,34 +1,31 @@
 import '../voice/sound_service.dart';
-import '../voice/tts_service.dart';
 import 'message_item.dart';
 
-/// Unified service for user-facing feedback: combines TTS speech, earcon
-/// tones, and message creation into single calls.
+/// Unified service for user-facing feedback: combines earcon tones and
+/// message creation into single calls.
+///
+/// TTS is handled centrally by [ChatSession] after processing interaction
+/// results, so this service focuses on message creation and audio earcons.
 class UIFeedbackService {
-  UIFeedbackService({TtsService? ttsService, SoundService? soundService})
-    : _ttsService = ttsService,
-      _soundService = soundService;
+  UIFeedbackService({SoundService? soundService})
+    : _soundService = soundService;
 
-  final TtsService? _ttsService;
   final SoundService? _soundService;
 
-  /// Create a success feedback message and speak it via TTS.
+  /// Create a success feedback message and play success earcon.
   MessageItem success(String msg) {
-    _ttsService?.speak(msg);
     _soundService?.success();
     return MessageItem.aiText(text: msg);
   }
 
-  /// Create an error feedback message (prefixed with "Error:") and speak it.
+  /// Create an error feedback message (prefixed with "Error:") and play error earcon.
   MessageItem error(String msg) {
-    _ttsService?.speak(msg);
     _soundService?.error();
     return MessageItem.error(text: 'Error: $msg');
   }
 
-  /// Create an informational feedback message and speak it.
+  /// Create an informational feedback message.
   MessageItem info(String msg) {
-    _ttsService?.speak(msg);
     return MessageItem.aiText(text: msg);
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:genui/genui.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
@@ -11,6 +12,7 @@ import 'src/core/ai_client.dart';
 import 'src/core/chat_session.dart';
 import 'src/core/demo_ai_client.dart';
 import 'src/core/gateway_client.dart';
+
 import 'src/core/local_network.dart';
 import 'src/core/platform_config.dart';
 import 'src/core/prompt_library.dart';
@@ -30,6 +32,7 @@ import 'src/voice/voice_service_factory.dart';
 const _apiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 const _gatewayUrl = String.fromEnvironment('GATEWAY_URL', defaultValue: '');
 const _demoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: false);
+const _demoScenario = String.fromEnvironment('DEMO_SCENARIO', defaultValue: '');
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,6 +103,13 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   void initState() {
     super.initState();
     _initDeepLinks();
+
+    // Auto-trigger for demo mode if a scenario is specified.
+    if (_useDemoMode && _demoScenario.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _start();
+      });
+    }
   }
 
   void _initDeepLinks() {
@@ -177,7 +187,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       );
     }
 
-    final voice = VoiceServiceFactory.create(isDemo: _useDemoMode);
+    final voice = VoiceServiceFactory.create(
+      isDemo: _useDemoMode,
+      forceRealTts: _demoScenario == 'travel',
+    );
 
     // Await both in parallel.
     final results = await Future.wait([agentStoreFuture, earconFuture]);
@@ -213,6 +226,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
 
     _sttService = sl.tryGet<SttService>();
 
+    if (_useDemoMode && _demoScenario == 'travel') {
+      _runDemoAutomation();
+    }
+
     if (!mounted) return;
     Navigator.of(context)
         .push(
@@ -232,6 +249,102 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
           sl.tryGet<GatewayClient>()?.dispose();
           sl.reset();
         });
+  }
+
+  /// Runs the full "Tokyo Travel" demo workflow automatically.
+  /// 1. Create Agent command
+  /// 2. Wait for form, click Save Agent (simulated)
+  /// 3. Plan Trip command
+  /// 4. Generate Itinerary (simulated)
+  /// 5. Book Trip (simulated)
+  Future<void> _runDemoAutomation() async {
+    final session = _chatSession;
+    if (session == null) return;
+
+    // Step 1: Create Agent
+    await Future<void>.delayed(const Duration(seconds: 2));
+    await session.sendVoiceCommand(
+      'Create a travel concierge to plan a 3-day foodie trip to Tokyo',
+    );
+
+    // Step 2: Save Agent interaction
+    await Future<void>.delayed(const Duration(seconds: 4));
+    session.simulateSurfaceInteraction(
+      ChatMessage(
+        role: ChatMessageRole.user,
+        parts: [
+          TextPart(
+            jsonEncode({
+              'action': {
+                'name': 'save_agent',
+                'context': {
+                  'name': 'Travel Concierge',
+                  'model': ['claude-opus-4-6'],
+                  'tools': ['browser', 'code', 'search', 'api'],
+                  'channels': ['telegram', 'slack', 'discord'],
+                },
+              },
+            }),
+          ),
+        ],
+      ),
+    );
+
+    // Step 3: Plan Trip
+    await Future<void>.delayed(const Duration(seconds: 3));
+    await session.sendVoiceCommand('Plan a trip');
+
+    // Step 4: Generate Itinerary interaction
+    await Future<void>.delayed(const Duration(seconds: 4));
+    // For generate_itinerary, we simulate interaction AND handle the result text manually
+    // because simulation triggers side effects but doesn't return the result synchronously here.
+    // Actually, simulation triggers _performGeneration if it's UserInputResult.
+    // Let's rely on that!
+    session.simulateSurfaceInteraction(
+      ChatMessage(
+        role: ChatMessageRole.user,
+        parts: [
+          TextPart(
+            jsonEncode({
+              'action': {
+                'name': 'generate_itinerary',
+                'context': {
+                  'city': ['tokyo'],
+                  'persona': ['foodie'],
+                  'days': ['3'],
+                },
+              },
+            }),
+          ),
+        ],
+      ),
+    );
+
+    // Removed manual sendMessage since simulateSurfaceInteraction handles UserInputResult.
+
+    // Step 5: Book Trip interaction
+    await Future<void>.delayed(const Duration(seconds: 6));
+    await Future<void>.delayed(const Duration(seconds: 6));
+    session.simulateSurfaceInteraction(
+      ChatMessage(
+        role: ChatMessageRole.user,
+        parts: [
+          TextPart(
+            jsonEncode({
+              'action': {
+                'name': 'book_trip',
+                'context': {
+                  'city': 'tokyo',
+                  'days': 3,
+                  'persona': 'foodie',
+                  'flight': 'ANA',
+                },
+              },
+            }),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -275,7 +388,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Hands-free voice agent orchestration',
+                    'Hands-free AI agent orchestrator powered by Flutter genUI',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: isLarge ? 20 : 16,

@@ -12,9 +12,13 @@
 
 ## What We're Building
 
-**clawfree** = a hands-free, voice-enabled Flutter genUI frontend for OpenClaw.
+**clawfree** = a hands-free AI agent orchestrator powered by Flutter genUI.
 
-Users speak to create, configure, and interact with AI agents through dynamically generated UIs -- no typing, no JSON editing, no code. Opus 4.6 powers both the conversational reasoning and the real-time UI generation via the A2UI protocol.
+
+
+Users speak to orchestrate, configure, and interact with agentic workflows through dynamically generated visual surfaces -- no typing, no JSON editing, no code.
+
+ Opus 4.6 powers both the conversational reasoning and the real-time UI generation via the A2UI protocol.
 
 **Problem Statement #2** (Break the Barriers) -- Expert AI agent configuration locked behind JSON editing, CLI, and technical knowledge. clawfree puts it in everyone's hands through voice + generative UI.
 
@@ -212,7 +216,7 @@ Users speak to create, configure, and interact with AI agents through dynamicall
 - Same Flutter codebase powers three adaptive layouts: phone (voice-orb remote), tablet (split-panel control tower), watch (pulse monitor)
 
 ### Opening (15s)
-"clawfree — hands-free AI agent creation. One voice command. Three screens. Zero code."
+"Hands-free AI agent orchestrator powered by Flutter genUI. One voice command. Three screens. Zero code."
 *(Camera shows Watch + iPad + macOS all connected — pulsing green dots in connectivity bar)*
 
 ### Story 1: Agent Creation (50s)
