@@ -44,8 +44,18 @@ struct AgentConfigView: View {
                 }
             }
         }
-        .onAppear { syncState() }
-        .onChange(of: step) { _ in syncState() }
+        .onAppear {
+            syncState()
+            // TTS: "What model would you like to use?"
+            WatchTTSService.shared.speak("What model would you like to use?")
+        }
+        .onChange(of: step) { newStep in
+            syncState()
+            // TTS when entering skills step
+            if newStep == 1 {
+                WatchTTSService.shared.speak("What skills should this agent have?")
+            }
+        }
         .onChange(of: selectedModel) { _ in syncState() }
     }
 
@@ -74,10 +84,10 @@ struct AgentConfigView: View {
         .padding(.top, 4)
     }
 
-    // MARK: - Step 0: 選模型
+    // MARK: - Step 0: Select Model
     private var modelPickerStep: some View {
         VStack(spacing: 8) {
-            Text("選擇模型")
+            Text("Select Model")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
 
@@ -91,7 +101,7 @@ struct AgentConfigView: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white)
                         if i == 0 {
-                            Text("推薦")
+                            Text("Recommended")
                                 .font(.system(size: 9))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 8)
@@ -117,7 +127,7 @@ struct AgentConfigView: View {
             .frame(height: 100)
 
             Button(action: { withAnimation { step = 1 } }) {
-                Text("下一步 →")
+                Text("Next →")
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -127,10 +137,10 @@ struct AgentConfigView: View {
         }
     }
 
-    // MARK: - Step 1: 選技能
+    // MARK: - Step 1: Select Skills
     private var skillsStep: some View {
         VStack(spacing: 4) {
-            Text("選擇技能")
+            Text("Select Skills")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.top, 2)
@@ -158,11 +168,11 @@ struct AgentConfigView: View {
             .frame(maxHeight: 100)
 
             HStack(spacing: 8) {
-                Button("← 返回") { withAnimation { step = 0 } }
+                Button("← Back") { withAnimation { step = 0 } }
                     .font(.system(size: 11))
                     .buttonStyle(.bordered)
 
-                Button("確認 →") { withAnimation { step = 2 } }
+                Button("Confirm →") { withAnimation { step = 2 } }
                     .font(.system(size: 11))
                     .buttonStyle(.borderedProminent)
                     .tint(lobsterOrange)
@@ -184,7 +194,7 @@ struct AgentConfigView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
-                    Text("模型:")
+                    Text("Model:")
                         .foregroundColor(.gray)
                     Text("\(models[selectedModel].1) \(models[selectedModel].0)")
                         .foregroundColor(.white)
@@ -192,7 +202,7 @@ struct AgentConfigView: View {
                 .font(.system(size: 11))
 
                 HStack(spacing: 4) {
-                    Text("技能:")
+                    Text("Skills:")
                         .foregroundColor(.gray)
                     Text(skills.filter(\.selected).map(\.emoji).joined(separator: ""))
                         .foregroundColor(.white)
@@ -201,7 +211,7 @@ struct AgentConfigView: View {
             }
 
             HStack(spacing: 8) {
-                Button("← 返回") { withAnimation { step = 1 } }
+                Button("← Back") { withAnimation { step = 1 } }
                     .font(.system(size: 11))
                     .buttonStyle(.bordered)
 
@@ -212,7 +222,7 @@ struct AgentConfigView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("建立")
+                        Text("Create")
                     }
                     .font(.system(size: 12, weight: .semibold))
                 }
