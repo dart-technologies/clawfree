@@ -138,19 +138,37 @@ struct PulseMonitorView: View {
 
                     Spacer()
 
-                    // Pause button (small, when recording or demo running)
-                    if phase == .recording || demoRunner.isRunning {
+                    // Cancel / Pause buttons
+                    if phase == .recording {
+                        // ✕ Cancel button (stop listening)
                         Button(action: {
-                            if demoRunner.isRunning {
-                                demoRunner.stop()
-                            }
-                            if phase == .recording {
-                                handleTap() // Toggle to stop
-                            }
+                            if demoRunner.isRunning { demoRunner.stop() }
+                            withAnimation { phase = .idle; recognizedText = ""; isRecognizing = false }
                         }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                        }
+                        .buttonStyle(.plain)
+                    } else if demoRunner.isRunning {
+                        // Pause button (during demo conversation)
+                        Button(action: { demoRunner.stop() }) {
                             Image(systemName: "pause.circle.fill")
                                 .font(.system(size: 16))
                                 .foregroundColor(accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    } else if demoRunner.isComplete || phase == .reply || phase == .sending {
+                        // ✕ Leave conversation button
+                        Button(action: {
+                            demoRunner.stop()
+                            demoRunner.isComplete = false
+                            demoRunner.chatMessages = []
+                            withAnimation { phase = .idle; recognizedText = "" }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
                         }
                         .buttonStyle(.plain)
                     } else if connectivity.isPhoneActive {
@@ -164,8 +182,14 @@ struct PulseMonitorView: View {
 
                 // Main content area
                 if phase == .idle && !demoRunner.isRunning && !demoRunner.isComplete {
-                    // Initial state: Show "Tap to speak" button
+                    // Initial state: Greeting + "Tap to speak" button
                     Spacer()
+                    
+                    Text("Hi, how are you")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.bottom, 4)
+                    
                     Button(action: { handleTap() }) {
                         VStack(spacing: 6) {
                             Image(systemName: "mic.circle.fill")
@@ -232,17 +256,43 @@ struct PulseMonitorView: View {
                             if phase == .recording && !recognizedText.isEmpty {
                                 HStack {
                                     Spacer()
-                                    Text(recognizedText)
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(teal.opacity(0.7))
-                                        )
-                                        .frame(maxWidth: 130, alignment: .trailing)
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(recognizedText)
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(teal.opacity(0.7))
+                                            )
+                                            .frame(maxWidth: 130, alignment: .trailing)
+                                        if isRecognizing {
+                                            Text("Recognizing...")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
                                 }
+                                .padding(.horizontal, 8)
+                            }
+                            
+                            // Demo complete: show success messages
+                            if demoRunner.isComplete {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("✅ Successfully created a travel agent")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.green)
+                                    Text("✅ Successfully planned a food trip to Tokyo")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.green)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.green.opacity(0.1))
+                                )
                                 .padding(.horizontal, 8)
                             }
                             
