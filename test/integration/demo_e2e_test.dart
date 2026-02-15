@@ -76,7 +76,7 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // Verify empty state
-      expect(find.text('Say something to get started'), findsOneWidget);
+      expect(find.text('READY FOR COMMANDS'), findsOneWidget);
 
       // Send message via text field
       await tester.enterText(find.byType(TextField), 'Create an agent');
@@ -97,6 +97,9 @@ void main() {
         (m) => !m.isUser && !m.isSurface,
       );
       expect(aiMessages, isNotEmpty);
+
+      // Flush any lingering debounce/mood timers
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('suggestion chip triggers full demo flow', (
@@ -106,7 +109,7 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // Tap create suggestion chip
-      await tester.tap(find.text('Create an agent'));
+      await tester.tap(find.text('CREATE AN AGENT'));
       await tester.pump();
 
       // User message sent
@@ -120,6 +123,9 @@ void main() {
 
       // Should have AI response
       expect(session.messages.length, greaterThanOrEqualTo(2));
+
+      // Flush any lingering debounce/mood timers
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 
@@ -155,11 +161,11 @@ void main() {
       setTestViewport(tester);
       await tester.pumpWidget(buildChatTestApp(session));
 
-      await tester.tap(find.text('Show my agents'));
+      await tester.tap(find.text('MANAGE OPENCLAW'));
       await tester.pump();
 
       expect(
-        session.messages.any((m) => m.isUser && m.text == 'Show my agents'),
+        session.messages.any((m) => m.isUser && m.text == 'Manage OpenClaw'),
         isTrue,
       );
 
@@ -169,6 +175,9 @@ void main() {
         (m) => !m.isUser && !m.isSurface,
       );
       expect(aiMessages, isNotEmpty);
+
+      // Flush any lingering debounce/mood timers
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 
@@ -222,7 +231,7 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // Send via chip (Create an agent is always visible)
-      await tester.tap(find.text('Create an agent'));
+      await tester.tap(find.text('CREATE AN AGENT'));
       await tester.pump(const Duration(seconds: 3));
 
       // User message should be present
@@ -230,6 +239,9 @@ void main() {
         session.messages.any((m) => m.isUser && m.text == 'Create an agent'),
         isTrue,
       );
+
+      // Flush any lingering debounce/mood timers
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 
@@ -358,15 +370,15 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // App bar
-      expect(find.text('clawfree'), findsOneWidget);
+      expect(find.text('CLAWFREE'), findsOneWidget);
 
       // Empty state elements - using ClawfreeIcons.mic
       expect(find.byIcon(ClawfreeIcons.mic), findsOneWidget);
-      expect(find.text('Say something to get started'), findsOneWidget);
+      expect(find.text('READY FOR COMMANDS'), findsOneWidget);
 
       // Suggestion chips
       expect(find.text('Create an agent'), findsOneWidget);
-      expect(find.text('Show my agents'), findsOneWidget);
+      expect(find.text('Manage OpenClaw'), findsOneWidget);
 
       // Unified Input bar
       expect(find.byType(TextField), findsOneWidget);
@@ -455,7 +467,7 @@ void main() {
       },
     );
 
-    test('multi-turn: persona picker then foodie itinerary', () async {
+    test('multi-turn: vibe picker then foodie itinerary', () async {
       await session.sendMessage('Set up a travel agent');
       await Future<void>.delayed(const Duration(milliseconds: 500));
 

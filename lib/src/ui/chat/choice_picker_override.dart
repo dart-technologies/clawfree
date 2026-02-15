@@ -18,6 +18,10 @@ final choicePickerOverrideSchema = S.object(
       enumValues: ['mutuallyExclusive', 'multipleSelection'],
       description: 'Selection mode.',
     ),
+    'layout': S.string(
+      enumValues: ['segmented', 'wrap', 'grid'],
+      description: 'Visual layout of the choices. Defaults to segmented.',
+    ),
     'options': S.list(
       items: S.object(
         properties: {'label': S.string(), 'value': S.string()},
@@ -37,6 +41,7 @@ Widget choicePickerOverrideCatalogBuilder(CatalogItemContext itemContext) {
   final data = itemContext.data as Map<String, Object?>;
   final label = data['label'] as String?;
   final variant = data['variant'] as String? ?? 'mutuallyExclusive';
+  final layout = data['layout'] as String? ?? 'segmented';
   final rawOptions = data['options'] as List? ?? [];
   final options = <_PickerOption>[];
   for (final o in rawOptions) {
@@ -69,6 +74,7 @@ Widget choicePickerOverrideCatalogBuilder(CatalogItemContext itemContext) {
       label: label,
       options: options,
       path: path,
+      layout: layout,
     );
   }
   return _MultiPicker(
@@ -76,6 +82,7 @@ Widget choicePickerOverrideCatalogBuilder(CatalogItemContext itemContext) {
     label: label,
     options: options,
     path: path,
+    layout: layout,
   );
 }
 
@@ -99,11 +106,13 @@ class _ExclusivePicker extends StatefulWidget {
     required this.label,
     required this.options,
     required this.path,
+    required this.layout,
   });
   final CatalogItemContext itemContext;
   final String? label;
   final List<_PickerOption> options;
   final String path;
+  final String layout;
 
   @override
   State<_ExclusivePicker> createState() => _ExclusivePickerState();
@@ -172,8 +181,48 @@ class _ExclusivePickerState extends State<_ExclusivePicker> {
           valueListenable: _valueNotifier,
           builder: (context, value, child) {
             final idx = _selectedIndex();
+
+            if (widget.layout == 'wrap') {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List.generate(widget.options.length, (i) {
+                  final selected = i == idx;
+                  return _OptionChip(
+                    label: widget.options[i].label,
+                    selected: selected,
+                    onTap: () => _select(i),
+                  );
+                }),
+              );
+            }
+
+            if (widget.layout == 'grid') {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = (constraints.maxWidth - 8) / 2;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(widget.options.length, (i) {
+                      final selected = i == idx;
+                      return SizedBox(
+                        width: itemWidth,
+                        child: _OptionChip(
+                          label: widget.options[i].label,
+                          selected: selected,
+                          onTap: () => _select(i),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              );
+            }
+
             // iOS-style segmented control: solid track, floating selected pill.
             return Container(
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: isDark
                     ? cs.surfaceContainerHighest.withValues(alpha: 0.6)
@@ -264,7 +313,7 @@ class _ExclusivePickerState extends State<_ExclusivePicker> {
                                               : cs.onSurface.withValues(alpha: 0.5),
                                         ),
                                         child: Text(
-                                          widget.options[i].label,
+                                          widget.options[i].label.toUpperCase(),
                                           maxLines: 1,
                                         ),
                                       ),
@@ -288,6 +337,54 @@ class _ExclusivePickerState extends State<_ExclusivePicker> {
   }
 }
 
+/// Technical option chip for non-segmented layouts.
+class _OptionChip extends StatelessWidget {
+  const _OptionChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? cs.primary.withValues(alpha: 0.2)
+              : cs.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: ClawfreeBorderRadius.interactive,
+          border: Border.all(
+            color: selected
+                ? cs.primary.withValues(alpha: 0.5)
+                : cs.outlineVariant.withValues(alpha: 0.2),
+            width: selected ? 1.5 : 1.0,
+          ),
+          boxShadow: selected ? ClawfreeTheme.technicalGlow(cs.primary, intensity: 0.1) : null,
+        ),
+        child: Center(
+          child: Text(
+            label.toUpperCase(),
+            style: ClawfreeTheme.technicalStyle(
+              context: context,
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+              color: selected ? cs.primary : cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Multiple selection: FilterChips with Clawfree theme
 // ---------------------------------------------------------------------------
@@ -298,11 +395,13 @@ class _MultiPicker extends StatefulWidget {
     required this.label,
     required this.options,
     required this.path,
+    required this.layout,
   });
   final CatalogItemContext itemContext;
   final String? label;
   final List<_PickerOption> options;
   final String path;
+  final String layout;
 
   @override
   State<_MultiPicker> createState() => _MultiPickerState();
@@ -364,22 +463,39 @@ class _MultiPickerState extends State<_MultiPicker> {
           valueListenable: _valueNotifier,
           builder: (context, value, child) {
             final selected = _selectedValues();
+
+            if (widget.layout == 'grid') {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = (constraints.maxWidth - 8) / 2;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: widget.options.map((opt) {
+                      final isSelected = selected.contains(opt.value);
+                      return SizedBox(
+                        width: itemWidth,
+                        child: _OptionChip(
+                          label: opt.label,
+                          selected: isSelected,
+                          onTap: () => _toggle(opt.value),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              );
+            }
+
             return Wrap(
               spacing: 8,
               runSpacing: 8,
               children: widget.options.map((opt) {
                 final isSelected = selected.contains(opt.value);
-                return FilterChip(
-                  label: Text(opt.label),
+                return _OptionChip(
+                  label: opt.label,
                   selected: isSelected,
-                  onSelected: (_) => _toggle(opt.value),
-                  selectedColor: cs.primary.withValues(alpha: 0.2),
-                  checkmarkColor: cs.primary,
-                  side: BorderSide(
-                    color: isSelected
-                        ? cs.primary.withValues(alpha: 0.5)
-                        : cs.outlineVariant.withValues(alpha: 0.3),
-                  ),
+                  onTap: () => _toggle(opt.value),
                 );
               }).toList(),
             );

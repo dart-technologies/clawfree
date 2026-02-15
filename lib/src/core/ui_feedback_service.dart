@@ -13,9 +13,9 @@ class UIFeedbackService {
   final SoundService? _soundService;
 
   /// Create a success feedback message and play success earcon.
-  MessageItem success(String msg) {
+  MessageItem success(String msg, {Map<String, dynamic>? data}) {
     _soundService?.success();
-    return MessageItem.aiText(text: msg);
+    return MessageItem.aiText(text: msg, data: data);
   }
 
   /// Create an error feedback message (prefixed with "Error:") and play error earcon.
@@ -25,7 +25,7 @@ class UIFeedbackService {
   }
 
   /// Create an informational feedback message.
-  MessageItem info(String msg) {
-    return MessageItem.aiText(text: msg);
+  MessageItem info(String msg, {Map<String, dynamic>? data}) {
+    return MessageItem.aiText(text: msg, data: data);
   }
 }

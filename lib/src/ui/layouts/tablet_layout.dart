@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import '../../core/message_item.dart';
 import '../../core/remote_session.dart';
 import '../../voice/voice_controller.dart';
+import '../clawfree_icons.dart';
 import '../theme.dart';
 import '../chat/chat_input_bar.dart';
 import '../chat/chat_message_list.dart';
@@ -36,6 +37,8 @@ class TabletLayout extends StatelessWidget {
     required this.onRetry,
     required this.onSelectAgent,
     required this.onQuickAction,
+    this.inputKey,
+    this.inputFocusNode,
     this.activeSurfaceId,
     this.remoteSessions = const [],
   });
@@ -55,6 +58,8 @@ class TabletLayout extends StatelessWidget {
   final VoidCallback? onRetry;
   final ValueChanged<String> onSelectAgent;
   final ValueChanged<String> onQuickAction;
+  final Key? inputKey;
+  final FocusNode? inputFocusNode;
   final String? activeSurfaceId;
   final List<RemoteSession> remoteSessions;
 
@@ -103,6 +108,8 @@ class TabletLayout extends StatelessWidget {
         ),
         // -- Bottom: Global command input + permissions --
         _BottomBar(
+          inputKey: inputKey,
+          inputFocusNode: inputFocusNode,
           textController: textController,
           voiceController: voiceController,
           isProcessing: isProcessing,
@@ -138,12 +145,12 @@ class _TelemetryHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(left: 20, right: 8, top: 10, bottom: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
         border: Border(
           bottom: BorderSide(
             color: Theme.of(
               context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ).colorScheme.outlineVariant.withValues(alpha: 0.2),
             width: 0.5,
           ),
         ),
@@ -166,22 +173,28 @@ class _TelemetryHeader extends StatelessWidget {
 
           // --- Right Group: Sessions + Version ---
           const SizedBox(width: 32),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final session in remoteSessions) ...[
-                RemoteSessionIndicator(
-                  icon: iconForDeviceType(session.deviceType),
-                  label: session.deviceName,
-                ),
-                const SizedBox(width: 10),
-              ],
-              _VersionBadge(
-                gatewayVersion: gatewayVersion,
-                updateAvailable: updateAvailable,
-                onUpdate: onUpdate,
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final session in remoteSessions) ...[
+                    RemoteSessionIndicator(
+                      icon: ClawfreeIcons.iconForDeviceType(session.deviceType),
+                      label: session.deviceName,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  _VersionBadge(
+                    gatewayVersion: gatewayVersion,
+                    updateAvailable: updateAvailable,
+                    onUpdate: onUpdate,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -206,14 +219,14 @@ class _VersionBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: updateAvailable
-            ? Colors.orange.withValues(alpha: 0.1)
+            ? ClawfreeTheme.warning.withValues(alpha: 0.1)
             : Theme.of(
                 context,
               ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: ClawfreeBorderRadius.element,
         border: Border.all(
           color: updateAvailable
-              ? Colors.orange.withValues(alpha: 0.3)
+              ? ClawfreeTheme.warning.withValues(alpha: 0.3)
               : Theme.of(
                   context,
                 ).colorScheme.outlineVariant.withValues(alpha: 0.2),
@@ -237,7 +250,7 @@ class _VersionBadge extends StatelessWidget {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: Colors.orange,
+                  color: ClawfreeTheme.warning,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -318,7 +331,7 @@ class _Sidebar extends StatelessWidget {
                         InkWell(
                           onTap: () => onQuickAction('Create a new agent'),
                           borderRadius: ClawfreeBorderRadius.tiny,
-                          child: Icon(Icons.add, size: 18, color: cs.primary),
+                          child: Icon(ClawfreeIcons.add, size: 18, color: cs.primary),
                         ),
                       ],
                     ),
@@ -337,7 +350,7 @@ class _Sidebar extends StatelessWidget {
                   else
                     for (final name in agentNames)
                       _SidebarItem(
-                        icon: Icons.smart_toy,
+                        icon: ClawfreeIcons.agent,
                         label: name,
                         onTap: () => onSelectAgent(name),
                       ),
@@ -348,28 +361,28 @@ class _Sidebar extends StatelessWidget {
                   const Divider(height: 1),
                   // Quick actions
                   _SidebarItem(
-                    icon: Icons.settings,
-                    label: 'Manage OpenClaw',
+                    icon: ClawfreeIcons.settings,
+                    label: 'MANAGE OPENCLAW',
                     onTap: () => onQuickAction('Manage OpenClaw'),
                   ),
                   _SidebarItem(
-                    icon: Icons.qr_code,
-                    label: 'Pair Device',
+                    icon: ClawfreeIcons.qrCode,
+                    label: 'PAIR DEVICE',
                     onTap: () => onQuickAction('Pair a device'),
                   ),
                   _SidebarItem(
-                    icon: Icons.extension,
-                    label: 'Skill Library',
+                    icon: ClawfreeIcons.skills,
+                    label: 'SKILL LIBRARY',
                     onTap: () => onQuickAction('Show skill library'),
                   ),
                   _SidebarItem(
-                    icon: Icons.analytics,
-                    label: 'Analytics',
+                    icon: ClawfreeIcons.analytics,
+                    label: 'ANALYTICS',
                     onTap: () => onQuickAction('Show analytics'),
                   ),
                   _SidebarItem(
-                    icon: Icons.security,
-                    label: 'Security',
+                    icon: ClawfreeIcons.security,
+                    label: 'SECURITY',
                     onTap: () => onQuickAction('Security overview'),
                   ),
                   const SizedBox(height: 12),
@@ -400,40 +413,60 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        color: isActive ? cs.primaryContainer.withValues(alpha: 0.3) : null,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isActive ? cs.primary : cs.onSurfaceVariant,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: ClawfreeBorderRadius.small,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive 
+                ? cs.primary.withValues(alpha: 0.1) 
+                : Colors.transparent,
+            borderRadius: ClawfreeBorderRadius.small,
+            border: Border.all(
+              color: isActive 
+                  ? cs.primary.withValues(alpha: 0.3) 
+                  : Colors.transparent,
+              width: 0.5,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isActive ? cs.primary : cs.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isActive ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.7),
               ),
-            ),
-            if (isActive)
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: healthColor(HealthLevel.nominal),
-                  shape: BoxShape.circle,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: ClawfreeTheme.technicalStyle(
+                    context: context,
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
+                    color: isActive ? cs.primary : cs.onSurface,
+                    letterSpacing: 1.0,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-          ],
+              if (isActive)
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      ClawfreeTheme.technicalGlow(cs.primary, intensity: 0.5)[0],
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -506,6 +539,8 @@ class _SplitContent extends StatelessWidget {
 
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
+    this.inputKey,
+    this.inputFocusNode,
     required this.textController,
     required this.voiceController,
     required this.isProcessing,
@@ -513,6 +548,8 @@ class _BottomBar extends StatelessWidget {
     required this.onSend,
   });
 
+  final Key? inputKey;
+  final FocusNode? inputFocusNode;
   final TextEditingController textController;
   final VoiceController? voiceController;
   final bool isProcessing;
@@ -570,6 +607,8 @@ class _BottomBar extends StatelessWidget {
           // Command input
           Expanded(
             child: ChatInputBar(
+              key: inputKey,
+              focusNode: inputFocusNode,
               textController: textController,
               voiceController: voiceController,
               isProcessing: isProcessing,

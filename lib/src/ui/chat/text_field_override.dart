@@ -87,27 +87,62 @@ class _TextFieldWidgetState extends State<_TextFieldWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: _controller,
-        obscureText: widget.obscureText,
-        style: const TextStyle(fontFamily: 'JetBrainsMono', fontSize: 14),
-        decoration: InputDecoration(
-          labelText: widget.label,
-          hintText: widget.hint,
-          border: const OutlineInputBorder(
-            borderRadius: ClawfreeBorderRadius.small,
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.label != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, left: 4),
+              child: Text(
+                widget.label!.toUpperCase(),
+                style: ClawfreeTheme.technicalStyle(
+                  context: context,
+                  fontSize: 10,
+                  letterSpacing: 1.5,
+                  color: cs.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          TextField(
+            controller: _controller,
+            obscureText: widget.obscureText,
+            style: ClawfreeTheme.technicalStyle(
+              context: context,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: ClawfreeTheme.hudContainerColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: ClawfreeBorderRadius.interactive,
+                borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: ClawfreeBorderRadius.interactive,
+                borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: ClawfreeBorderRadius.interactive,
+                borderSide: BorderSide(color: cs.primary.withValues(alpha: 0.5), width: 1.5),
+              ),
+            ),
+            onChanged: (v) {
+              widget.itemContext.dataContext.update(widget.path, v);
+            },
           ),
-          filled: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-        ),
-        onChanged: (v) {
-          widget.itemContext.dataContext.update(widget.path, v);
-        },
+        ],
       ),
     );
   }

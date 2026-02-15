@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import 'package:clawfree/src/core/platform_config.dart';
 import 'package:clawfree/src/core/remote_session.dart';
+import 'package:clawfree/src/ui/clawfree_icons.dart';
 
 void main() {
   group('RemoteSession.fromJson', () {
@@ -109,19 +110,19 @@ void main() {
 
   group('iconForDeviceType', () {
     test('returns correct icon for desktop', () {
-      expect(iconForDeviceType(DeviceFormFactor.desktop), Symbols.desktop_mac);
+      expect(ClawfreeIcons.iconForDeviceType(DeviceFormFactor.desktop), Symbols.desktop_mac);
     });
 
     test('returns correct icon for tablet', () {
-      expect(iconForDeviceType(DeviceFormFactor.tablet), Symbols.tablet_mac);
+      expect(ClawfreeIcons.iconForDeviceType(DeviceFormFactor.tablet), Symbols.tablet_mac);
     });
 
     test('returns correct icon for phone', () {
-      expect(iconForDeviceType(DeviceFormFactor.phone), Symbols.phone_iphone);
+      expect(ClawfreeIcons.iconForDeviceType(DeviceFormFactor.phone), Symbols.phone_iphone);
     });
 
     test('returns correct icon for watch', () {
-      expect(iconForDeviceType(DeviceFormFactor.watch), Symbols.watch);
+      expect(ClawfreeIcons.iconForDeviceType(DeviceFormFactor.watch), Symbols.watch);
     });
   });
 }

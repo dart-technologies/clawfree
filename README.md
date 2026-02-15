@@ -143,7 +143,7 @@ docker compose -f infra/docker-compose.prod.yml logs -f openclaw  # 5. Monitor l
 ### Run Tests
 
 ```bash
-flutter test        # 350+ tests
+flutter test        # 504 tests
 flutter analyze     # 0 issues
 ```
 
@@ -174,7 +174,7 @@ lib/src/
     ├── voice_controller.dart    # STT↔TTS coordination
     ├── voice_service_factory.dart # Service creation
     └── ...                      # STT/TTS interfaces + platform implementations
-test/                            # 385+ tests (unit + widget + e2e)
+test/                            # 504 tests (unit + widget + e2e)
 infra/
 ├── docker-compose.yml
 ├── .env.local                   # ANTHROPIC_API_KEY (gitignored)

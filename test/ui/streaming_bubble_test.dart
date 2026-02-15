@@ -82,7 +82,7 @@ void main() {
       () async {
         final client = DemoCacheAiClient(
           chunkSize: 8,
-          chunkDelay: const Duration(milliseconds: 30),
+          chunkDelay: const Duration(milliseconds: 120),
         );
         final voiceController = VoiceController(
           stt: MockSttService(),

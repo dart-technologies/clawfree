@@ -12,13 +12,11 @@
 
 ## What We're Building
 
-**clawfree** = a hands-free AI agent orchestrator powered by Flutter genUI.
-
-
+**clawfree** = hands-free AI agent orchestrator powered by Flutter genUI.
 
 Users speak to orchestrate, configure, and interact with agentic workflows through dynamically generated visual surfaces -- no typing, no JSON editing, no code.
 
- Opus 4.6 powers both the conversational reasoning and the real-time UI generation via the A2UI protocol.
+Opus 4.6 powers both the conversational reasoning and the real-time UI generation via the A2UI protocol.
 
 **Problem Statement #2** (Break the Barriers) -- Expert AI agent configuration locked behind JSON editing, CLI, and technical knowledge. clawfree puts it in everyone's hands through voice + generative UI.
 
@@ -175,7 +173,7 @@ Users speak to orchestrate, configure, and interact with agentic workflows throu
 - [x] Infrastructure: Flutter + genUI v0.9, CORS proxy, Makefile
 - [x] genUI Core: AI client (SSE streaming), chat session, A2UI schema injection, multi-turn, self-correction, demo mode (12 cached responses), agent store, adaptive layout, animations, theming
 - [x] Architecture: ChatScreen (5 extracted widgets), ChatSession (InteractionRouter + PromptLibrary extracted), VoiceController + VoiceServiceFactory, centralized assets/icons
-- [x] Testing: 462 tests across 45+ files (unit + widget + e2e integration)
+- [x] Testing: 504 tests across 52 files (unit + widget + e2e integration)
 - [x] Gateway: GatewayClient (HTTP /health, /agents, /onboard, /sessions), HealthPoller (15s periodic + session polling), connect_gateway action, agent sync on home transition
 - [x] Remote Sessions: Live device indicators from `/sessions` endpoint, demo fallback, self-filtering
 - [x] Deployment: Docker Compose prod stack (frontend + OpenClaw + Redis), Makefile qa/stop/health targets
@@ -192,7 +190,7 @@ Users speak to orchestrate, configure, and interact with agentic workflows throu
 - [ ] Voice → chat session integration (STT text → sendMessage)
 - [ ] TTS action confirmations
 - [ ] Apple Watch voice companion (spike)
-- [ ] Watch → iPad handoff flow
+- [ ] Watch → iPhone handoff flow
 - [ ] Voice-only mode (no screen touch needed)
 
 ### Remaining Integration (Both)
@@ -200,8 +198,8 @@ Users speak to orchestrate, configure, and interact with agentic workflows throu
 - [x] OpenClaw gateway: agent persistence + management endpoints (dual-proxy: /agents, /sessions, /onboard → OpenClaw)
 
 ### Demo + Submission
-- [ ] Demo scenario 1: Voice agent builder (Watch + iPad)
-- [ ] Demo scenario 2: Agent dashboard ("Show my agents")
+- [ ] Demo scenario 1: Create travel agent builder (Watch + iPad)
+- [ ] Demo scenario 2: Use Travel Concierge to book 3-day Tokyo foodie trip
 - [ ] 3-minute demo video
 - [ ] 100-200 word written summary
 - [ ] Submission on Cerebral Valley portal
@@ -217,29 +215,29 @@ Users speak to orchestrate, configure, and interact with agentic workflows throu
 
 ### Opening (15s)
 "Hands-free AI agent orchestrator powered by Flutter genUI. One voice command. Three screens. Zero code."
-*(Camera shows Watch + iPad + macOS all connected — pulsing green dots in connectivity bar)*
+*(Camera shows Watch + iPhone + macOS all connected — pulsing green dots in connectivity bar)*
 
 ### Story 1: Agent Creation (50s)
 1. Watch pill + iPad pill visible in connectivity bar *(multi-device continuity!)*
-2. Watch speaks: **"Plan a 3-day foodie trip to Tokyo"**
+2. User speaks (watch): **"Plan a 3-day foodie trip to Tokyo"**
 3. VoiceOrb shifts to **thinking** mood (tertiary color, shader blob animates) + thinking earcon
 4. **Surface arrival chime** — agent form slides up with shimmer → spring-physics pop-in
 5. **Travel Concierge** form pre-populated: name, Claude Opus 4.6, all tools ✓, all channels ✓
-6. Speak: **"Save Agent"** → **success earcon** → orb flashes green ✓ → returns Home
+6. User speaks (watch): **"Save Agent"** → **success earcon** → orb flashes green ✓ → returns Home
 
 ### Story 2: Plan Trip (65s)
 1. Home dashboard: quick action grid visible, VoiceOrb idle
-2. Speak: **"Plan a trip"** — thinking mood → surface arrival chime
+2. Clawfree activates Travel Concierge (shown under Agents): **"Plan a trip"** — thinking mood → surface arrival chime
 3. genUI travel setup: 5 cities (Tokyo pre-selected), 3-day, foodie persona
-4. Speak: **"Generate Itinerary"** → thinking earcon while streaming
+4. User speaks (watch): **"Generate Itinerary"** → thinking earcon while streaming
 5. Itinerary slides in: hero images (full-bleed Unsplash), ANA flight pre-selected above JAL, Hoshinoya hotel
-6. Speak: **"Book Trip"** → success earcon → orb pulses green → **"Booked!"** TTS
+6. User speaks (watch): **"Book Trip"** → success earcon → orb pulses green → **"Booked!"** TTS
 7. Session returns to Home
 
 ### Under the Hood (20s)
-- Switch to **tablet layout** → split-panel: chat left, live surface right
+- Switch to **Control Tower layout** → split-panel: chat left, live surface right
 - **Health pill bar** with sparkline telemetry (Gateway/LLM/Channels all green)
-- "One Opus call: reasoning + interface. Self-correcting JSON with automatic retries."
+- "One Opus call: reasoning + interface powered by Flutter genUI"
 
 ### Closing (10s)
 "Built with Opus 4.6 in under a week by Team genUIne."

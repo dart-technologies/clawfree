@@ -3,7 +3,7 @@ sealed class MessageItem {
   const MessageItem();
 
   factory MessageItem.user({required String text}) = UserMessage;
-  factory MessageItem.aiText({required String text}) = AiTextMessage;
+  factory MessageItem.aiText({required String text, Map<String, dynamic>? data}) = AiTextMessage;
   factory MessageItem.surface({required String surfaceId}) = SurfaceMessage;
   factory MessageItem.error({required String text}) = ErrorMessage;
 
@@ -18,6 +18,9 @@ sealed class MessageItem {
 
   /// The text content, or null for surface-only messages.
   String? get text => null;
+
+  /// Extra structured data associated with the message.
+  Map<String, dynamic>? get data => null;
 
   /// Setter for streaming text updates (only meaningful on [AiTextMessage]).
   set text(String? value) {}
@@ -40,8 +43,11 @@ class UserMessage extends MessageItem {
 
 /// An AI-generated text message. [text] is mutable for streaming updates.
 class AiTextMessage extends MessageItem {
-  AiTextMessage({required String text}) : _text = text;
+  AiTextMessage({required String text, this.data}) : _text = text;
   String _text;
+
+  @override
+  final Map<String, dynamic>? data;
 
   @override
   String? get text => _text;

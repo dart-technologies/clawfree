@@ -76,6 +76,7 @@ class ClawfreeApp extends StatelessWidget {
       title: 'clawfree',
       theme: ClawfreeTheme.light,
       darkTheme: ClawfreeTheme.dark,
+      themeMode: ThemeMode.dark, // Force dark mode for HUD-first experience
       themeAnimationDuration: const Duration(milliseconds: 400),
       themeAnimationCurve: Curves.easeInOut,
       home: const ClawfreeHome(),
@@ -309,7 +310,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                 'name': 'generate_itinerary',
                 'context': {
                   'city': ['tokyo'],
-                  'persona': ['foodie'],
+                  'vibe': ['foodie'],
                   'days': ['3'],
                 },
               },
@@ -335,7 +336,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                 'context': {
                   'city': 'tokyo',
                   'days': 3,
-                  'persona': 'foodie',
+                  'vibe': 'foodie',
                   'flight': 'ANA',
                 },
               },

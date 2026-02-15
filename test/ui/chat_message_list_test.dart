@@ -59,8 +59,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Say something to get started'), findsOneWidget);
-      expect(find.text('Create an agent'), findsOneWidget);
+      expect(find.text('READY FOR COMMANDS'), findsOneWidget);
+      expect(find.text('CREATE AN AGENT'), findsOneWidget);
     });
 
     testWidgets('renders list of messages', (WidgetTester tester) async {
@@ -162,7 +162,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Create an agent'));
+      await tester.tap(find.text('CREATE AN AGENT'));
       await tester.pump();
 
       expect(sentText, 'Create an agent');

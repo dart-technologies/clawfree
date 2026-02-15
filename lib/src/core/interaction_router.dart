@@ -108,7 +108,7 @@ class A2uiInteractionRouter {
     'generate_itinerary': _handleGenerateItinerary,
     'save_itin': _handleSaveItinerary,
     'book_trip': _handleSaveItinerary,
-    'book_flight': _handleSaveItinerary,
+    'book_flight': _handleBookFlight,
     'switch_to_builder': (_) => _handleSwitchToBuilder(),
   };
 
@@ -173,6 +173,10 @@ class A2uiInteractionRouter {
       final action = parsed['action'] as Map<String, dynamic>;
       final actionName = action['name'] as String?;
       final context = action['context'] as Map<String, dynamic>? ?? {};
+
+      // Inject metadata for handlers
+      context['__sourceId'] = action['sourceComponentId'];
+      context['__surfaceId'] = action['surfaceId'];
 
       if (actionName != null) {
         final handler = _actionHandlers[actionName];
@@ -355,29 +359,51 @@ class A2uiInteractionRouter {
   // ---------------------------------------------------------------------------
 
   InteractionResult _handleGenerateItinerary(Map<String, dynamic> context) {
-    final persona = _extractFirst(context['persona']) ?? 'foodie';
+    final vibe = _extractFirst(context['vibe']) ??
+        _extractFirst(context['persona']) ??
+        'foodie';
     final city = _extractFirst(context['city']) ?? 'Tokyo';
     final days = _extractFirst(context['days']) ?? '3';
 
-    genUiLogger.info('Generating $persona itinerary for $city ($days days)');
+    genUiLogger.info('Generating $vibe itinerary for $city ($days days)');
 
     // Feed a compound keyword back so DemoCacheAiClient matches the right
-    // persona-specific response (e.g. "foodie plan").
+    // vibe-specific response (e.g. "foodie plan").
     return InteractionResult.userInput(
-      'Show me the $persona plan for $days days in $city',
+      'Show me the $vibe plan for $days days in $city',
     );
   }
 
+  InteractionResult _handleBookFlight(Map<String, dynamic> context) {
+    final flight = context['flight']?.toString() ?? 'flight';
+    final sourceId = context['__sourceId']?.toString();
+    final surfaceId = context['__surfaceId']?.toString();
+
+    genUiLogger.info('Flight selected: $sourceId on $surfaceId');
+
+    final message = _feedbackService.success(
+      'Selected $flight. Your estimated total has been updated.',
+      data: {
+        'sourceId': sourceId,
+        'surfaceId': surfaceId,
+      },
+    );
+
+    // Return a system action so we stay on the current screen with audio feedback
+    return InteractionResult.systemAction('flight_selected', message);
+  }
+
   InteractionResult _handleSaveItinerary(Map<String, dynamic> context) {
-    final persona = _extractFirst(context['persona']) ?? 'foodie';
+    final vibe = _extractFirst(context['vibe']) ??
+        _extractFirst(context['persona']) ??
+        'foodie';
     final city = _extractFirst(context['city']) ?? 'Tokyo';
 
-    genUiLogger.info('Itinerary booked: $city ($persona)');
+    genUiLogger.info('Itinerary saved: $city ($vibe)');
 
     // Demo flow: stay on itinerary screen after booking (no Home navigation).
-    // Return success feedback without mode switch.
     final message = _feedbackService.success(
-      'Your $city $persona itinerary has been booked! 🎉',
+      'Your $city $vibe itinerary has been booked!',
     );
     return InteractionResult.successFeedback(message);
   }

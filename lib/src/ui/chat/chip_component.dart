@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
 
+import '../theme.dart';
 import 'icon_resolver.dart';
 
 /// JSON Schema for the Chip A2UI component.
@@ -66,9 +67,14 @@ class _ChipWidget extends StatelessWidget {
 
     final avatar = icon != null ? Icon(icon, size: 16, color: chipColor) : null;
 
+    final labelWidget = Text(
+      label.toUpperCase(),
+      style: ClawfreeTheme.technicalStyle(context: context, fontSize: 11),
+    );
+
     if (variant == 'filled') {
       return InputChip(
-        label: Text(label),
+        label: labelWidget,
         avatar: avatar,
         backgroundColor: chipColor.withValues(alpha: 0.15),
         side: BorderSide.none,
@@ -79,7 +85,7 @@ class _ChipWidget extends StatelessWidget {
 
     if (variant == 'outlined') {
       return InputChip(
-        label: Text(label),
+        label: labelWidget,
         avatar: avatar,
         backgroundColor: Colors.transparent,
         side: BorderSide(color: chipColor.withValues(alpha: 0.5)),
@@ -90,7 +96,7 @@ class _ChipWidget extends StatelessWidget {
 
     // default
     return InputChip(
-      label: Text(label),
+      label: labelWidget,
       avatar: avatar,
       onDeleted: deletable ? () => _onDeleted() : null,
       deleteIconColor: cs.onSurface.withValues(alpha: 0.5),

@@ -35,7 +35,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Flutter'), findsOneWidget);
+      expect(find.text('FLUTTER'), findsOneWidget);
       expect(find.byType(InputChip), findsOneWidget);
     });
 
@@ -70,7 +70,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Filled'), findsOneWidget);
+      expect(find.text('FILLED'), findsOneWidget);
       final chip = tester.widget<InputChip>(find.byType(InputChip));
       expect(chip.side, BorderSide.none);
     });

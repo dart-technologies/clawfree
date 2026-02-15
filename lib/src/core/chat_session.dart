@@ -140,21 +140,31 @@ class ChatSession extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   void _listenToSurfaces() {
-    _surfaceManager.surfaceAdded.listen((surfaceId) {
-      final exists = _messages.any((m) => m.surfaceId == surfaceId);
-      if (!exists) {
-        _messages.add(MessageItem.surface(surfaceId: surfaceId));
-        _promptBuilder.activeSurfaceIds.add(surfaceId);
+    _surfaceManager.surfaceAdded.listen(_onSurfaceEvent);
+    _surfaceManager.surfaceUpdated.listen(_onSurfaceEvent);
+  }
 
-        // Premium acoustic feedback
-        final earcon = voiceController?.earcon;
-        if (earcon != null) {
-          AcousticEarcons.playSurfaceArrival(earcon);
-        }
+  void _onSurfaceEvent(String surfaceId) {
+    final existingIndex = _messages.indexWhere((m) => m.surfaceId == surfaceId);
+    
+    if (existingIndex != -1) {
+      // Move existing surface to the end so it remains "latest" in the list
+      _messages.removeAt(existingIndex);
+      _messages.add(MessageItem.surface(surfaceId: surfaceId));
+    } else {
+      // Add new surface
+      _messages.add(MessageItem.surface(surfaceId: surfaceId));
+      _promptBuilder.activeSurfaceIds.add(surfaceId);
+
+      // Premium acoustic feedback
+      final earcon = voiceController?.earcon;
+      if (earcon != null) {
+        AcousticEarcons.playSurfaceArrival(earcon);
       }
-      _activeSurfaceId = surfaceId;
-      notifyListeners();
-    });
+    }
+    
+    _activeSurfaceId = surfaceId;
+    notifyListeners();
   }
 
   void _listenToInteractions() {
@@ -168,10 +178,21 @@ class ChatSession extends ChangeNotifier {
   // Surface interaction handling (delegated to router)
   // ---------------------------------------------------------------------------
 
+  Timer? _interactionDebounce;
+
   void _handleSurfaceInteraction(ChatMessage event) {
     if (_disposed) return;
-    genUiLogger.info('Surface interaction: ${event.toJson()}');
+    
+    // Debounce rapid surface interactions (like typing in a TextField)
+    _interactionDebounce?.cancel();
+    _interactionDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (_disposed) return;
+      _processInteraction(event);
+    });
+  }
 
+  void _processInteraction(ChatMessage event) {
+    genUiLogger.info('Surface interaction: ${event.toJson()}');
     final result = _interactionRouter.handle(event);
 
     switch (result) {
@@ -213,6 +234,12 @@ class ChatSession extends ChangeNotifier {
           notifyListeners();
           break;
         }
+        // Intercept flight selection to avoid unnecessary AI roundtrip in demo.
+        if (action == 'flight_selected') {
+          voiceController?.speak(message.text ?? '');
+          notifyListeners();
+          break;
+        }
         // Feed the action back into the AI so it can generate a manage card.
         _chatHistory.add({
           'role': 'user',
@@ -226,7 +253,7 @@ class ChatSession extends ChangeNotifier {
   
   /// Public API for demo automation to inject surface events.
   void simulateSurfaceInteraction(ChatMessage event) {
-    _handleSurfaceInteraction(event);
+    _processInteraction(event);
   }
 
   /// Flash the success mood indicator for 2 seconds and play ear chime.
@@ -436,12 +463,7 @@ class ChatSession extends ChangeNotifier {
       // conversation flow (e.g. clicking "Manage OpenClaw" a second time).
       // A NEW MessageItem instance is required — reusing the same object
       // won't trigger a Flutter rebuild.
-      if (targetsExistingSurface) {
-        final surfaceId = existingSurfaceMsg.surfaceId!;
-        _messages.remove(existingSurfaceMsg);
-        _messages.add(MessageItem.surface(surfaceId: surfaceId));
-        _activeSurfaceId = surfaceId;
-      }
+      // [NOW HANDLED DYNAMICALLY BY _onSurfaceEvent during the stream]
 
       if (_disposed) return;
 
@@ -548,6 +570,7 @@ class ChatSession extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _interactionDebounce?.cancel();
     _successMoodTimer?.cancel();
     _surfaceManager.dispose();
     _aiClient.dispose();
