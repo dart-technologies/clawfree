@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Watch City Cards Generator</title>
+<style>
+body { background: #222; display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; font-family: -apple-system, sans-serif; }
+.card {
+  width: 312px; height: 390px; border-radius: 40px; overflow: hidden; position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.card .icon { font-size: 100px; margin-bottom: 16px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
+.card .city { font-size: 36px; font-weight: 700; color: white; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.card .subtitle { font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 6px; }
+.card::after { content: ''; position: absolute; inset: 0; border: 3px solid rgba(255,255,255,0.15); border-radius: 40px; pointer-events: none; }
+
+.tokyo { background: linear-gradient(160deg, #ff6b8a 0%, #c44569 50%, #6c2142 100%); }
+.paris { background: linear-gradient(160deg, #667eea 0%, #764ba2 50%, #3a1c71 100%); }
+.newyork { background: linear-gradient(160deg, #f093fb 0%, #f5576c 50%, #c62828 100%); }
+.london { background: linear-gradient(160deg, #4facfe 0%, #00f2fe 50%, #0052d4 100%); }
+
+.label { color: #aaa; font-size: 14px; text-align: center; margin-top: 8px; }
+p.instructions { color: #ccc; width: 100%; font-size: 14px; }
+</style>
+</head>
+<body>
+<p class="instructions">⬇️ 右鍵每張卡片 → 「Save Image As...」存成 PNG（312×390）<br>或用截圖工具精確截取每張卡片。</p>
+
+<div>
+<div class="card tokyo"><span class="icon">🗼</span><span class="city">Tokyo</span><span class="subtitle">🇯🇵 Japan</span></div>
+<div class="label">Tokyo.png</div>
+</div>
+
+<div>
+<div class="card paris"><span class="icon">🗼</span><span class="city">Paris</span><span class="subtitle">🇫🇷 France</span></div>
+<div class="label">Paris.png — 用埃菲爾鐵塔 emoji 或替換圖片</div>
+</div>
+
+<div>
+<div class="card newyork"><span class="icon">🗽</span><span class="city">New York</span><span class="subtitle">🇺🇸 USA</span></div>
+<div class="label">NewYork.png</div>
+</div>
+
+<div>
+<div class="card london"><span class="icon">🏰</span><span class="city">London</span><span class="subtitle">🇬🇧 United Kingdom</span></div>
+<div class="label">London.png</div>
+</div>
+</body>
+</html>

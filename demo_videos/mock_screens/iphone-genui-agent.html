@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone Mock - Agent Builder</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: white; }
+.phone { width: 393px; height: 852px; margin: 20px auto; background: #0a0a0a; border-radius: 44px; overflow: hidden; border: 2px solid #333; position: relative; }
+.notch { width: 126px; height: 34px; background: #000; border-radius: 0 0 20px 20px; position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 10; }
+.content { padding: 60px 16px 40px; height: 100%; overflow-y: auto; }
+.header { text-align: center; padding: 8px; border-bottom: 1px solid #222; margin-bottom: 16px; }
+.header h2 { font-size: 17px; font-weight: 600; }
+.header .subtitle { font-size: 12px; color: #888; margin-top: 2px; }
+
+/* Split: left genUI, right chat */
+.split { display: flex; gap: 8px; height: calc(100% - 80px); }
+.genui-panel { flex: 1; background: #111; border-radius: 16px; padding: 12px; overflow-y: auto; }
+.chat-panel { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+
+.genui-panel h3 { font-size: 14px; color: #00c9a7; margin-bottom: 12px; }
+.agent-card { background: #1a1a2e; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #333; }
+.agent-card .name { font-size: 15px; font-weight: 600; }
+.agent-card .desc { font-size: 11px; color: #888; margin-top: 4px; }
+.agent-card .status { display: inline-block; font-size: 11px; color: #00c9a7; background: rgba(0,201,167,0.1); padding: 2px 8px; border-radius: 8px; margin-top: 8px; }
+
+.msg { padding: 10px 14px; border-radius: 18px; max-width: 85%; font-size: 14px; line-height: 1.4; }
+.msg.user { background: #0a84ff; align-self: flex-end; margin-left: auto; }
+.msg.ai { background: #2c2c2e; align-self: flex-start; }
+.msg .time { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+.msg.ai .typing { display: inline-block; }
+.msg.ai .typing::after { content: '...'; animation: dots 1.5s infinite; }
+@keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'} }
+
+.success-banner { background: rgba(0,201,167,0.15); border: 1px solid #00c9a7; border-radius: 12px; padding: 16px; text-align: center; margin-top: 12px; }
+.success-banner .check { font-size: 36px; }
+.success-banner .text { font-size: 14px; color: #00c9a7; margin-top: 4px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="content">
+    <div class="header">
+      <h2>🦞 Clawfree</h2>
+      <div class="subtitle">Agent Builder</div>
+    </div>
+    <div class="chat-panel">
+      <div class="msg user">Build a Trip Agent<div class="time">⌚ from Watch · 10:32</div></div>
+      <div class="msg ai">Got it! I'll create a Trip Planning Agent for you. Setting up...<div class="time">10:32</div></div>
+      <div class="agent-card">
+        <div class="name">🌍 Trip Planner Agent</div>
+        <div class="desc">Plan trips with city selection, duration, and attractions</div>
+        <div class="status">✅ Created</div>
+      </div>
+      <div class="msg ai">Your Trip Planner Agent is ready! 🎉 You can now select a city from your Watch to start planning.<div class="time">10:33</div></div>
+      <div class="success-banner">
+        <div class="check">✅</div>
+        <div class="text">Agent Created Successfully</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

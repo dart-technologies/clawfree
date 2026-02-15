@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MacBook Mock - Split Screen (genUI + Chat)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; font-family: -apple-system, sans-serif; color: white; height: 100vh; display: flex; }
+
+/* Left: genUI */
+.genui { flex: 1; background: #111; border-right: 1px solid #222; padding: 24px; overflow-y: auto; }
+.genui h2 { font-size: 20px; margin-bottom: 4px; }
+.genui .sub { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+.trip-card { background: #1a1a2e; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #2a2a4a; }
+.trip-card .header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.trip-card .emoji { font-size: 40px; }
+.trip-card .info h3 { font-size: 18px; }
+.trip-card .info p { font-size: 13px; color: #888; }
+.trip-card .tag { display: inline-block; background: rgba(0,201,167,0.15); color: #00c9a7; padding: 3px 10px; border-radius: 8px; font-size: 12px; margin-right: 6px; }
+
+.day-plan { background: #161625; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.day-plan h4 { font-size: 14px; color: #00c9a7; margin-bottom: 8px; }
+.day-plan .item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; color: #ccc; border-bottom: 1px solid #222; }
+.day-plan .item:last-child { border: none; }
+.day-plan .time-badge { background: #222; padding: 2px 8px; border-radius: 6px; font-size: 11px; color: #aaa; min-width: 60px; text-align: center; }
+
+/* Right: Chat */
+.chat { width: 400px; background: #0a0a0a; padding: 24px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.chat h3 { font-size: 16px; color: #888; border-bottom: 1px solid #222; padding-bottom: 8px; }
+.msg { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; max-width: 90%; }
+.msg.user { background: #0a84ff; align-self: flex-end; }
+.msg.ai { background: #2c2c2e; }
+.msg .source { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.msg.system { background: rgba(0,201,167,0.1); border: 1px solid rgba(0,201,167,0.3); font-size: 12px; color: #00c9a7; text-align: center; align-self: center; }
+</style>
+</head>
+<body>
+
+<div class="genui">
+  <h2>🌍 Trip Planner</h2>
+  <div class="sub">Planning Tokyo 5-day trip</div>
+
+  <div class="trip-card">
+    <div class="header">
+      <div class="emoji">🗼</div>
+      <div class="info"><h3>Tokyo, Japan 🇯🇵</h3><p>5 days · 4 attractions</p></div>
+    </div>
+    <div><span class="tag">⛩️ Senso-ji</span><span class="tag">🎮 Akihabara</span><span class="tag">🍣 Tsukiji</span><span class="tag">🗻 Mt. Fuji</span></div>
+  </div>
+
+  <div class="day-plan">
+    <h4>📅 Day 1 — Arrival & Asakusa</h4>
+    <div class="item"><span class="time-badge">09:00</span>✈️ Arrive Narita Airport</div>
+    <div class="item"><span class="time-badge">12:00</span>🍜 Lunch at Ramen Street</div>
+    <div class="item"><span class="time-badge">14:00</span>⛩️ Senso-ji Temple</div>
+    <div class="item"><span class="time-badge">18:00</span>🏮 Asakusa Evening Walk</div>
+  </div>
+  <div class="day-plan">
+    <h4>📅 Day 2 — Akihabara & Shibuya</h4>
+    <div class="item"><span class="time-badge">10:00</span>🎮 Akihabara Electric Town</div>
+    <div class="item"><span class="time-badge">13:00</span>🍣 Tsukiji Outer Market</div>
+    <div class="item"><span class="time-badge">16:00</span>🚶 Shibuya Crossing</div>
+    <div class="item"><span class="time-badge">19:00</span>🍺 Izakaya Dinner</div>
+  </div>
+  <div class="day-plan">
+    <h4>📅 Day 3 — Mt. Fuji Day Trip</h4>
+    <div class="item"><span class="time-badge">07:00</span>🚅 Shinkansen to Hakone</div>
+    <div class="item"><span class="time-badge">10:00</span>🗻 Mt. Fuji Viewpoint</div>
+    <div class="item"><span class="time-badge">14:00</span>♨️ Onsen Experience</div>
+    <div class="item"><span class="time-badge">18:00</span>🚅 Return to Tokyo</div>
+  </div>
+</div>
+
+<div class="chat">
+  <h3>💬 Conversation</h3>
+  <div class="msg system">⌚ Watch selected: Tokyo · 5 days</div>
+  <div class="msg user">Plan a 5 day trip to Tokyo including Senso-ji Temple, Akihabara, Tsukiji Market, Mt. Fuji Day Trip<div class="source">⌚ from Apple Watch</div></div>
+  <div class="msg ai">Great choice! 🗼 I'm creating a 5-day Tokyo itinerary with your selected attractions. Here's what I've planned...</div>
+  <div class="msg ai">✅ Your Tokyo trip is ready! Check the itinerary on the left. You can adjust days or add more attractions.</div>
+  <div class="msg system">📱 Synced to all devices</div>
+</div>
+
+</body>
+</html>
