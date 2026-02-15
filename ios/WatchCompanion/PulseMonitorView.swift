@@ -126,8 +126,8 @@ struct PulseMonitorView: View {
 
     // MARK: - 主語音畫面
     private var mainVoiceView: some View {
-        VStack(spacing: 8) {
-                // Branding bar
+        VStack(spacing: 0) {
+                // Top bar: Branding + Pause button (when running)
                 HStack(spacing: 4) {
                     Image(systemName: "hand.raised.slash.fill")
                         .font(.system(size: 10))
@@ -138,100 +138,161 @@ struct PulseMonitorView: View {
 
                     Spacer()
 
-                    if connectivity.isPhoneActive {
+                    // Pause button (small, when recording or demo running)
+                    if phase == .recording || demoRunner.isRunning {
+                        Button(action: {
+                            if demoRunner.isRunning {
+                                demoRunner.stop()
+                            }
+                            if phase == .recording {
+                                handleTap() // Toggle to stop
+                            }
+                        }) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    } else if connectivity.isPhoneActive {
                         Image(systemName: "iphone")
                             .font(.system(size: 9))
                             .foregroundColor(.green)
                     }
                 }
                 .padding(.horizontal, 12)
+                .padding(.vertical, 8)
 
-                Spacer()
-
-                // ── Central mic button (60%+ of screen) ──
-                ZStack {
-                    // Outer pulse ring
-                    Circle()
-                        .stroke(accentColor.opacity(0.25), lineWidth: 3)
-                        .scaleEffect(pulseScale)
-                        .opacity(Double(2.0 - pulseScale))
-
-                    // Recording pulse ring (only when recording)
-                    if phase == .recording {
-                        Circle()
-                            .stroke(Color.red.opacity(0.5), lineWidth: 4)
-                            .scaleEffect(recordingPulse)
-                            .opacity(Double(2.0 - recordingPulse))
+                // Main content area
+                if phase == .idle && !demoRunner.isRunning && !demoRunner.isComplete {
+                    // Initial state: Show "Tap to speak" button
+                    Spacer()
+                    Button(action: { handleTap() }) {
+                        VStack(spacing: 6) {
+                            Image(systemName: "mic.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(accentColor)
+                            Text("Tap to speak")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(accentColor)
+                        }
                     }
-
-                    // Demo mode ripple animation (orange)
-                    if isDemoMode && phase == .recording {
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("micButton")
+                    Spacer()
+                    
+                    // Connection status at bottom
+                    HStack(spacing: 4) {
                         Circle()
-                            .stroke(lobsterOrange.opacity(0.5), lineWidth: 5)
-                            .scaleEffect(rippleScale)
-                            .opacity(Double(2.0 - rippleScale))
+                            .fill(connectivity.isReachable ? Color.green : Color.gray)
+                            .frame(width: 6, height: 6)
+                        Text(connectivity.isReachable ? "Connected" : "Offline")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
                     }
-
-                    // Main circle
-                    Circle()
-                        .fill(accentColor.opacity(0.15))
-
-                    Circle()
-                        .stroke(accentColor, lineWidth: 4)
-
-                    // Icon / state
-                    micIcon
+                    .padding(.bottom, 8)
+                } else {
+                    // Conversation mode: Show scrollable chat history
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            // Demo script messages (Story 1+2)
+                            if demoRunner.isRunning || demoRunner.isComplete {
+                                ForEach(Array(demoRunner.chatMessages.enumerated()), id: \.offset) { index, msg in
+                                    HStack {
+                                        if msg.isUser {
+                                            Spacer()
+                                            Text(msg.text)
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .fill(teal)
+                                                )
+                                                .frame(maxWidth: 130, alignment: .trailing)
+                                        } else {
+                                            Text(msg.text)
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.primary)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .fill(Color.gray.opacity(0.2))
+                                                )
+                                                .frame(maxWidth: 130, alignment: .leading)
+                                            Spacer()
+                                        }
+                                    }
+                                    .padding(.horizontal, 8)
+                                }
+                            }
+                            
+                            // Live recognized text (during recording)
+                            if phase == .recording && !recognizedText.isEmpty {
+                                HStack {
+                                    Spacer()
+                                    Text(recognizedText)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(teal.opacity(0.7))
+                                        )
+                                        .frame(maxWidth: 130, alignment: .trailing)
+                                }
+                                .padding(.horizontal, 8)
+                            }
+                            
+                            // AI reply (when not in demo mode)
+                            if !demoRunner.isRunning && phase == .reply, let reply = connectivity.lastAiReply {
+                                HStack {
+                                    Text(reply)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.gray.opacity(0.2))
+                                        )
+                                        .frame(maxWidth: 130, alignment: .leading)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 8)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    
+                    // Bottom status bar
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(connectivity.isReachable ? Color.green : Color.gray)
+                            .frame(width: 6, height: 6)
+                        Text(connectivity.isReachable ? "Connected" : "Offline")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        // Current state indicator
+                        if phase == .recording {
+                            HStack(spacing: 2) {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 6, height: 6)
+                                Text("Listening")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
                 }
-                .frame(width: 110, height: 110)
-                .contentShape(Circle())
-                .onTapGesture { handleTap() }
-                .accessibilityIdentifier("micButton")
-
-                // Status label
-                statusText
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(accentColor)
-                    .multilineTextAlignment(.center)
-
-                // Demo mode recognized text (typewriter effect)
-                if isDemoMode && !recognizedText.isEmpty {
-                    Text(recognizedText)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(teal)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(teal.opacity(0.15))
-                        )
-                        .padding(.horizontal, 8)
-                }
-
-                Spacer()
-
-                // Chat history from DemoScriptRunner (Story 1+2)
-                if demoRunner.isRunning || demoRunner.isComplete {
-                    ChatHistoryView(messages: demoRunner.chatMessages)
-                        .frame(maxHeight: 80)
-                        .padding(.horizontal, 4)
-                }
-
-                // AI reply bubble (compact)
-                if !demoRunner.isRunning && phase == .reply, let reply = connectivity.lastAiReply {
-                    replyBubble(reply)
-                }
-
-                // Connection status
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(connectivity.isReachable ? Color.green : Color.gray)
-                        .frame(width: 6, height: 6)
-                    Text(connectivity.isReachable ? "Connected" : "Offline")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.bottom, 2)
 
                 // 快捷操作按鈕（Demo Mode 移除，腳本自動執行）
                 // if phase == .idle || phase == .reply {
