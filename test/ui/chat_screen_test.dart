@@ -39,18 +39,18 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // Empty state
-      expect(find.text('Say something to get started'), findsOneWidget);
+      expect(find.text('READY FOR COMMANDS'), findsOneWidget);
 
       // Suggestion chips
-      expect(find.text('Create an agent'), findsOneWidget);
-      expect(find.text('Show my agents'), findsOneWidget);
+      expect(find.text('CREATE AN AGENT'), findsOneWidget);
+      expect(find.text('MANAGE OPENCLAW'), findsOneWidget);
 
       // Unified Bar (default)
       expect(find.byType(TextField), findsOneWidget);
       expect(find.byType(VoiceOrb), findsOneWidget);
 
-      // App bar
-      expect(find.text('clawfree'), findsOneWidget);
+      // App bar (contains CLAWFREE in technical font)
+      expect(find.text('CLAWFREE'), findsOneWidget);
     });
 
     testWidgets('send button is enabled when not processing', (
@@ -95,12 +95,12 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       // Tap a suggestion chip
-      await tester.tap(find.text('Show my agents'));
+      await tester.tap(find.text('MANAGE OPENCLAW'));
       await tester.pump();
 
       // Message should be in session
       expect(
-        session.messages.any((m) => m.isUser && m.text == 'Show my agents'),
+        session.messages.any((m) => m.isUser && m.text == 'Manage OpenClaw'),
         isTrue,
       );
 

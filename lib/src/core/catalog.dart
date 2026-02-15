@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
 
+import '../ui/clawfree_icons.dart';
+import '../ui/theme.dart';
 import '../ui/chat/animated_component.dart';
 import '../ui/chat/icon_resolver.dart';
 import '../ui/chat/badge_component.dart';
@@ -9,6 +11,13 @@ import '../ui/chat/button_component.dart';
 import '../ui/chat/card_component.dart';
 import '../ui/chat/chip_component.dart';
 import '../ui/chat/choice_picker_override.dart';
+import '../ui/chat/flight_ticket_component.dart';
+import '../ui/chat/hotel_card_component.dart';
+import '../ui/chat/agent_card_component.dart';
+import '../ui/chat/booking_summary_component.dart';
+import '../ui/chat/itinerary_day_component.dart';
+import '../ui/chat/itinerary_header_component.dart';
+import '../ui/chat/itinerary_timeline_component.dart';
 import '../ui/chat/gap_component.dart';
 import '../ui/chat/grid_component.dart';
 import '../ui/chat/progress_bar_component.dart';
@@ -73,22 +82,34 @@ Catalog getClawfreeCatalog() {
           'component': S.string(enumValues: ['Column']),
           'children': S.list(items: S.string()),
           'crossAxisAlignment': S.string(enumValues: ['start', 'center', 'end', 'stretch']),
+          'gap': S.number(description: 'Gap between children.'),
         },
         required: ['component', 'children'],
       ),
       widgetBuilder: (context) {
         final data = context.data as Map<String, dynamic>;
         final children = (data['children'] as List?)?.cast<String>() ?? [];
-        final crossAlign = data['crossAxisAlignment'] as String? ?? 'start';
+        final crossAlign = data['crossAxisAlignment'] as String? ?? 'stretch'; // Default to stretch
+        final gap = (data['gap'] as num?)?.toDouble() ?? 0.0;
+
         return Column(
           crossAxisAlignment: switch (crossAlign) {
             'center' => CrossAxisAlignment.center,
             'end' => CrossAxisAlignment.end,
-            'stretch' => CrossAxisAlignment.stretch,
-            _ => CrossAxisAlignment.start,
+            'start' => CrossAxisAlignment.start,
+            _ => CrossAxisAlignment.stretch,
           },
           mainAxisSize: MainAxisSize.min,
-          children: children.map((id) => context.buildChild(id)).toList(),
+          children: children.map((id) {
+            final child = context.buildChild(id);
+            if (gap > 0 && id != children.last) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: gap),
+                child: child,
+              );
+            }
+            return child;
+          }).toList(),
         );
       },
     ),
@@ -103,6 +124,8 @@ Catalog getClawfreeCatalog() {
             enumValues: ['start', 'center', 'end', 'spaceBetween'],
             description: 'Alias for mainAxisAlignment.',
           ),
+          'wrap': S.boolean(description: 'Whether to wrap children if they overflow.'),
+          'spacing': S.number(description: 'Gap between children when wrapped.'),
         },
         required: ['component', 'children'],
       ),
@@ -112,6 +135,25 @@ Catalog getClawfreeCatalog() {
         final mainAlign = data['mainAxisAlignment'] as String?
             ?? data['justify'] as String?
             ?? 'start';
+        final shouldWrap = data['wrap'] as bool? ?? true;
+        final spacing = (data['spacing'] as num?)?.toDouble() ?? 8.0;
+
+        final childrenWidgets = children.map((id) => context.buildChild(id)).toList();
+
+        if (shouldWrap) {
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            alignment: switch (mainAlign) {
+              'center' => WrapAlignment.center,
+              'end' => WrapAlignment.end,
+              'spaceBetween' => WrapAlignment.spaceBetween,
+              _ => WrapAlignment.start,
+            },
+            children: childrenWidgets,
+          );
+        }
+
         return Row(
           mainAxisAlignment: switch (mainAlign) {
             'center' => MainAxisAlignment.center,
@@ -119,7 +161,7 @@ Catalog getClawfreeCatalog() {
             'spaceBetween' => MainAxisAlignment.spaceBetween,
             _ => MainAxisAlignment.start,
           },
-          children: children.map((id) => context.buildChild(id)).toList(),
+          children: childrenWidgets,
         );
       },
     ),
@@ -141,11 +183,19 @@ Catalog getClawfreeCatalog() {
       widgetBuilder: (context) {
         final data = context.data as Map<String, dynamic>;
         final url = data['url'] as String? ?? '';
+        final variant = data['variant'] as String? ?? 'fullWidth';
         if (url.isEmpty) return const SizedBox.shrink();
-        return Image.network(
+
+        final image = Image.network(
           url,
-          errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+          fit: (variant == 'header' || variant == 'fullWidth') ? BoxFit.cover : BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const Icon(ClawfreeIcons.brokenImage),
         );
+
+        if (variant == 'header' || variant == 'fullWidth') {
+          return SizedBox(width: double.infinity, child: image);
+        }
+        return image;
       },
     ),
     CatalogItem(
@@ -211,25 +261,36 @@ Catalog getClawfreeCatalog() {
         final min = (data['min'] as num?)?.toDouble() ?? 0;
         final max = (data['max'] as num?)?.toDouble() ?? 100;
         final fraction = max > min ? (value - min) / (max - min) : 0.0;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (label.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(label, style: const TextStyle(
-                  fontFamily: 'JetBrainsMono', fontSize: 10,
-                )),
-              ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: fraction.clamp(0.0, 1.0),
-                minHeight: 6,
-              ),
-            ),
-          ],
+        return SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (label.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    label.toUpperCase(),
+                    style: ClawfreeTheme.technicalStyle(
+                      context: context.buildContext,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+                          ClipRRect(
+                            borderRadius: ClawfreeBorderRadius.tiny,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: LinearProgressIndicator(
+                                value: fraction.clamp(0.0, 1.0),
+                                minHeight: 6,
+                              ),
+                            ),
+                          ),
+              
+            ],
+          ),
         );
       },
     ),
@@ -248,16 +309,23 @@ Catalog getClawfreeCatalog() {
         final label = data['label'] as String? ?? '';
         final value = data['value'] as bool? ?? false;
         return Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Icon(
               value ? Icons.check_box : Icons.check_box_outline_blank,
               size: 20,
+              color: Theme.of(context.buildContext).colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            Flexible(child: Text(label, style: const TextStyle(
-              fontFamily: 'JetBrainsMono', fontSize: 12,
-            ))),
+            Expanded(
+              child: Text(
+                label.toUpperCase(),
+                style: ClawfreeTheme.technicalStyle(
+                  context: context.buildContext,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           ],
         );
       },
@@ -278,6 +346,41 @@ Catalog getClawfreeCatalog() {
       name: 'VideoPlayer',
       dataSchema: videoPlayerSchema,
       widgetBuilder: videoPlayerCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'ItineraryHeader',
+      dataSchema: itineraryHeaderSchema,
+      widgetBuilder: itineraryHeaderCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'ItineraryTimeline',
+      dataSchema: itineraryTimelineSchema,
+      widgetBuilder: itineraryTimelineCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'ItineraryDay',
+      dataSchema: itineraryDaySchema,
+      widgetBuilder: itineraryDayCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'AgentCard',
+      dataSchema: agentCardSchema,
+      widgetBuilder: agentCardCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'BookingSummary',
+      dataSchema: bookingSummarySchema,
+      widgetBuilder: bookingSummaryCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'HotelCard',
+      dataSchema: hotelCardSchema,
+      widgetBuilder: hotelCardCatalogBuilder,
+    ),
+    CatalogItem(
+      name: 'FlightTicket',
+      dataSchema: flightTicketSchema,
+      widgetBuilder: flightTicketCatalogBuilder,
     ),
     CatalogItem(
       name: 'TripMap',

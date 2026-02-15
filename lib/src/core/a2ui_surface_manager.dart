@@ -17,7 +17,9 @@ class A2uiSurfaceManager {
     // Track new surfaces
     _surfaceController.surfaceUpdates.listen((SurfaceUpdate update) {
       if (update is SurfaceAdded) {
-        _surfaceAddedController.add(update.surfaceId);
+        if (_notifiedSurfaceIds.add(update.surfaceId)) {
+          _surfaceAddedController.add(update.surfaceId);
+        }
       }
     });
   }
@@ -27,11 +29,22 @@ class A2uiSurfaceManager {
   late A2uiTransportAdapter _transportAdapter;
   StreamSubscription<A2uiMessage>? _transportSub;
   final _surfaceAddedController = StreamController<String>.broadcast();
+  final _surfaceUpdatedController = StreamController<String>.broadcast();
+  final _notifiedSurfaceIds = <String>{};
 
   void _wireTransport() {
     _transportSub?.cancel();
     _transportSub = _transportAdapter.incomingMessages.listen(
-      _surfaceController.handleMessage,
+      (msg) {
+        _surfaceController.handleMessage(msg);
+        
+        // Notify of updates to existing surfaces
+        if (msg is UpdateComponents) {
+          _surfaceUpdatedController.add(msg.surfaceId);
+        } else if (msg is UpdateDataModel) {
+          _surfaceUpdatedController.add(msg.surfaceId);
+        }
+      },
       onError: (Object error) {
         genUiLogger.warning('A2UI parse error: $error');
       },
@@ -60,6 +73,9 @@ class A2uiSurfaceManager {
 
   /// Stream of new surface IDs as they're created.
   Stream<String> get surfaceAdded => _surfaceAddedController.stream;
+
+  /// Stream of surface IDs as they're updated.
+  Stream<String> get surfaceUpdated => _surfaceUpdatedController.stream;
 
   /// The text stream (non-A2UI portions of the response).
   Stream<String> get textStream => _transportAdapter.incomingText;
@@ -130,6 +146,7 @@ You must output a VALID JSON object representing one of the A2UI message types (
 
   void dispose() {
     _surfaceAddedController.close();
+    _surfaceUpdatedController.close();
     _surfaceController.dispose();
     _transportAdapter.dispose();
   }

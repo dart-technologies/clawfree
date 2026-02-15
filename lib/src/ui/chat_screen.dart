@@ -38,8 +38,16 @@ class _ChatScreenState extends State<ChatScreen>
     with HealthMonitorMixin, WatchSyncManager {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _screenFocusNode = FocusNode();
+  final _inputFocusNode = FocusNode();
+  final _inputKey = GlobalKey();
 
   ChatSession get _session => widget.chatSession;
+
+  String? get _activeAgentName {
+    final agents = _session.agentStore.agents;
+    return agents.isNotEmpty ? agents.last['name'] as String? : null;
+  }
 
   bool _handsFreeEnabled = false;
 
@@ -75,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen>
             () => widget.onNavigateHome?.call(),
       },
       child: Focus(
-        autofocus: true,
+        focusNode: _screenFocusNode,
         child: ListenableBuilder(
           listenable: Listenable.merge([_session, _session.voiceController]),
           builder: (context, _) {
@@ -153,9 +161,9 @@ class _ChatScreenState extends State<ChatScreen>
                 const Spacer(),
                 for (final session in effectiveSessions) ...[
                   Icon(
-                    iconForDeviceType(session.deviceType),
+                    ClawfreeIcons.iconForDeviceType(session.deviceType),
                     size: 14,
-                    color: Colors.blue,
+                    color: ClawfreeTheme.homeMode,
                   ),
                   const SizedBox(width: 6),
                 ],
@@ -165,57 +173,75 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
 
-        // -- Layer 3: Centered Logo/Title + Menu --
+        // -- Layer 3: Centered Logo/Title + Menu (Minimalist Ghost Header) --
         Positioned(
           top: topPadding,
           left: 0,
           right: 0,
           height: 44,
           child: Container(
-            color:
-                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            color: Colors.transparent, // Ghost header
             child: Stack(
               alignment: Alignment.center,
               children: [
                 Positioned(
-                  left: 4,
+                  left: 8,
                   child: Builder(
                     builder: (context) => IconButton(
-                      icon: const Icon(Icons.menu, size: 20),
+                      icon: Icon(ClawfreeIcons.menuOpen, size: 22, color: ClawfreeTheme.hudTextPrimary),
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
                 ),
                 InkWell(
                   onTap: widget.onNavigateHome,
-                  borderRadius: ClawfreeBorderRadius.interactive,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Hero(tag: 'app-icon', child: ClawfreeLogo(size: 24)),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'clawfree',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                  borderRadius: ClawfreeBorderRadius.pill,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: ClawfreeTheme.hudContainerColor,
+                      borderRadius: ClawfreeBorderRadius.pill,
+                      border: Border.all(color: ClawfreeTheme.hudBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_session.isProcessing)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          )
+                        else
+                          const Hero(tag: 'app-icon', child: ClawfreeLogo(size: 14)),
+                        const SizedBox(width: 4),
+                        Text(
+                          (_activeAgentName ?? 'clawfree').toUpperCase(),
+                          key: const Key('chat-title'),
+                          style: ClawfreeTheme.technicalStyle(
+                            context: context,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_session.isProcessing)
-                  Positioned(
-                    right: 12,
-                    child: SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                      ],
                     ),
                   ),
+                ),
+                Positioned(
+                  right: 8,
+                  child: IconButton(
+                    icon: Icon(ClawfreeIcons.download, size: 22, color: ClawfreeTheme.hudTextPrimary),
+                    onPressed: () => ChatScreenDialogs.showExportConfig(context, _session),
+                  ),
+                ),
               ],
             ),
           ),
@@ -239,11 +265,17 @@ class _ChatScreenState extends State<ChatScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Hero(tag: 'app-icon', child: ClawfreeLogo(size: 32)),
+              Hero(tag: 'app-icon', child: ClawfreeLogo(size: 28)),
               const SizedBox(width: 8),
-              const Text(
-                'clawfree',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              Text(
+                (_activeAgentName ?? 'clawfree').toUpperCase(),
+                key: const Key('chat-title'),
+                style: ClawfreeTheme.technicalStyle(
+                  context: context,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                ),
               ),
             ],
           ),
@@ -263,7 +295,7 @@ class _ChatScreenState extends State<ChatScreen>
             ),
           ),
         IconButton(
-          icon: const Icon(ClawfreeIcons.download),
+          icon: Icon(ClawfreeIcons.download),
           tooltip: 'Export agent config',
           onPressed: () =>
               ChatScreenDialogs.showExportConfig(context, _session),
@@ -317,6 +349,9 @@ class _ChatScreenState extends State<ChatScreen>
     }
 
     return PhoneLayout(
+      key: const ValueKey('phone-layout'),
+      inputKey: _inputKey,
+      inputFocusNode: _inputFocusNode,
       sessionMode: _session.sessionMode,
       messages: _session.messages,
       activeSurfaceId: _session.activeSurfaceId,
@@ -356,6 +391,8 @@ class _ChatScreenState extends State<ChatScreen>
             : <RemoteSession>[]);
 
     return TabletLayout(
+      inputKey: _inputKey,
+      inputFocusNode: _inputFocusNode,
       messages: _session.messages,
       activeSurfaceId: _session.activeSurfaceId,
       surfaceHost: _session.surfaceHost,
@@ -505,6 +542,8 @@ class _ChatScreenState extends State<ChatScreen>
     _session.removeListener(_onSessionChanged);
     disposeHealthMonitor();
     disposeWatchSync();
+    _screenFocusNode.dispose();
+    _inputFocusNode.dispose();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

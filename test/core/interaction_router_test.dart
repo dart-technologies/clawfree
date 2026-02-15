@@ -53,9 +53,9 @@ void main() {
       expect((result as UserInputResult).text, contains('Setup confirmed'));
     });
 
-    test('generate_itinerary returns persona-specific plan query', () {
+    test('generate_itinerary returns vibe-specific plan query', () {
       final result = router.handle(_actionMessage('generate_itinerary', {
-        'persona': ['foodie'],
+        'vibe': ['foodie'],
         'city': ['Tokyo'],
         'days': ['3'],
       }));
@@ -65,7 +65,7 @@ void main() {
 
     test('save_itin returns success message and switches mode', () {
       final result = router.handle(_actionMessage('save_itin', {
-        'persona': ['foodie'],
+        'vibe': ['foodie'],
         'city': ['Tokyo'],
       }));
       expect(result, isA<ModeSwitchResult>());

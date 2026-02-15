@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../clawfree_icons.dart';
 import '../theme.dart';
 import 'health_sparkline.dart';
 import 'health_state.dart';
@@ -9,12 +10,12 @@ import 'health_state.dart';
 // Re-export for convenience.
 export 'health_state.dart';
 
-/// Maps [HealthLevel] to a consistent color.
+/// Maps [HealthLevel] to a consistent color from ClawfreeTheme.
 Color healthColor(HealthLevel level) => switch (level) {
-  HealthLevel.nominal => const Color(0xFF34C759),
-  HealthLevel.degraded => const Color(0xFFFF9F0A),
-  HealthLevel.error => const Color(0xFFFF3B30),
-  HealthLevel.unknown => const Color(0xFF8E8E93),
+  HealthLevel.nominal => ClawfreeTheme.success,
+  HealthLevel.degraded => ClawfreeTheme.warning,
+  HealthLevel.error => ClawfreeTheme.error,
+  HealthLevel.unknown => ClawfreeTheme.neutral,
 };
 
 // ---------------------------------------------------------------------------
@@ -50,25 +51,15 @@ class _Dot extends StatelessWidget {
 
 
   IconData _iconForSection(String id) {
-
     return switch (id.toLowerCase()) {
-
-      'link' || 'gateway' => Icons.hub,
-
-      'think' || 'llm' => Icons.psychology,
-
-      'reach' || 'channels' => Icons.sync,
-
-      'ear' || 'voice' => Icons.mic,
-
-      'skill' || 'tools' => Icons.extension,
-
-      'security' => Icons.security,
-
+      'link' || 'gateway' => ClawfreeIcons.hub,
+      'think' || 'llm' => ClawfreeIcons.psychology,
+      'reach' || 'channels' => ClawfreeIcons.sync,
+      'ear' || 'voice' => ClawfreeIcons.mic,
+      'skill' || 'tools' => ClawfreeIcons.skills,
+      'security' => ClawfreeIcons.security,
       _ => Icons.circle,
-
     };
-
   }
 
 
@@ -181,10 +172,9 @@ class _Pill extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             section.id.toUpperCase(),
-            style: const TextStyle(
-              fontFamily: 'JetBrainsMono',
+            style: ClawfreeTheme.technicalStyle(
+              context: context,
               fontSize: 9,
-              fontWeight: FontWeight.w700,
               letterSpacing: 1.0,
             ),
           ),
@@ -192,9 +182,10 @@ class _Pill extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               section.detail,
-              style: TextStyle(
-                fontFamily: 'JetBrainsMono',
+              style: ClawfreeTheme.technicalStyle(
+                context: context,
                 fontSize: 9,
+                fontWeight: FontWeight.w400,
                 color: Theme.of(
                   context,
                 ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),

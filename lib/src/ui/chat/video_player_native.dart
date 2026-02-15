@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../video/itinerary_video_generator.dart';
 import '../../video/video_image_downloader.dart';
+import '../clawfree_icons.dart';
 import '../theme.dart';
 
 /// Native-only video player: downloads images → FFmpeg → plays .mp4.
@@ -130,13 +131,13 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
             children: [
               const Icon(
                 Icons.movie_creation_outlined,
-                color: Colors.white54,
+                color: ClawfreeTheme.hudTextSecondary,
                 size: 48,
               ),
               const SizedBox(height: 16),
               Text(
                 _stage,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: const TextStyle(color: ClawfreeTheme.hudTextPrimary, fontSize: 14),
               ),
               const SizedBox(height: 12),
               ClipRRect(
@@ -144,16 +145,16 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
                 child: LinearProgressIndicator(
                   value: _progress.clamp(0, 1),
                   minHeight: 6,
-                  backgroundColor: Colors.white12,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.cyanAccent,
+                  backgroundColor: ClawfreeTheme.hudTextFaint,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 '${(_progress * 100).toInt()}%',
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: ClawfreeTheme.hudTextMuted, fontSize: 12),
               ),
             ],
           ),
@@ -214,8 +215,8 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
                   overlayShape: const RoundSliderOverlayShape(
                     overlayRadius: 12,
                   ),
-                  activeTrackColor: Colors.cyanAccent,
-                  inactiveTrackColor: Colors.white24,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                  inactiveTrackColor: ClawfreeTheme.hudTextFaint,
                   thumbColor: Colors.white,
                 ),
                 child: Slider(
@@ -238,7 +239,7 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
                       isPlaying ? controller.pause() : controller.play();
                     },
                     child: Icon(
-                      isPlaying ? Icons.pause : Icons.play_arrow,
+                      isPlaying ? ClawfreeIcons.pause : ClawfreeIcons.playArrow,
                       color: Colors.white,
                       size: 28,
                     ),
@@ -246,7 +247,11 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
                   const SizedBox(width: 8),
                   Text(
                     '${_fmt(position)} / ${_fmt(duration)}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: ClawfreeTheme.technicalStyle(
+                      context: context,
+                      color: ClawfreeTheme.hudTextPrimary,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -268,7 +273,7 @@ class _NativeVideoPlayerState extends State<NativeVideoPlayer> {
             const SizedBox(height: 12),
             Text(
               _errorMessage ?? 'Video generation failed',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: const TextStyle(color: ClawfreeTheme.hudTextPrimary, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),

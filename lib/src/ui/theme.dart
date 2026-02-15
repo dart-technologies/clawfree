@@ -32,6 +32,39 @@ class ClawfreeTheme {
   static const _accentColor = Color(0xFFFF6600);
   static const _fontFamily = 'JetBrainsMono';
 
+  // --- Design Tokens: Status & Mood ---
+  static const success = Color(0xFF34C759);
+  static const warning = Color(0xFFFF9F0A);
+  static const error = Color(0xFFFF3B30);
+  static const info = _primaryColor;
+  static const neutral = Color(0xFF8E8E93);
+
+  // --- Design Tokens: Session Modes ---
+  static const onboardingMode = Color(0xFF9C27B0);
+  static const homeMode = Color(0xFF2196F3);
+  static const agentBuilderMode = _primaryColor;
+
+  // --- Design Tokens: Glass & HUD ---
+  static const glassOverlayColor = Color(0xD9000000); // 85% Black
+  static const glassBlur = 20.0;
+  static const itineraryAccent = Color(0xFF66AAFF);
+  static const hudActive = Color(0xFF00FF88); // Neon green for live/active indicators
+  static const scaffoldBlack = Color(0xFF050505); // Deep black matching scaffold
+  static const ratingGold = Colors.amber;
+
+  // --- Design Tokens: HUD Surface & Container ---
+  static const hudBorder = Color(0x1AFFFFFF); // white 10%
+  static const hudSurfaceFaint = Color(0x0DFFFFFF); // white 5%
+  static const hudDivider = Color(0x1AFFFFFF); // white 10%
+  static final hudContainerColor = Colors.black.withValues(alpha: 0.4);
+  static final hudOverlayColor = Colors.black.withValues(alpha: 0.7);
+
+  // --- Design Tokens: HUD Text Hierarchy ---
+  static const hudTextPrimary = Colors.white70; // 70% white
+  static const hudTextSecondary = Colors.white54; // 54% white
+  static const hudTextMuted = Colors.white38; // 38% white
+  static const hudTextFaint = Colors.white24; // 24% white
+
   /// Whether the current platform uses Apple (Cupertino) design language.
   static bool get isApple => PlatformConfig.isApple;
 
@@ -137,10 +170,16 @@ class ClawfreeTheme {
       seedColor: _primaryColor,
       secondary: _accentColor,
       brightness: Brightness.dark,
+      surface: const Color(0xFF0A0A0A), // Deep HUD black
+      onSurface: const Color(0xFFF5F5F5), // High-contrast off-white
+      surfaceContainerHighest: const Color(0xFF121212),
+      surfaceContainerHigh: const Color(0xFF1A1A1A),
+      surfaceContainerLow: const Color(0xFF050505),
     );
 
     final base = ThemeData.from(colorScheme: colorScheme, useMaterial3: true);
     return base.copyWith(
+      scaffoldBackgroundColor: const Color(0xFF050505),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: colorScheme.onSurface,
@@ -163,7 +202,7 @@ class ClawfreeTheme {
             color: colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
         ),
-        color: colorScheme.surface.withValues(alpha: 0.6),
+        color: colorScheme.surface.withValues(alpha: 0.4),
       ),
 
       chipTheme: ChipThemeData(
@@ -269,6 +308,7 @@ class ClawfreeTheme {
     double fontSize = 10,
     FontWeight fontWeight = FontWeight.w700,
     double letterSpacing = 1.0,
+    double? height,
     Color? color,
   }) {
     return TextStyle(
@@ -276,6 +316,7 @@ class ClawfreeTheme {
       fontSize: fontSize,
       fontWeight: fontWeight,
       letterSpacing: letterSpacing,
+      height: height,
       color: color ?? Theme.of(context).colorScheme.onSurface,
     );
   }
@@ -309,34 +350,35 @@ class ClawfreeTheme {
     final colorScheme = Theme.of(context).colorScheme;
     final baseColor = isError ? colorScheme.error : colorScheme.primary;
 
-    final opacityFactor = (1.0 - (elevation * 0.05)).clamp(0.3, 1.0);
-    final blurSigma = 15.0 + (elevation * 5.0);
+    final opacityFactor = (1.0 - (elevation * 0.05)).clamp(0.2, 1.0);
+    final blurSigma = 20.0 + (elevation * 5.0);
 
     return BoxDecoration(
       borderRadius: isPill
           ? ClawfreeBorderRadius.pill
           : BorderRadius.circular(borderRadius),
       border: Border.all(
-        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.1 : 0.15),
-        width: 1.0,
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.08 : 0.15),
+        width: 0.5, // Ultra-thin HUD border
       ),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          baseColor.withValues(alpha: (isDark ? 0.2 : 0.18) * opacityFactor),
-          colorScheme.surfaceContainerHighest.withValues(
-            alpha: (isDark ? 0.1 : 0.12) * opacityFactor,
+          baseColor.withValues(alpha: (isDark ? 0.12 : 0.18) * opacityFactor),
+          colorScheme.surface.withValues(
+            alpha: (isDark ? 0.05 : 0.12) * opacityFactor,
           ),
         ],
       ),
       boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.08 + (elevation * 0.02)),
-          blurRadius: blurSigma * 2,
-          offset: Offset(0, 15 + (elevation * 5)),
-          spreadRadius: -5,
-        ),
+        if (elevation > 0)
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15 + (elevation * 0.05)),
+            blurRadius: blurSigma * 2,
+            offset: Offset(0, 15 + (elevation * 5)),
+            spreadRadius: -5,
+          ),
       ],
     );
   }

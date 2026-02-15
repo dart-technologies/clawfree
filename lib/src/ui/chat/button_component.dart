@@ -4,6 +4,7 @@ import 'package:genui/genui.dart';
 import 'package:genui/src/functions/expression_parser.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
 
+import '../theme.dart';
 import 'icon_resolver.dart';
 
 typedef JsonMap = Map<String, Object?>;
@@ -17,7 +18,7 @@ final buttonOverrideSchema = S.object(
     ),
     'action': A2uiSchemas.action(description: 'Action to dispatch on press.'),
     'variant': S.string(
-      enumValues: ['primary', 'secondary', 'ghost', 'danger', 'borderless'],
+      enumValues: ['primary', 'secondary', 'ghost', 'danger', 'borderless', 'gradient'],
       description: 'Button style variant. Defaults to primary.',
     ),
     'size': S.string(
@@ -130,18 +131,23 @@ class _ButtonWidget extends StatelessWidget {
     final padding = _paddingForSize();
     final fontSize = _fontSizeForSize();
 
-    final textStyle = TextStyle(
-      fontFamily: 'JetBrainsMono',
-      fontWeight: FontWeight.w700,
+    final textStyle = ClawfreeTheme.technicalStyle(
+      context: context,
+      fontWeight: FontWeight.w800,
       fontSize: fontSize,
-      letterSpacing: 0.5,
+      letterSpacing: 1.0,
     );
 
-    final shape = const StadiumBorder();
+    // Using element radius (16px) instead of StadiumBorder so buttons sit
+    // more predictably side-by-side or stacked.
+    final shape = RoundedRectangleBorder(
+      borderRadius: ClawfreeBorderRadius.interactive,
+    );
 
     final Widget label = icon != null
         ? Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: fontSize + 2),
               const SizedBox(width: 8),
@@ -157,18 +163,24 @@ class _ButtonWidget extends StatelessWidget {
           shape: shape,
           side: BorderSide(color: cs.primary, width: 1.5),
           padding: padding,
-          textStyle: textStyle,
+          foregroundColor: cs.primary,
         ),
-        child: label,
+        child: DefaultTextStyle.merge(
+          style: textStyle.copyWith(color: cs.primary),
+          child: label,
+        ),
       ),
       'ghost' => TextButton(
         onPressed: _handlePress,
         style: TextButton.styleFrom(
           shape: shape,
           padding: padding,
-          textStyle: textStyle,
+          foregroundColor: cs.onSurface.withValues(alpha: 0.7),
         ),
-        child: label,
+        child: DefaultTextStyle.merge(
+          style: textStyle.copyWith(color: cs.onSurface.withValues(alpha: 0.7)),
+          child: label,
+        ),
       ),
       'danger' => ElevatedButton(
         onPressed: _handlePress,
@@ -178,30 +190,72 @@ class _ButtonWidget extends StatelessWidget {
           shape: shape,
           padding: padding,
           elevation: 0,
-          textStyle: textStyle,
         ),
-        child: label,
+        child: DefaultTextStyle.merge(
+          style: textStyle.copyWith(color: cs.onError),
+          child: label,
+        ),
       ),
       'borderless' => TextButton(
         onPressed: _handlePress,
         style: TextButton.styleFrom(
           padding: padding,
-          textStyle: textStyle,
         ),
-        child: label,
+        child: DefaultTextStyle.merge(
+          style: textStyle,
+          child: label,
+        ),
+      ),
+      'gradient' => Container(
+        decoration: BoxDecoration(
+          borderRadius: ClawfreeBorderRadius.interactive,
+          gradient: LinearGradient(
+            colors: [cs.primary, cs.secondary],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: ClawfreeTheme.technicalGlow(cs.primary, intensity: 0.3),
+        ),
+        child: ElevatedButton(
+          onPressed: _handlePress,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            foregroundColor: cs.onPrimary,
+            shadowColor: Colors.transparent,
+            shape: shape,
+            padding: padding,
+            elevation: 0,
+          ),
+          child: DefaultTextStyle.merge(
+            style: textStyle.copyWith(color: cs.onPrimary),
+            child: label,
+          ),
+        ),
       ),
       // primary (default)
-      _ => ElevatedButton(
-        onPressed: _handlePress,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: cs.primary,
-          foregroundColor: cs.onPrimary,
-          shape: shape,
-          padding: padding,
-          elevation: 0,
-          textStyle: textStyle,
+      _ => Container(
+        decoration: BoxDecoration(
+          borderRadius: ClawfreeBorderRadius.interactive,
+          boxShadow: ClawfreeTheme.technicalGlow(cs.primary, intensity: 0.25),
         ),
-        child: label,
+        child: ElevatedButton(
+          onPressed: _handlePress,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: cs.primary,
+            foregroundColor: cs.onPrimary,
+            shape: shape,
+            padding: padding,
+            elevation: 0,
+          ),
+          child: DefaultTextStyle.merge(
+            style: textStyle.copyWith(
+              color: cs.onPrimary,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
+            ),
+            child: label,
+          ),
+        ),
       ),
     };
 
@@ -209,6 +263,11 @@ class _ButtonWidget extends StatelessWidget {
       button = SizedBox(width: double.infinity, child: button);
     }
 
-    return button;
+    // Add consistent vertical spacing to prevent components from touching
+    // when the LLM omits a Gap component.
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0, bottom: 4.0),
+      child: button,
+    );
   }
 }

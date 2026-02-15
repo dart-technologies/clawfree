@@ -61,11 +61,15 @@ clawfree/
 │           │                 # text_field (override), animated, gap, grid, stack,
 │           │                 # progress_bar, icon_resolver, responsive_container,
 │           │                 # trip_map, video_player, input bar, message bubble/list,
-│           │                 # surface panel/view
+│           │                 # surface panel/view, agent_card, booking_summary,
+│           │                 # flight_ticket, hotel_card, itinerary_day,
+│           │                 # itinerary_header, itinerary_timeline
 │           ├── health/       # HealthIndicators, HealthSparkline (vital signs framework)
-│           ├── layouts/      # PhoneLayout, TabletLayout, VoiceOrb (shader-driven)
+│           ├── layouts/      # PhoneLayout (draggable history tray), TabletLayout,
+│           │                 # VoiceOrb (shader-driven)
 │           ├── mixins/       # HealthMonitorMixin, WatchSyncManager
-│           ├── widgets/      # QrScannerDialog, RemoteSessionIndicator
+│           ├── widgets/      # QrScannerDialog, RemoteSessionIndicator,
+│           │                 # EmptyStateView, SuggestionChip
 │           ├── chat_screen.dart        # Slim orchestrator
 │           ├── chat_screen_dialogs.dart # Extracted dialog flows
 │           ├── clawfree_assets.dart
@@ -81,7 +85,7 @@ clawfree/
 │   ├── INTEGRATION_MERGE.md  # ChatClaw merge spec
 │   ├── WATCH_VOICE.md        # WatchOS voice implementation
 │   └── background/           # Concise reference primers
-├── test/                     # 492+ tests (unit + widget + e2e)
+├── test/                     # 491+ tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
 
@@ -95,6 +99,7 @@ clawfree/
 - `flutter_map`, `latlong2` — interactive trip maps
 - `path_provider` — temp/cache directory resolution
 - `json_schema_builder` — A2UI component schema definitions
+- `material_symbols_icons` — device-type and extended icon set
 - `logging` — structured logging
 - `mocktail` (dev) — mock generation for unit tests
 
@@ -107,13 +112,20 @@ clawfree/
 - A2UI v0.9 flat component format: `{"component": "Text", "text": "Hello"}`
 - System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + inline catalog rules with `catalogId: "clawfree-catalog"`
 - **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs)
-- **Theme**: glassmorphism design with `ClawfreeTheme.glassDecoration()`, transparent AppBar, `SpringCurve` animations
-- **Typography**: JetBrainsMono font family throughout (w800 headlines, w700 titles, w400 body)
-- **A2UI Catalog**: 26 components total — 7 polyfilled core (Column, Row, Image, Icon, Divider, Slider, CheckBox) + 12 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + 2 custom form (AgentFormSurface, TravelSetupSurface via SurfaceController). All registered in `catalog.dart` with `catalogId: 'clawfree-catalog'`.
-- **Polyfilled schemas** must include `'component': S.string(enumValues: ['ComponentName'])` for genUI's `_schemaMatchesType()` validation
+- **Theme**: HUD-style glassmorphism with `ClawfreeTheme.glassDecoration()`, ghost header (transparent AppBar), `SpringCurve` animations, ultra-thin borders (0.5px), `BackdropFilter` blur on glass cards
+- **Design tokens**: `ClawfreeTheme.success/warning/error/info/neutral` (status colors), `onboardingMode/homeMode/agentBuilderMode` (session mode colors), `glassOverlayColor/glassBlur/itineraryAccent` (glass constants), `hudActive/scaffoldBlack/ratingGold` (accent colors), `hudBorder/hudSurfaceFaint/hudDivider/hudContainerColor/hudOverlayColor` (surface tokens), `hudTextPrimary/Secondary/Muted/Faint` (text opacity hierarchy). All color literals must use centralized tokens — no `Colors.white70`, `Colors.black.withValues(alpha:)`, or `Color(0xFF...)` in component files.
+- **Typography**: JetBrainsMono font family throughout (w800–w900 headlines, w700 titles, w400 body). Use `ClawfreeTheme.technicalStyle()` for consistent technical text. UI labels are **uppercased** (`text.toUpperCase()`).
+- **Icons**: Centralized via `ClawfreeIcons` (abstract final class). Platform-adaptive getters for `send`, `menuOpen`, `download`. Component icons: `arrowForward`, `receipt`, `flightTakeoff/Land`, `star/starBorder`, `timelineDot`, `pause`, `playArrow`, `brokenImage`. Device-type icons via `ClawfreeIcons.iconForDeviceType()` using `material_symbols_icons`. No raw `Icons.*` in component files.
+- **A2UI Catalog**: 33 components total — 7 polyfilled core (Column, Row, Image, Icon, Divider, Slider, CheckBox) + 19 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated, ItineraryHeader, ItineraryTimeline, ItineraryDay, AgentCard, BookingSummary, HotelCard, FlightTicket) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + 2 custom form (AgentFormSurface, TravelSetupSurface via SurfaceController). All registered in `catalog.dart` with `catalogId: 'clawfree-catalog'`.
+- **Polyfilled schemas** must include `'component': S.string(enumValues: ['ComponentName'])` for genUI's `_schemaMatchesType()` validation. Column supports `gap`, Row supports `wrap`/`spacing`.
+- **Component variants**: Button adds `gradient` variant. ChoicePicker supports `layout: 'segmented' | 'wrap' | 'grid'`. Card `glass` variant uses real `BackdropFilter`.
 - **Transport adapter** must be recreated between responses via `A2uiSurfaceManager.resetTransport()` — the parser has no reset API and its internal `_buffer` persists across `addChunk()` calls, causing text leakage
-- Border radii standardized via `ClawfreeBorderRadius` constants (surface=20, interactive=16, element=12, small=8, tiny=4)
-- Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets
+- **Surface manager** deduplicates `surfaceAdded` events and exposes a `surfaceUpdated` stream; `ChatSession._onSurfaceEvent()` handles both add and update (moves existing surfaces to end of message list)
+- **Interaction debouncing**: `ChatSession` debounces rapid surface interactions (500ms) before routing through `A2uiInteractionRouter`
+- Border radii standardized via `ClawfreeBorderRadius` constants (surface=20, interactive=16, element=12, small=8, tiny=4, pill=StadiumBorder)
+- Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets. Widget tests with ChatSession must flush timers with an extra `tester.pump(Duration(seconds: 3))` at end to avoid "Timer is still pending" from debounce/mood timers.
+- **PhoneLayout**: draggable history tray with snap-to-height animation (collapsed/200px/full), surface-first layout with scrollable genUI surface area
+- **Stream processor** debounce interval: 100ms (stability over frame-rate)
 
 ## Key Files (genUI v0.9 reference)
 

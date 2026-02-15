@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
-
 import 'platform_config.dart';
 
 /// A connected remote device session from the gateway `/sessions` endpoint.
@@ -38,17 +35,6 @@ class RemoteSession {
       _ => DeviceFormFactor.phone,
     };
   }
-}
-
-/// Returns an appropriate Material icon for the given device type.
-IconData iconForDeviceType(DeviceFormFactor type) {
-  return switch (type) {
-    DeviceFormFactor.desktop => Symbols.desktop_mac,
-    DeviceFormFactor.tablet => Symbols.tablet_mac,
-    DeviceFormFactor.phone => Symbols.phone_iphone,
-    DeviceFormFactor.watch => Symbols.watch,
-    DeviceFormFactor.glasses => Symbols.eyeglasses,
-  };
 }
 
 /// Returns plausible demo sessions for when no gateway is connected.

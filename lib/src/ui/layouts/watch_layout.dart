@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/message_item.dart';
+import '../clawfree_icons.dart';
+import '../theme.dart';
 import '../health/health_indicators.dart';
 
 /// Apple Watch "Pulse Monitor" layout.
@@ -201,14 +203,15 @@ class _HeartbeatScreenState extends State<_HeartbeatScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.mic, size: 32, color: ringColor),
+                            Icon(ClawfreeIcons.mic, size: 32, color: ringColor),
                             const SizedBox(height: 2),
                             Text(
-                              isListening ? 'Listening' : 'Speak',
-                              style: TextStyle(
-                                fontSize: 10,
+                              isListening ? 'LISTENING' : 'SPEAK',
+                              style: ClawfreeTheme.technicalStyle(
+                                context: context,
+                                fontSize: 9,
                                 color: ringColor,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ],
@@ -380,7 +383,7 @@ class _AgentTile extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              Icons.smart_toy,
+              ClawfreeIcons.agent,
               size: 16,
               color: Theme.of(context).colorScheme.primary,
             ),

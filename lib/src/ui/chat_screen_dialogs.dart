@@ -43,23 +43,24 @@ class ChatScreenDialogs {
                   Text(
                     activeAgent != null
                         ? activeAgent.toUpperCase()
-                        : 'clawfree settings',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                        : 'SETTINGS',
+                    style: ClawfreeTheme.technicalStyle(
+                      context: context,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
                     ),
                   ),
                   if (activeAgent != null)
                     Text(
                       'ACTIVE AGENT',
-                      style: TextStyle(
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 9,
                         color: Theme.of(context)
                             .colorScheme
                             .onPrimaryContainer
                             .withValues(alpha: 0.6),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                 ],
@@ -67,32 +68,44 @@ class ChatScreenDialogs {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.add_circle_outline),
-            title: const Text('New Agent'),
+            leading: const Icon(ClawfreeIcons.add),
+            title: Text(
+              'NEW AGENT',
+              style: ClawfreeTheme.technicalStyle(context: context, fontSize: 13),
+            ),
             onTap: () {
               Navigator.pop(context);
               onSend('Create a new agent');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Manage OpenClaw'),
+            leading: const Icon(ClawfreeIcons.settings),
+            title: Text(
+              'MANAGE OPENCLAW',
+              style: ClawfreeTheme.technicalStyle(context: context, fontSize: 13),
+            ),
             onTap: () {
               Navigator.pop(context);
               onSend('Manage OpenClaw');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.watch),
-            title: const Text('Pair Watch'),
+            leading: const Icon(ClawfreeIcons.watch),
+            title: Text(
+              'PAIR WATCH',
+              style: ClawfreeTheme.technicalStyle(context: context, fontSize: 13),
+            ),
             onTap: () {
               Navigator.pop(context);
               onShowPairing(session.pairingUrl);
             },
           ),
           ListTile(
-            leading: const Icon(Icons.extension),
-            title: const Text('Skill Library'),
+            leading: const Icon(ClawfreeIcons.skills),
+            title: Text(
+              'SKILL LIBRARY',
+              style: ClawfreeTheme.technicalStyle(context: context, fontSize: 13),
+            ),
             onTap: () {
               Navigator.pop(context);
               onSend('Show skill library');
@@ -100,8 +113,11 @@ class ChatScreenDialogs {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(ClawfreeIcons.download),
-            title: const Text('Export Agent Config'),
+            leading: Icon(ClawfreeIcons.download),
+            title: Text(
+              'EXPORT AGENT CONFIG',
+              style: ClawfreeTheme.technicalStyle(context: context, fontSize: 13),
+            ),
             onTap: () {
               Navigator.pop(context);
               onExportConfig();
@@ -111,8 +127,12 @@ class ChatScreenDialogs {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'v1.0.0-opus4.6',
-              style: Theme.of(context).textTheme.bodySmall,
+              'v1.0.0-OPUS4.6',
+              style: ClawfreeTheme.technicalStyle(
+                context: context,
+                fontSize: 9,
+                color: ClawfreeTheme.hudTextFaint,
+              ),
             ),
           ),
         ],
@@ -142,15 +162,29 @@ class ChatScreenDialogs {
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: json));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Copied to clipboard')),
+                  const SnackBar(content: Text('COPIED TO CLIPBOARD')),
                 );
               },
               icon: const Icon(ClawfreeIcons.copy, size: 16),
-              label: const Text('Copy'),
+              label: Text(
+                'COPY',
+                style: ClawfreeTheme.technicalStyle(
+                  context: context,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
+              child: Text(
+                'CLOSE',
+                style: ClawfreeTheme.technicalStyle(
+                  context: context,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -183,7 +217,15 @@ class ChatScreenDialogs {
             children: [
               Icon(Icons.qr_code_2, color: Theme.of(ctx).colorScheme.primary),
               const SizedBox(width: 8),
-              const Text('Pair a Device'),
+              Text(
+                'PAIR A DEVICE',
+                style: ClawfreeTheme.technicalStyle(
+                  context: ctx,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
             ],
           ),
           content: SizedBox(
@@ -224,9 +266,10 @@ class ChatScreenDialogs {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Scan with your device to pair.',
-                    style: TextStyle(
-                      fontSize: 12,
+                    'SCAN WITH YOUR DEVICE TO PAIR.',
+                    style: ClawfreeTheme.technicalStyle(
+                      context: ctx,
+                      fontSize: 10,
                       color: Theme.of(ctx).colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
@@ -248,21 +291,43 @@ class ChatScreenDialogs {
                   }
                 },
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan QR'),
+                label: Text(
+                  'SCAN QR',
+                  style: ClawfreeTheme.technicalStyle(
+                    context: ctx,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             TextButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: pairingUrl));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pairing link copied')),
+                  const SnackBar(content: Text('PAIRING LINK COPIED')),
                 );
               },
               icon: const Icon(ClawfreeIcons.copy, size: 16),
-              label: const Text('Copy Link'),
+              label: Text(
+                'COPY LINK',
+                style: ClawfreeTheme.technicalStyle(
+                  context: ctx,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Done'),
+              child: Text(
+                'DONE',
+                style: ClawfreeTheme.technicalStyle(
+                  context: ctx,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(ctx).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ],
         );

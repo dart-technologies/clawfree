@@ -14,6 +14,7 @@ class ChatInputBar extends StatefulWidget {
     super.key,
     required this.textController,
     this.voiceController,
+    this.focusNode,
     required this.isProcessing,
     required this.onSend,
     this.mood = OrbMood.idle,
@@ -24,6 +25,7 @@ class ChatInputBar extends StatefulWidget {
 
   final TextEditingController textController;
   final VoiceController? voiceController;
+  final FocusNode? focusNode;
   final bool isProcessing;
   final ValueChanged<String> onSend;
   final OrbMood mood;
@@ -38,7 +40,10 @@ class ChatInputBar extends StatefulWidget {
 class _ChatInputBarState extends State<ChatInputBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _borderTraceCtrl;
-  final FocusNode _focusNode = FocusNode();
+  FocusNode? _internalFocusNode;
+
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
   void initState() {
@@ -47,19 +52,19 @@ class _ChatInputBarState extends State<ChatInputBar>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _focusNode.addListener(_onFocusChange);
+    _effectiveFocusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
     _borderTraceCtrl.dispose();
-    _focusNode.removeListener(_onFocusChange);
-    _focusNode.dispose();
+    _effectiveFocusNode.removeListener(_onFocusChange);
+    _internalFocusNode?.dispose();
     super.dispose();
   }
 
   void _onFocusChange() {
-    if (_focusNode.hasFocus) {
+    if (_effectiveFocusNode.hasFocus) {
       _borderTraceCtrl.forward(from: 0);
     } else {
       _borderTraceCtrl.reverse();
@@ -75,22 +80,29 @@ class _ChatInputBarState extends State<ChatInputBar>
           foregroundPainter: _BorderTracePainter(
             progress: _borderTraceCtrl.value,
             color: Theme.of(context).colorScheme.primary,
-            borderRadius: 24,
+            borderRadius: 32,
           ),
           child: child,
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: ClawfreeTheme.glassDecoration(context, borderRadius: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: ClawfreeTheme.hudSurfaceFaint,
+          borderRadius: ClawfreeBorderRadius.pill,
+          border: Border.all(
+            color: ClawfreeTheme.hudBorder,
+            width: 0.5,
+          ),
+        ),
         child: Row(
           children: [
             // Left: VoiceOrb (compact)
             _buildMicArea(),
+            const SizedBox(width: 4),
             // Center: TextField
             Expanded(child: _buildInputField()),
-            const SizedBox(width: 4),
-            // Right: Hands-free toggle + Send Button
+            // Right: Action area
             _buildActionArea(),
           ],
         ),
@@ -98,7 +110,7 @@ class _ChatInputBarState extends State<ChatInputBar>
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
       child: bar,
     );
   }
@@ -166,26 +178,21 @@ class _ChatInputBarState extends State<ChatInputBar>
     final interim = widget.voiceController?.interimTranscript ?? '';
     final hintText = isListening
         ? (interim.isNotEmpty ? interim : 'Listening...')
-        : 'Type or speak a command...';
+        : 'Speak a command...';
     final enabled = !widget.isProcessing && !isListening;
 
     if (ClawfreeTheme.isApple) {
       return CupertinoTextField(
         controller: widget.textController,
-        focusNode: _focusNode,
+        focusNode: _effectiveFocusNode,
         placeholder: hintText,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        style: const TextStyle(fontSize: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        style: const TextStyle(fontSize: 14),
         placeholderStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-          fontSize: 13,
+          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          fontSize: 14,
         ),
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-          borderRadius: ClawfreeBorderRadius.interactive,
-        ),
+        decoration: null, // Transparent
         enabled: enabled,
         onSubmitted: (_) => _submit(),
         textInputAction: TextInputAction.send,
@@ -195,29 +202,20 @@ class _ChatInputBarState extends State<ChatInputBar>
 
     return TextField(
       controller: widget.textController,
-      focusNode: _focusNode,
-      style: const TextStyle(fontSize: 13),
+      focusNode: _effectiveFocusNode,
+      style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          fontSize: 13,
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          fontSize: 14,
+          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
         ),
-        filled: true,
-        fillColor: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-        border: OutlineInputBorder(
-          borderRadius: ClawfreeBorderRadius.interactive,
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: ClawfreeBorderRadius.interactive,
-          borderSide: BorderSide.none,
-        ),
+        filled: false, // Transparent
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 8,
-          vertical: 4,
+          vertical: 8,
         ),
       ),
       enabled: enabled,
@@ -273,7 +271,7 @@ class _ChatInputBarState extends State<ChatInputBar>
         ],
       ),
       child: IconButton(
-        icon: Icon(ClawfreeIcons.send, size: 20),
+        icon: Icon(ClawfreeIcons.send),
         color: Theme.of(context).colorScheme.onPrimary,
         tooltip: 'Send message (\u2318Enter)',
         onPressed: widget.isProcessing ? null : _submit,
