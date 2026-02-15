@@ -26,6 +26,28 @@ struct PulseMonitorView: View {
     /// Show the dictation sheet
     @State private var showDictation = false
 
+    // MARK: - Demo Mode
+    /// Demo mode flag (hard-coded for now, can be changed to env var later)
+    private let isDemoMode = true
+    /// Auto-demo: automatically play all 3 demo scripts on launch (for recording)
+    private let isAutoDemoMode = true
+    /// Current demo script index
+    @State private var demoScriptIndex = 0
+    /// Auto-demo completed count
+    @State private var autoDemoCompleted = 0
+    /// Demo scripts
+    private let demoScripts = [
+        "Create a trip planner agent",
+        "Plan a 3 day trip to Tokyo",
+        "Add a sushi making class on day 2"
+    ]
+    /// Recognized text for demo mode (typewriter effect)
+    @State private var recognizedText = ""
+    /// Is currently showing recognition animation
+    @State private var isRecognizing = false
+    /// Ripple animation scale for demo recording
+    @State private var rippleScale: CGFloat = 1.0
+
     enum VoicePhase {
         case idle       // Big mic button
         case recording  // Listening… (dictation active)
@@ -80,7 +102,16 @@ struct PulseMonitorView: View {
         .sheet(isPresented: $showDictation) {
             DictationSheet(text: $dictatedText, onDone: handleDictationDone)
         }
-        .onAppear { startIdlePulse() }
+        .onAppear {
+            startIdlePulse()
+            // Auto-demo: start playing after 2s delay
+            if isAutoDemoMode && isDemoMode {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    demoScriptIndex = 0
+                    playDemoAnimation()
+                }
+            }
+        }
         .onChange(of: connectivity.lastAiReply) { newReply in
             if newReply != nil && phase == .sending {
                 withAnimation(.easeInOut(duration: 0.3)) { phase = .reply }
@@ -131,6 +162,14 @@ struct PulseMonitorView: View {
                             .opacity(Double(2.0 - recordingPulse))
                     }
 
+                    // Demo mode ripple animation (orange)
+                    if isDemoMode && phase == .recording {
+                        Circle()
+                            .stroke(lobsterOrange.opacity(0.5), lineWidth: 5)
+                            .scaleEffect(rippleScale)
+                            .opacity(Double(2.0 - rippleScale))
+                    }
+
                     // Main circle
                     Circle()
                         .fill(accentColor.opacity(0.15))
@@ -144,12 +183,28 @@ struct PulseMonitorView: View {
                 .frame(width: 110, height: 110)
                 .contentShape(Circle())
                 .onTapGesture { handleTap() }
+                .accessibilityIdentifier("micButton")
 
                 // Status label
                 statusText
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(accentColor)
                     .multilineTextAlignment(.center)
+
+                // Demo mode recognized text (typewriter effect)
+                if isDemoMode && !recognizedText.isEmpty {
+                    Text(recognizedText)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(teal)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(teal.opacity(0.15))
+                        )
+                        .padding(.horizontal, 8)
+                }
 
                 Spacer()
 
@@ -172,7 +227,15 @@ struct PulseMonitorView: View {
                 // 快捷操作按鈕（idle 或 reply 時顯示）
                 if phase == .idle || phase == .reply {
                     HStack(spacing: 6) {
-                        Button(action: { withAnimation { activeFlow = .agentConfig } }) {
+                        Button(action: {
+                            if isDemoMode {
+                                // Demo mode: trigger "Create Agent" script
+                                demoScriptIndex = 0
+                                playDemoAnimation()
+                            } else {
+                                withAnimation { activeFlow = .agentConfig }
+                            }
+                        }) {
                             HStack(spacing: 2) {
                                 Image(systemName: "cpu")
                                     .font(.system(size: 8))
@@ -184,8 +247,17 @@ struct PulseMonitorView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(lobsterOrange)
+                        .accessibilityIdentifier("createAgentButton")
 
-                        Button(action: { withAnimation { activeFlow = .tripPlanner } }) {
+                        Button(action: {
+                            if isDemoMode {
+                                // Demo mode: trigger "Plan Trip" script
+                                demoScriptIndex = 1
+                                playDemoAnimation()
+                            } else {
+                                withAnimation { activeFlow = .tripPlanner }
+                            }
+                        }) {
                             HStack(spacing: 2) {
                                 Image(systemName: "airplane")
                                     .font(.system(size: 8))
@@ -197,6 +269,7 @@ struct PulseMonitorView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(teal)
+                        .accessibilityIdentifier("planTripButton")
                     }
                     .padding(.bottom, 2)
                 }
@@ -267,17 +340,25 @@ struct PulseMonitorView: View {
     private func handleTap() {
         switch phase {
         case .idle, .reply:
-            // Stop any TTS, start dictation
             tts.stop()
-            withAnimation(.easeInOut(duration: 0.2)) { phase = .recording }
-            startRecordingPulse()
-            // Open dictation sheet
-            dictatedText = ""
-            showDictation = true
+            
+            if isDemoMode {
+                // Demo mode: play animation instead of real dictation
+                playDemoAnimation()
+            } else {
+                // Normal mode: open dictation sheet
+                withAnimation(.easeInOut(duration: 0.2)) { phase = .recording }
+                startRecordingPulse()
+                dictatedText = ""
+                showDictation = true
+            }
         case .recording:
-            // Tapping again while recording → cancel
-            showDictation = false
-            withAnimation { phase = .idle }
+            if !isDemoMode {
+                // Normal mode: tapping again while recording → cancel
+                showDictation = false
+                withAnimation { phase = .idle }
+            }
+            // Demo mode: ignore tap while animating
         case .sending:
             break // ignore taps while sending
         }
@@ -307,6 +388,91 @@ struct PulseMonitorView: View {
         connectivity.sendVoiceCommand(trimmed)
     }
 
+    // MARK: - Demo Mode Animation
+
+    private func playDemoAnimation() {
+        guard demoScriptIndex < demoScripts.count else {
+            // Reset to first script
+            demoScriptIndex = 0
+            playDemoAnimation()
+            return
+        }
+
+        let script = demoScripts[demoScriptIndex]
+        
+        // Step 1: Start recording animation (1-2 seconds)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            phase = .recording
+            recognizedText = ""
+            isRecognizing = false
+        }
+        startRecordingPulse()
+        startRipplePulse()
+
+        // Step 2: After 1.5s, start typewriter effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                isRecognizing = true
+            }
+            typewriterEffect(text: script)
+        }
+    }
+
+    private func typewriterEffect(text: String) {
+        recognizedText = ""
+        let characters = Array(text)
+        var currentIndex = 0
+
+        // Type each character with 0.05s delay
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+            if currentIndex < characters.count {
+                recognizedText.append(characters[currentIndex])
+                currentIndex += 1
+            } else {
+                timer.invalidate()
+                // Step 3: Text complete, send command
+                sendDemoCommand()
+            }
+        }
+    }
+
+    private func sendDemoCommand() {
+        let command = recognizedText
+
+        // Flash text (blink effect)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            recognizedText = "Sent ✓"
+        }
+
+        // Step 4: Send command via connectivity
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                phase = .sending
+            }
+            connectivity.sendVoiceCommand(command)
+
+            // Step 5: After 0.8s, reset to idle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    phase = .idle
+                    recognizedText = ""
+                    isRecognizing = false
+                }
+                
+                // Move to next script
+                demoScriptIndex = (demoScriptIndex + 1) % demoScripts.count
+                autoDemoCompleted += 1
+                
+                // Auto-demo: chain next script after 2s pause
+                if isAutoDemoMode && autoDemoCompleted < demoScripts.count {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        playDemoAnimation()
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Animations
 
     private func startIdlePulse() {
@@ -320,6 +486,13 @@ struct PulseMonitorView: View {
         recordingPulse = 1.0
         withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
             recordingPulse = 1.4
+        }
+    }
+
+    private func startRipplePulse() {
+        rippleScale = 1.0
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: false)) {
+            rippleScale = 1.6
         }
     }
 }
