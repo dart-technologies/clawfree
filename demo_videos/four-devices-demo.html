@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Clawfree 四裝置 Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+        }
+        .device {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .device-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .device-content {
+            background: #000;
+            border-radius: 8px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .device-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .watch { grid-column: 1; grid-row: 1; }
+        .iphone { grid-column: 2; grid-row: 1; }
+        .macbook { grid-column: 1; grid-row: 2; }
+        .ipad { grid-column: 2; grid-row: 2; }
+        
+        /* Mock chat interface for MacBook */
+        .chat-interface {
+            width: 100%;
+            height: 400px;
+            display: flex;
+            background: #1c1c1e;
+        }
+        .chat-sidebar {
+            width: 40%;
+            background: #2c2c2e;
+            border-right: 1px solid #3a3a3c;
+            padding: 20px;
+            color: #fff;
+        }
+        .chat-main {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            background: #007aff;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 70%;
+            align-self: flex-end;
+        }
+        .genui-card {
+            background: #2c2c2e;
+            border-radius: 12px;
+            padding: 20px;
+            color: #fff;
+        }
+        .genui-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .genui-option {
+            background: #3a3a3c;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .genui-option:hover {
+            background: #4a4a4c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Apple Watch -->
+        <div class="device watch">
+            <div class="device-title">⌚ Apple Watch</div>
+            <div class="device-content">
+                <img src="watch_screen.png" alt="Apple Watch">
+            </div>
+        </div>
+        
+        <!-- iPhone -->
+        <div class="device iphone">
+            <div class="device-title">📱 iPhone</div>
+            <div class="device-content">
+                <img src="iphone_screen.png" alt="iPhone">
+            </div>
+        </div>
+        
+        <!-- MacBook -->
+        <div class="device macbook">
+            <div class="device-title">💻 MacBook</div>
+            <div class="device-content">
+                <div class="chat-interface">
+                    <div class="chat-sidebar">
+                        <div class="genui-card">
+                            <div class="genui-title">🤖 Create Agent</div>
+                            <div class="genui-option">🌍 Trip Planner</div>
+                            <div class="genui-option">📝 Note Taker</div>
+                            <div class="genui-option">🔍 Research Assistant</div>
+                        </div>
+                    </div>
+                    <div class="chat-main">
+                        <div class="message">Build a Trip Agent</div>
+                        <div class="message" style="background: #3a3a3c; align-self: flex-start;">Creating your trip planner agent...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- iPad -->
+        <div class="device ipad">
+            <div class="device-title">📱 iPad</div>
+            <div class="device-content">
+                <img src="ipad_screen.png" alt="iPad">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
