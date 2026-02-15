@@ -66,6 +66,7 @@ class _ChatSurfaceViewState extends State<ChatSurfaceView>
       },
       child: SurfaceErrorBoundary(
         child: Surface(
+          key: ValueKey(widget.surfaceId),
           surfaceContext: widget.surfaceHost.contextFor(widget.surfaceId),
           defaultBuilder: (_) =>
               ShimmerSkeleton(type: _inferSkeletonType(widget.surfaceId)),

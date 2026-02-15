@@ -1,15 +1,17 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:genui/genui.dart';
 
 import '../../core/message_item.dart';
 import '../../core/prompt_library.dart';
 import '../../core/remote_session.dart';
 import '../../voice/voice_controller.dart';
-import '../clawfree_icons.dart';
 import '../chat/chat_input_bar.dart';
 import '../chat/chat_surface_view.dart';
 import '../health/health_indicators.dart';
+import '../theme.dart';
+import '../widgets/empty_state_view.dart';
 import 'voice_orb.dart';
 
 import '../chat/recent_chat_overlay.dart';
@@ -40,6 +42,8 @@ class PhoneLayout extends StatefulWidget {
     required this.onToggleHandsFree,
     required this.onQuickAction,
     this.onPairDevice,
+    this.inputKey,
+    this.inputFocusNode,
     this.sessionMode = SessionMode.home,
     this.activeSurfaceId,
     this.remoteSessions = const [],
@@ -47,6 +51,8 @@ class PhoneLayout extends StatefulWidget {
     this.mood = OrbMood.idle,
   });
 
+  final Key? inputKey;
+  final FocusNode? inputFocusNode;
   final SessionMode sessionMode;
   final List<MessageItem> messages;
   final SurfaceHost surfaceHost;
@@ -75,23 +81,99 @@ class PhoneLayout extends StatefulWidget {
   State<PhoneLayout> createState() => _PhoneLayoutState();
 }
 
-class _PhoneLayoutState extends State<PhoneLayout> {
-  Color _accentForMode(BuildContext context) {
-    return switch (widget.sessionMode) {
-      SessionMode.onboarding => const Color(0xFF9C27B0),
-      SessionMode.home => const Color(0xFF2196F3),
-      SessionMode.agentBuilder => Theme.of(context).colorScheme.primary,
-    };
+class _PhoneLayoutState extends State<PhoneLayout> with TickerProviderStateMixin {
+  final ScrollController _surfaceScrollController = ScrollController();
+
+  // Tray expansion state
+  late double _historyHeight;
+  late final AnimationController _snapController;
+  late Animation<double> _snapAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default history height is 0 if no messages yet
+    _historyHeight = widget.messages.any((m) => !m.isSurface) ? 200 : 0;
+    
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _snapAnimation = AlwaysStoppedAnimation(_historyHeight);
   }
 
-  Widget _chip(BuildContext context, String text) {
-    return ActionChip(
-      label: Text(text, style: const TextStyle(fontSize: 12)),
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        widget.onSend(text);
-      },
-    );
+  @override
+  void didUpdateWidget(PhoneLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Auto-expand tray when the first text message arrives
+    final hadText = oldWidget.messages.any((m) => !m.isSurface);
+    final hasText = widget.messages.any((m) => !m.isSurface);
+    
+    if (!hadText && hasText && _historyHeight == 0) {
+      _animateToHeight(200);
+    }
+  }
+
+  @override
+  void dispose() {
+    _surfaceScrollController.dispose();
+    _snapController.dispose();
+    super.dispose();
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details, double maxHeight) {
+    setState(() {
+      // Dragging up (negative dy) increases height
+      _historyHeight -= details.delta.dy;
+      _historyHeight = _historyHeight.clamp(0.0, maxHeight);
+    });
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details, double maxHeight) {
+    final velocity = details.primaryVelocity ?? 0;
+    
+    double targetHeight;
+    if (velocity < -300) {
+      targetHeight = maxHeight; // Flick up to expand (lowered threshold)
+    } else if (velocity > 300) {
+      targetHeight = 0; // Flick down to collapse (lowered threshold)
+    } else if (_historyHeight > maxHeight * 0.4) {
+      targetHeight = maxHeight; // Snaps to expanded if past 40%
+    } else if (_historyHeight < 80) {
+      targetHeight = 0; // Snaps to collapsed if dragged very low
+    } else {
+      targetHeight = 200; // Normal state
+    }
+
+    _animateToHeight(targetHeight);
+  }
+
+  void _animateToHeight(double target) {
+    _snapAnimation = Tween<double>(
+      begin: _historyHeight,
+      end: target,
+    ).animate(CurvedAnimation(
+      parent: _snapController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _snapController.forward(from: 0).then((_) {
+      setState(() => _historyHeight = target);
+    });
+
+    _snapController.addListener(_updateFromAnimation);
+  }
+
+  void _updateFromAnimation() {
+    setState(() => _historyHeight = _snapAnimation.value);
+  }
+
+  Color _accentForMode(BuildContext context) {
+    return switch (widget.sessionMode) {
+      SessionMode.onboarding => ClawfreeTheme.onboardingMode,
+      SessionMode.home => ClawfreeTheme.homeMode,
+      SessionMode.agentBuilder => ClawfreeTheme.agentBuilderMode,
+    };
   }
 
   @override
@@ -110,130 +192,130 @@ class _PhoneLayoutState extends State<PhoneLayout> {
 
     return SafeArea(
       top: false,
-      child: Column(
-        children: [
-          // -- Section 2: genUI Surface (60% of vertical) --
-          Expanded(
-            flex: 6,
-            child: Container(
-              width: double.infinity,
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerLow
-                  .withValues(alpha: 0.3),
-              child: latestSurface != null
-                  ? SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      child: ChatSurfaceView(
-                        surfaceId: latestSurface.surfaceId!,
-                        surfaceHost: widget.surfaceHost,
-                      ),
-                    )
-                  : Center(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (widget.messages.isEmpty) ...[
-                              Icon(
-                                ClawfreeIcons.mic,
-                                size: 64,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Say something to get started',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                alignment: WrapAlignment.center,
-                                children: [
-                                  _chip(context, 'Create an agent'),
-                                  _chip(context, 'Show my agents'),
-                                  _chip(context, 'Manage OpenClaw'),
-                                ],
-                              ),
-                            ] else if (latestSurface == null) ...[
-                              Icon(
-                                ClawfreeIcons.mic,
-                                size: 48,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.3),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableHeight = constraints.maxHeight;
+          // Account for handle, spacing, input bar, and safe margin to avoid overflow
+          const staticElementsHeight = 160.0;
+          final maxHistoryHeight = (availableHeight - staticElementsHeight).clamp(0.0, availableHeight);
+          final effectiveHistoryHeight = _historyHeight.clamp(0.0, maxHistoryHeight);
+
+          return Stack(
+            children: [
+              // -- Layer 1: genUI Surface (Full screen background canvas) --
+              Positioned.fill(
+                child: latestSurface != null
+                    ? RawScrollbar(
+                        controller: _surfaceScrollController,
+                        thumbColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        radius: const Radius.circular(8),
+                        thickness: 4,
+                        padding: const EdgeInsets.only(bottom: 340),
+                        child: SingleChildScrollView(
+                          controller: _surfaceScrollController,
+                          primary: false,
+                          padding: const EdgeInsets.fromLTRB(16, 64, 16, 440),
+                          child: ChatSurfaceView(
+                            key: Key('phone-surface-${latestSurface.surfaceId}'),
+                            surfaceId: latestSurface.surfaceId!,
+                            surfaceHost: widget.surfaceHost,
+                          ),
+                        ),
+                      )
+                    : EmptyStateView(onSend: widget.onSend, agentNames: widget.agentNames),
+              ),
+
+              // -- Layer 2: Chat & Listening Tray (Overlay bottom - Floating Capsule) --
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragUpdate: (d) => _onVerticalDragUpdate(d, maxHistoryHeight),
+                    onVerticalDragEnd: (d) => _onVerticalDragEnd(d, maxHistoryHeight),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(
+                          sigmaX: ClawfreeTheme.glassBlur,
+                          sigmaY: ClawfreeTheme.glassBlur,
+                        ),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.only(top: 12),
+                          decoration: BoxDecoration(
+                            color: ClawfreeTheme.glassOverlayColor,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+                              width: 0.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
                               ),
                             ],
-                          ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Drag Handle (Increased hit area)
+                              Container(
+                                width: 40,
+                                height: 5,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  borderRadius: ClawfreeBorderRadius.pill,
+                                ),
+                              ),
+                                                                                          // Recent Chat Bubbles (Dynamic height)
+                                                                                          SizedBox(
+                                                                                            height: effectiveHistoryHeight,
+                                                                                            child: effectiveHistoryHeight > 0
+                                                                                                ? SingleChildScrollView(
+                                                                                                    controller: widget.scrollController,
+                                                                                                    primary: false,
+                                                                                                    reverse: true,
+                                                                                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                                                                                    child: RecentChatOverlay(
+                                                                                                      messages: widget.messages,
+                                                                                                      maxBubbleWidth: width * 0.8,
+                                                                                                      isProcessing: widget.isProcessing,
+                                                                                                    ),
+                                                                                                  )
+                                                                                                : const SizedBox.shrink(),
+                                                                                          ),
+                                                                                          if (effectiveHistoryHeight > 0) const SizedBox(height: 8),
+                                                            
+                              // Unified Listen/Type Bar (System Pill)
+                              ChatInputBar(
+                                key: widget.inputKey,
+                                focusNode: widget.inputFocusNode,
+                                textController: widget.textController,
+                                voiceController: widget.voiceController,
+                                isProcessing: widget.isProcessing,
+                                onSend: widget.onSend,
+                                mood: widget.mood,
+                                accentColor: _accentForMode(context),
+                                handsFreeEnabled: widget.handsFreeEnabled,
+                                onToggleHandsFree: widget.onToggleHandsFree,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-            ),
-          ),
-
-          // -- Section 3: Chat & Listening Tray (40% max vertical) --
-          Flexible(
-            flex: 4,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
                   ),
-                ],
+                ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Recent Chat Bubbles (Fixed at top of this section if few, scrolls if many)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      reverse: true,
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                      child: RecentChatOverlay(
-                        messages: widget.messages,
-                        maxBubbleWidth: width * 0.8,
-                        isProcessing: widget.isProcessing,
-                      ),
-                    ),
-                  ),
-                  // Unified Listen/Type Bar (Fixed at bottom)
-                  ChatInputBar(
-                    textController: widget.textController,
-                    voiceController: widget.voiceController,
-                    isProcessing: widget.isProcessing,
-                    onSend: widget.onSend,
-                    mood: widget.mood,
-                    accentColor: _accentForMode(context),
-                    handsFreeEnabled: widget.handsFreeEnabled,
-                    onToggleHandsFree: widget.onToggleHandsFree,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 }
-
-// Connectivity bar removed - handled by AppBar in ChatScreen for iPhone

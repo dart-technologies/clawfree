@@ -21,8 +21,8 @@ class A2uiStreamProcessor {
   final A2uiSurfaceManager _surfaceManager;
   final VoiceController? _voiceController;
 
-  /// Debounce interval for notifyListeners during streaming (one frame at 60fps).
-  static const _debounceInterval = Duration(milliseconds: 16);
+  /// Debounce interval for notifyListeners during streaming (higher for stability).
+  static const _debounceInterval = Duration(milliseconds: 100);
 
   /// Stream the AI response into [aiMessage], feeding chunks through A2UI.
   /// Returns the full concatenated response.

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
@@ -42,10 +43,19 @@ Widget cardOverrideCatalogBuilder(CatalogItemContext itemContext) {
   final context = itemContext.buildContext;
 
   return switch (variant) {
-    'glass' => Container(
-      decoration: ClawfreeTheme.glassDecoration(context),
-      clipBehavior: Clip.antiAlias,
-      child: child,
+    'glass' => ClipRRect(
+      borderRadius: ClawfreeBorderRadius.surface,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(
+          sigmaX: 20,
+          sigmaY: 20,
+        ),
+        child: Container(
+          decoration: ClawfreeTheme.glassDecoration(context),
+          clipBehavior: Clip.antiAlias,
+          child: child,
+        ),
+      ),
     ),
     'flat' => Container(
       decoration: ClawfreeTheme.minimalSurface(context),

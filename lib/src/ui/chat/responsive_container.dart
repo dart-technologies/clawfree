@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 
@@ -52,11 +53,11 @@ class ResponsiveContainer extends StatelessWidget {
             spacing: spacing,
             runSpacing: spacing,
             children: children.map((child) {
-              return SizedBox(
-                width:
-                    (constraints.maxWidth - (spacing * (activeColumns - 1))) /
+              final itemWidth = math.max(0.0, (constraints.maxWidth - (spacing * (activeColumns - 1))) /
                         activeColumns -
-                    0.5,
+                    0.5);
+              return SizedBox(
+                width: itemWidth,
                 child: child,
               );
             }).toList(),

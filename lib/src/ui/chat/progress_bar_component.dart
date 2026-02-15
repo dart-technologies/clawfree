@@ -59,71 +59,74 @@ class _ProgressBarWidget extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final fillColor = color ?? cs.primary;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (label != null || showPercentage)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (label != null)
-                  Text(
-                    label!,
-                    style: ClawfreeTheme.technicalStyle(
-                      context: context,
-                      fontSize: 10,
-                      letterSpacing: 0.8,
-                      color: cs.onSurface.withValues(alpha: 0.7),
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label != null || showPercentage)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (label != null)
+                    Text(
+                      label!,
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                        color: cs.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
-                if (showPercentage)
-                  Text(
-                    '${(value * 100).round()}%',
-                    style: ClawfreeTheme.technicalStyle(
-                      context: context,
-                      fontSize: 10,
-                      color: fillColor,
+                  if (showPercentage)
+                    Text(
+                      '${(value * 100).round()}%',
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 10,
+                        color: fillColor,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Stack(
-              children: [
-                // Track
-                Container(
-                  height: height,
-                  width: constraints.maxWidth,
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                    borderRadius: ClawfreeBorderRadius.tiny,
-                  ),
-                ),
-                // Fill
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 600),
-                  curve: const SpringCurve(),
-                  height: height,
-                  width: constraints.maxWidth * value,
-                  decoration: BoxDecoration(
-                    color: fillColor,
-                    borderRadius: ClawfreeBorderRadius.tiny,
-                    boxShadow: ClawfreeTheme.technicalGlow(
-                      fillColor,
-                      intensity: 0.2,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  // Track
+                  Container(
+                    height: height,
+                    width: constraints.maxWidth,
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: ClawfreeBorderRadius.tiny,
                     ),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
+                  // Fill
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 600),
+                    curve: const SpringCurve(),
+                    height: height,
+                    width: constraints.maxWidth * value,
+                    decoration: BoxDecoration(
+                      color: fillColor,
+                      borderRadius: ClawfreeBorderRadius.tiny,
+                      boxShadow: ClawfreeTheme.technicalGlow(
+                        fillColor,
+                        intensity: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

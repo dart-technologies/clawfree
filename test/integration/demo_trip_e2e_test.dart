@@ -250,7 +250,7 @@ void main() {
             'name': 'generate_itinerary',
             'context': {
               'city': ['tokyo'],
-              'persona': ['foodie'],
+              'vibe': ['foodie'],
               'days': ['3'],
             },
           },
@@ -282,8 +282,18 @@ void main() {
       // Verify ANA (ticket1) appears before JAL (ticket2) in the response.
       final responses = DemoCacheAiClient.defaultResponses;
       final response = responses['foodie plan']!;
-      final anaIndex = response.indexOf('Selected ANA');
-      final jalIndex = response.indexOf('Select JAL');
+      final anaIndex = response.indexOf('All Nippon Airways');
+      final jalIndex = response.indexOf('Japan Airlines');
+      expect(
+        anaIndex,
+        isNot(-1),
+        reason: 'ANA should be in the response',
+      );
+      expect(
+        jalIndex,
+        isNot(-1),
+        reason: 'JAL should be in the response',
+      );
       expect(
         anaIndex,
         lessThan(jalIndex),
@@ -298,7 +308,7 @@ void main() {
           'context': {
             'city': 'tokyo',
             'days': 3,
-            'persona': 'foodie',
+            'vibe': 'foodie',
             'flight': 'ANA',
           },
         },
@@ -400,7 +410,7 @@ void main() {
             'name': 'generate_itinerary',
             'context': {
               'city': ['tokyo'],
-              'persona': ['foodie'],
+              'vibe': ['foodie'],
               'days': ['3'],
             },
           },
@@ -429,7 +439,7 @@ void main() {
             'context': {
               'city': 'tokyo',
               'days': 3,
-              'persona': 'foodie',
+              'vibe': 'foodie',
               'flight': 'ANA',
             },
           },

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
@@ -65,7 +66,7 @@ class _GridWidget extends StatelessWidget {
         final effectiveColumns =
             constraints.maxWidth.isInfinite ? 1 : columns.clamp(1, 12);
         final totalGap = gap * (effectiveColumns - 1);
-        final itemWidth = (constraints.maxWidth - totalGap) / effectiveColumns;
+        final itemWidth = math.max(0.0, (constraints.maxWidth - totalGap) / effectiveColumns);
 
         return Wrap(
           spacing: gap,

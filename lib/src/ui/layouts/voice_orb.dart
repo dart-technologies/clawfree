@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../clawfree_icons.dart';
+import '../theme.dart';
 import '../spring_curve.dart';
 
 /// Visual state mood for the VoiceOrb.
@@ -181,7 +183,7 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
       OrbMood.error => cs.error,
       OrbMood.thinking => cs.tertiary,
       OrbMood.speaking => cs.secondary,
-      OrbMood.success => const Color(0xFF34C759),
+      OrbMood.success => ClawfreeTheme.success,
       _ => widget.accentColor ?? cs.primary,
     };
 
@@ -316,10 +318,10 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
                           duration: const Duration(milliseconds: 300),
                           child: Icon(
                             widget.mood == OrbMood.success
-                                ? Icons.check_circle_outline
+                                ? ClawfreeIcons.success
                                 : (widget.isListening
-                                      ? Icons.mic
-                                      : Icons.mic_none),
+                                      ? ClawfreeIcons.mic
+                                      : ClawfreeIcons.micNone),
                             key: ValueKey(widget.mood == OrbMood.success),
                             size: widget.size * 0.4,
                             color: targetColor,
@@ -331,41 +333,40 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
                 );
               },
             ),
-                    ),
-                  ),
-                  if (widget.showTranscript) ...[
-                    const SizedBox(height: 12),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Text(
-                        widget.isListening
-                            ? (widget.interimTranscript.isNotEmpty
-                                ? widget.interimTranscript
-                                : 'Listening\u2026')
-                            : widget.mood == OrbMood.success
-                                ? 'Done \u2714'
-                                : (widget.mood == OrbMood.thinking
-                                    ? 'Thinking\u2026'
-                                    : 'Tap or say "Hey clawfree"'),
-                        key: ValueKey(
-                          widget.isListening ? widget.interimTranscript : widget.mood,
-                        ),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontStyle: widget.isListening
-                              ? FontStyle.italic
-                              : FontStyle.normal,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ],
-              );
-          
+          ),
+        ),
+        if (widget.showTranscript) ...[
+          const SizedBox(height: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Text(
+              widget.isListening
+                  ? (widget.interimTranscript.isNotEmpty
+                      ? widget.interimTranscript
+                      : 'Listening\u2026')
+                  : widget.mood == OrbMood.success
+                      ? 'Done \u2714'
+                      : (widget.mood == OrbMood.thinking
+                          ? 'Thinking\u2026'
+                          : 'Tap or say "Hey clawfree"'),
+              key: ValueKey(
+                widget.isListening ? widget.interimTranscript : widget.mood,
+              ),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontStyle: widget.isListening
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 

@@ -86,7 +86,8 @@ Use the "value" field to pre-select matching tools.''',
         'Adaptive Layouts',
         '''Use the **ResponsiveContainer** component to wrap multiple related items (like multiple info cards or a set of status indicators).
 - It automatically switches between a 2-column grid (on large screens) and a single-column stack (on mobile).
-- Example: Use it for the "Manage OpenClaw" dashboard or "Travel Persona" selection cards.''',
+- Use it for the "Manage OpenClaw" dashboard or "Travel Vibe" selection cards.
+''',
       )
       ..section(
         'Skill Library',
@@ -111,20 +112,20 @@ Never show raw numbers as primary labels (use Strong/Weak, Full/Draining, stars,
       ..section(
         'Travel Agent Workflow',
         '''When the user asks for trip planning (e.g., "plan a trip", "travel agent"):
-1. **Persona Mapping** \u2014 adapt the itinerary to the user's stated interest:
+1. **Vibe Mapping** \u2014 adapt the itinerary to the user's stated interest:
    - Foodie \u2192 Focus on Tsukiji, Michelin spots, Izakayas, ramen alleys.
    - Artsy \u2192 Focus on Mori Art Museum, TeamLab, Ghibli, gallery districts.
    - Outdoorsy \u2192 Focus on Mt. Takao, Meiji Jingu, Kamakura, Nikko.
    - Budget \u2192 Focus on hostels, konbini food, free shrines, JR Pass routes.
 2. **Visual Components** \u2014 generate a rich multi-card A2UI surface:
    - Use a **Card** for "Recommended Flights" with flight number, route, duration, and price.
-   - Use a **Card** with an **Image** for "Suggested Hotel" including star rating and persona match note.
+   - Use a **Card** with an **Image** for "Suggested Hotel" including star rating and vibe match note.
    - Use **Card** per day for the itinerary timeline with morning/lunch/afternoon/dinner entries.
-   - Use a **ChoicePicker** to let the user switch personas via voice ("show me the artsy version").
+   - Use a **ChoicePicker** to let the user switch vibes via voice ("show me the artsy version").
 3. **Actions**:
    - Add a Button with action "book_flight" (context: flight number, price).
    - Add a Button with action "browser_open" (context: url) for "View Hotel".
-   - Add a Button with action "save_itin" (context: city, days, persona).''',
+   - Add a Button with action "save_itin" (context: city, days, vibe).''',
       )
       ..section('Response Format', PromptSections.responseFormat)
       ..section('A2UI Critical Rules', PromptSections.a2uiRules)

@@ -102,17 +102,23 @@ void main() {
     // -----------------------------------------------------------------------
     
     // Verify "Travel Concierge" is in the name field and ensure it's synced.
-    final nameFieldFinder = find.byType(TextField);
+    // Use a specific finder to avoid the bottom ChatInputBar's TextField.
+    final nameFieldFinder = find.descendant(
+      of: find.byKey(const Key('agent-form-001')),
+      matching: find.byType(TextField),
+    );
     expect(find.text('Travel Concierge'), findsOneWidget);
     await tester.enterText(nameFieldFinder, 'Travel Concierge');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await _pumpSettle(tester);
     
-    // Find and tap the "Save Agent" button.
-    final saveBtn = find.text('Save Agent');
+    // Find and tap the "SAVE AGENT" button.
+    final saveBtn = find.text('SAVE AGENT');
     expect(saveBtn, findsOneWidget);
     await tester.ensureVisible(saveBtn);
     await tester.tap(saveBtn);
+    // Wait for the 500ms interaction debounce in ChatSession to fire.
+    await tester.pump(const Duration(milliseconds: 1000));
     await _pumpSettle(tester);
 
     // ChatSession._handleSurfaceInteraction handles mode switching.
@@ -124,9 +130,8 @@ void main() {
     await _pumpUntilTtsDone(tester, ttsService);
     await _pumpBreathing(tester);
 
-    // -----------------------------------------------------------------------
     // Step 3: "Plan a trip"
-    //   → Travel setup surface renders with persona/city/duration pickers.
+    //   → Travel setup surface renders with vibe/city/duration pickers.
     // -----------------------------------------------------------------------
     await _pumpVoiceCommand(tester, session, 'Plan a trip');
 
@@ -147,14 +152,16 @@ void main() {
     // -----------------------------------------------------------------------
     
     // Verify pre-selected values are visible.
-    expect(find.text('Tokyo'), findsWidgets);
-    expect(find.text('Foodie'), findsWidgets);
-    expect(find.text('3 Days'), findsWidgets);
+    expect(find.text('TOKYO'), findsWidgets);
+    expect(find.text('FOODIE'), findsWidgets);
+    expect(find.text('3 DAYS'), findsWidgets);
 
-    final genBtn = find.text('Generate Itinerary');
+    final genBtn = find.text('GENERATE ITINERARY');
     expect(genBtn, findsOneWidget);
     await tester.ensureVisible(genBtn);
     await tester.tap(genBtn);
+    // Wait for the 500ms interaction debounce in ChatSession to fire.
+    await tester.pump(const Duration(milliseconds: 1000));
     
     // Wait for the itinerary surface to appear (AI generation takes time).
     await _pumpUntilSurface(tester, session, 'tokyo-itin-001');
@@ -172,18 +179,20 @@ void main() {
 
     // -----------------------------------------------------------------------
     // Step 5: Book Trip (True UI Interaction)
-    //   → Scroll to and tap "Book Trip".
+    //   → Scroll to and tap "Confirm Booking".
     // -----------------------------------------------------------------------
     
-    // Poll until "Book Trip" button renders (surface components load async).
-    await _pumpUntilText(tester, 'Book Trip');
+    // Poll until "Confirm Booking" button renders (surface components load async).
+    await _pumpUntilText(tester, 'CONFIRM BOOKING');
 
-    final bookBtn = find.text('Book Trip');
+    final bookBtn = find.text('CONFIRM BOOKING');
     expect(bookBtn, findsOneWidget);
 
     // Ensure button is visible before tapping (it's at the bottom of a scrollable list).
     await tester.ensureVisible(bookBtn);
     await tester.tap(bookBtn);
+    // Wait for the 500ms interaction debounce in ChatSession to fire.
+    await tester.pump(const Duration(milliseconds: 1000));
     
     // Wait for mode switch back to home.
     await _pumpUntilMode(tester, session, SessionMode.home);

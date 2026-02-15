@@ -87,7 +87,7 @@ class DemoCacheAiClient implements AiClient {
     'artsy plan': _tokyoArtisticResponse,
     'outdoorsy plan': _tokyoOutdoorsyResponse,
     'budget plan': _tokyoOverviewResponse,
-    // Travel: all initial requests → persona picker
+    // Travel: all initial requests → vibe picker
     'tokyo': _travelSetupResponse,
     'travel': _travelSetupResponse,
     'itinerary': _travelSetupResponse,
@@ -634,23 +634,15 @@ class DemoCacheAiClient implements AiClient {
       {
         'id': 'root',
         'component': 'Column',
-        'children': ['header-tt', 'subtitle-tt', 'gap-top', ...sectionIds],
+        'children': ['header-tt', 'gap-top', ...sectionIds],
       },
       {
         'id': 'header-tt',
-        'component': 'Text', 'variant': 'h4',
-        'text': 'SKILL LIBRARY',
-        'fontSize': 14,
-        'fontWeight': 800,
-        'letterSpacing': 2.0,
-      },
-      {
-        'id': 'subtitle-tt',
-        'component': 'Text', 'variant': 'caption',
-        'text': '53 SKILLS \u2022 9 CATEGORIES \u2022 14 AUTO-ACTIVATED',
-        'fontSize': 10,
-        'letterSpacing': 1.5,
-        'color': '#66AAFF',
+        'component': 'ItineraryHeader',
+        'title': 'SKILL LIBRARY',
+        'subtitle': '53 SKILLS \u2022 9 CATEGORIES \u2022 14 ACTIVE',
+        'vibe': 'SYSTEM',
+        'status': 'READY',
       },
       {'id': 'gap-top', 'component': 'Gap', 'height': 16},
     ]);
@@ -735,9 +727,11 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "audit-log-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "audit-log-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "filter", "log-list"]},
-    {"id": "title", "component": "Text", "text": "Audit Trail", "variant": "h4"},
-    {"id": "filter", "component": "ChoicePicker", "label": "Filter", "variant": "mutuallyExclusive", "options": [{"label": "All", "value": "all"}, {"label": "Agents", "value": "agents"}, {"label": "System", "value": "system"}, {"label": "Security", "value": "security"}], "value": ["all"]},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-1", "filter", "gap-2", "log-list"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "SYSTEM AUDIT TRAIL", "subtitle": "REAL-TIME MISSION ACTIVITY LOG", "vibe": "ADMIN", "status": "NOMINAL"},
+    {"id": "gap-1", "component": "Gap", "height": 16},
+    {"id": "filter", "component": "ChoicePicker", "label": "FILTER TRAIL", "variant": "mutuallyExclusive", "options": [{"label": "All", "value": "all"}, {"label": "Agents", "value": "agents"}, {"label": "System", "value": "system"}, {"label": "Security", "value": "security"}], "value": ["all"]},
+    {"id": "gap-2", "component": "Gap", "height": 16},
     {"id": "log-list", "component": "Column", "children": ["log-1", "log-2", "log-3", "log-4", "log-5", "log-6", "log-7", "log-8"]},
     {"id": "log-1", "component": "Card", "child": "log-1-row"},
     {"id": "log-1-row", "component": "Row", "children": ["log-1-icon", "log-1-info"]},
@@ -802,9 +796,8 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "analytics-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "analytics-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-top", "stats-grid", "gap-1", "agents-card", "gap-2", "skills-card", "gap-3", "fuel-card", "gap-4", "action-tray"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "TELEMETRY GRID", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "REAL-TIME PERFORMANCE ANALYTICS", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "stats-grid", "gap-1", "agents-card", "gap-2", "skills-card", "gap-3", "fuel-card", "gap-4", "action-tray"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TELEMETRY GRID", "subtitle": "REAL-TIME PERFORMANCE ANALYTICS", "vibe": "ADMIN", "status": "NOMINAL"},
     {"id": "gap-top", "component": "Gap", "height": 16},
 
     {"id": "stats-grid", "component": "ResponsiveContainer", "columns": 4, "mobileColumns": 2, "children": ["speed-pill", "memory-pill", "rel-pill", "fleet-pill"]},
@@ -894,11 +887,11 @@ class DemoCacheAiClient implements AiClient {
     {"id": "gap-4", "component": "Gap", "height": 16},
     {"id": "action-tray", "component": "Row", "children": ["export-btn", "refresh-btn", "dashboard-btn"]},
     {"id": "export-btn", "component": "Button", "child": "export-btn-text", "variant": "primary", "action": {"event": {"name": "export_analytics"}}},
-    {"id": "export-btn-text", "component": "Text", "text": "Export CSV"},
+    {"id": "export-btn-text", "component": "Text", "text": "EXPORT CSV"},
     {"id": "refresh-btn", "component": "Button", "child": "refresh-btn-text", "variant": "secondary", "action": {"event": {"name": "refresh_analytics"}}},
-    {"id": "refresh-btn-text", "component": "Text", "text": "Refresh"},
+    {"id": "refresh-btn-text", "component": "Text", "text": "REFRESH"},
     {"id": "dashboard-btn", "component": "Button", "child": "dashboard-btn-text", "variant": "secondary", "action": {"event": {"name": "navigate", "context": {"text": "Show my agents"}}}},
-    {"id": "dashboard-btn-text", "component": "Text", "text": "Dashboard"}
+    {"id": "dashboard-btn-text", "component": "Text", "text": "DASHBOARD"}
   ]}}
 ]
 ```''';
@@ -962,11 +955,11 @@ class DemoCacheAiClient implements AiClient {
     {"id": "gap-3", "component": "Gap", "height": 16},
     {"id": "actions-row", "component": "Row", "children": ["scan-btn", "rotate-btn", "export-btn"]},
     {"id": "scan-btn", "component": "Button", "child": "scan-btn-text", "variant": "primary", "action": {"event": {"name": "run_security_scan"}}},
-    {"id": "scan-btn-text", "component": "Text", "text": "Run Scan"},
+    {"id": "scan-btn-text", "component": "Text", "text": "RUN SCAN"},
     {"id": "rotate-btn", "component": "Button", "child": "rotate-btn-text", "variant": "secondary", "action": {"event": {"name": "rotate_api_keys"}}},
-    {"id": "rotate-btn-text", "component": "Text", "text": "Rotate Keys"},
+    {"id": "rotate-btn-text", "component": "Text", "text": "ROTATE KEYS"},
     {"id": "export-btn", "component": "Button", "child": "export-btn-text", "variant": "secondary", "action": {"event": {"name": "export_compliance"}}},
-    {"id": "export-btn-text", "component": "Text", "text": "Export Report"}
+    {"id": "export-btn-text", "component": "Text", "text": "EXPORT REPORT"}
   ]}}
 ]
 ```''';
@@ -978,14 +971,15 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "agent-form-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "agent-form-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "name-field", "model-picker", "tools-picker", "channels-picker", "save-btn"]},
-    {"id": "title", "component": "Text", "text": "Create New Agent", "variant": "h4"},
-    {"id": "name-field", "component": "TextField", "label": "Agent Name", "value": "Travel Concierge"},
-    {"id": "model-picker", "component": "ChoicePicker", "label": "AI Model", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}, {"label": "GPT-4o", "value": "gpt-4o"}], "value": ["claude-opus-4-6"]},
-    {"id": "tools-picker", "component": "ChoicePicker", "label": "Tools", "variant": "multipleSelection", "options": [{"label": "Browser", "value": "browser"}, {"label": "Code Execution", "value": "code"}, {"label": "Web Search", "value": "search"}, {"label": "API Integration", "value": "api"}], "value": ["browser", "code", "search", "api"]},
-    {"id": "channels-picker", "component": "ChoicePicker", "label": "Channels", "variant": "multipleSelection", "options": [{"label": "Telegram", "value": "telegram"}, {"label": "Slack", "value": "slack"}, {"label": "Discord", "value": "discord"}], "value": ["telegram", "slack", "discord"]},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "name-field", "model-picker", "tools-picker", "channels-picker", "save-btn"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "CREATE NEW AGENT", "subtitle": "ORCHESTRATE TRAVEL INTELLIGENCE", "vibe": "ADMIN", "status": "PENDING"},
+    {"id": "gap-top", "component": "Gap", "height": 16},
+    {"id": "name-field", "component": "TextField", "label": "AGENT NAME", "value": "Travel Concierge"},
+    {"id": "model-picker", "component": "ChoicePicker", "label": "AI MODEL", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}, {"label": "GPT-4o", "value": "gpt-4o"}], "value": ["claude-opus-4-6"]},
+    {"id": "tools-picker", "component": "ChoicePicker", "label": "TOOLS", "variant": "multipleSelection", "options": [{"label": "Browser", "value": "browser"}, {"label": "Code Execution", "value": "code"}, {"label": "Web Search", "value": "search"}, {"label": "API Integration", "value": "api"}], "value": ["browser", "code", "search", "api"]},
+    {"id": "channels-picker", "component": "ChoicePicker", "label": "CHANNELS", "variant": "multipleSelection", "options": [{"label": "Telegram", "value": "telegram"}, {"label": "Slack", "value": "slack"}, {"label": "Discord", "value": "discord"}], "value": ["telegram", "slack", "discord"]},
     {"id": "save-btn", "component": "Button", "child": "save-btn-text", "variant": "primary", "action": {"event": {"name": "save_agent", "context": {"name": {"path": "name-field.value"}, "model": {"path": "model-picker.value"}, "tools": {"path": "tools-picker.value"}, "channels": {"path": "channels-picker.value"}}}}},
-    {"id": "save-btn-text", "component": "Text", "text": "Save Agent"}
+    {"id": "save-btn-text", "component": "Text", "text": "SAVE AGENT"}
   ]}}
 ]
 ```''';
@@ -999,32 +993,31 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "agent-form-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "agent-form-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-top", "name-field", "gap-name", "intel-card", "gap-1", "cap-card", "gap-2", "deploy-note", "save-btn"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "CREATE AGENT", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "AGENT ASSEMBLY \u2022 STEP 1 OF 1", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "name-field", "gap-name", "intel-card", "gap-1", "cap-card", "gap-2", "deploy-note", "save-btn"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "CREATE NEW AGENT", "subtitle": "CONFIGURE MISSION INTELLIGENCE", "vibe": "ADMIN", "status": "PENDING"},
     {"id": "gap-top", "component": "Gap", "height": 16},
 
-    {"id": "name-field", "component": "TextField", "label": "Agent Name", "value": "My Agent"},
+    {"id": "name-field", "component": "TextField", "label": "AGENT NAME", "value": "New Agent"},
     {"id": "gap-name", "component": "Gap", "height": 12},
 
     {"id": "intel-card", "component": "Card", "child": "intel-col"},
     {"id": "intel-col", "component": "Column", "children": ["intel-tt", "model-picker"]},
     {"id": "intel-tt", "component": "Text", "variant": "h5", "text": "INTELLIGENCE CONFIG", "fontSize": 10, "letterSpacing": 1.5},
-    {"id": "model-picker", "component": "ChoicePicker", "label": "AI Model", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}, {"label": "GPT-4o", "value": "gpt-4o"}], "value": []},
+    {"id": "model-picker", "component": "ChoicePicker", "label": "AI MODEL", "variant": "mutuallyExclusive", "options": [{"label": "Claude Opus 4.6", "value": "claude-opus-4-6"}, {"label": "Claude Sonnet 4.5", "value": "claude-sonnet-4-5"}, {"label": "GPT-4o", "value": "gpt-4o"}], "value": []},
 
     {"id": "gap-1", "component": "Gap", "height": 8},
 
     {"id": "cap-card", "component": "Card", "child": "cap-col"},
     {"id": "cap-col", "component": "Column", "children": ["cap-tt", "tools-picker", "channels-picker"]},
     {"id": "cap-tt", "component": "Text", "variant": "h5", "text": "CAPABILITY MATRIX", "fontSize": 10, "letterSpacing": 1.5},
-    {"id": "tools-picker", "component": "ChoicePicker", "label": "Tools", "variant": "multipleSelection", "options": [{"label": "Browser", "value": "browser"}, {"label": "Code Execution", "value": "code"}, {"label": "Web Search", "value": "search"}, {"label": "API Integration", "value": "api"}], "value": []},
-    {"id": "channels-picker", "component": "ChoicePicker", "label": "Channels", "variant": "multipleSelection", "options": [{"label": "Telegram", "value": "telegram"}, {"label": "Slack", "value": "slack"}, {"label": "Discord", "value": "discord"}], "value": []},
+    {"id": "tools-picker", "component": "ChoicePicker", "label": "TOOLS", "variant": "multipleSelection", "options": [{"label": "Browser", "value": "browser"}, {"label": "Code Execution", "value": "code"}, {"label": "Web Search", "value": "search"}, {"label": "API Integration", "value": "api"}], "value": []},
+    {"id": "channels-picker", "component": "ChoicePicker", "label": "CHANNELS", "variant": "multipleSelection", "options": [{"label": "Telegram", "value": "telegram"}, {"label": "Slack", "value": "slack"}, {"label": "Discord", "value": "discord"}], "value": []},
 
     {"id": "gap-2", "component": "Gap", "height": 16},
 
     {"id": "deploy-note", "component": "Text", "variant": "caption", "text": "AGENT WILL BE CREATED AND DEPLOYED TO SELECTED CHANNELS", "fontSize": 8, "color": "#888888"},
     {"id": "save-btn", "component": "Button", "child": "save-btn-text", "variant": "primary", "action": {"event": {"name": "save_agent", "context": {"name": {"path": "name-field.value"}, "model": {"path": "model-picker.value"}, "tools": {"path": "tools-picker.value"}, "channels": {"path": "channels-picker.value"}}}}},
-    {"id": "save-btn-text", "component": "Text", "text": "Create Agent"}
+    {"id": "save-btn-text", "component": "Text", "text": "CREATE AGENT"}
   ]}}
 ]
 ```''';
@@ -1036,19 +1029,11 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "dashboard-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "dashboard-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-top", "agent-1-card"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "MY AGENTS", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "1 AGENT DEPLOYED", "fontSize": 10, "letterSpacing": 1.5, "color": "#888888"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "agent-1-card"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "SYSTEM OVERVIEW", "subtitle": "1 AGENT DEPLOYED \u2022 CLUSTER NOMINAL", "vibe": "ADMIN", "status": "ACTIVE"},
     {"id": "gap-top", "component": "Gap", "height": 16},
 
-    {"id": "agent-1-card", "component": "Card", "child": "agent-1-col"},
-    {"id": "agent-1-col", "component": "Column", "children": ["agent-1-header", "agent-1-status", "agent-1-meta", "agent-1-spark", "agent-1-view-btn"]},
-    {"id": "agent-1-header", "component": "Text", "variant": "h5", "text": "TRAVEL CONCIERGE", "fontSize": 12, "fontWeight": 800, "letterSpacing": 1.5},
-    {"id": "agent-1-status", "component": "Text", "variant": "body", "text": "\u25cf ONLINE \u2022 OPUS 4.6", "fontSize": 10, "color": "#00FF88"},
-    {"id": "agent-1-meta", "component": "Text", "variant": "caption", "text": "PERSONA-DRIVEN ITINERARY PLANNING \u2022 12 TRIPS \u2022 99.7% UPTIME", "fontSize": 9, "color": "#888888"},
-    {"id": "agent-1-spark", "component": "HealthSparkline", "level": "nominal", "width": 200, "height": 24, "showGlow": true, "dataPoints": [0.7, 0.8, 0.75, 0.85, 0.9, 0.88, 0.82, 0.88, 0.92, 0.85, 0.9, 0.87]},
-    {"id": "agent-1-view-btn", "component": "Button", "child": "agent-1-view-text", "variant": "secondary", "action": {"event": {"name": "navigate", "context": {"text": "Plan a trip"}}}},
-    {"id": "agent-1-view-text", "component": "Text", "text": "Plan Trip \u2192"}
+    {"id": "agent-1-card", "component": "AgentCard", "name": "TRAVEL CONCIERGE", "status": "ONLINE", "model": "OPUS 4.6", "level": "nominal", "meta": "VIBE-DRIVEN ITINERARY PLANNING \u2022 12 TRIPS", "action": {"event": {"name": "navigate", "context": {"text": "Plan a trip"}}}}
   ]}}
 ]
 ```''';
@@ -1122,8 +1107,9 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "pair-qr-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "pair-qr-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "qr-card", "instructions", "copy-btn"]},
-    {"id": "title", "component": "Text", "text": "Pair Device", "variant": "h4"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "qr-card", "instructions", "copy-btn"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "DEVICE PAIRING", "subtitle": "SECURE MULTI-DEVICE ORCHESTRATION", "vibe": "ADMIN", "status": "PENDING"},
+    {"id": "gap-top", "component": "Gap", "height": 16},
     {"id": "qr-card", "component": "Card", "child": "qr-content"},
     {"id": "qr-content", "component": "Column", "children": ["qr-label", "qr-code", "backup-code"]},
     {"id": "qr-label", "component": "Text", "text": "Scan with your phone", "variant": "body2"},
@@ -1131,7 +1117,7 @@ class DemoCacheAiClient implements AiClient {
     {"id": "backup-code", "component": "Text", "text": "Backup code: 847 291", "variant": "body2"},
     {"id": "instructions", "component": "Text", "text": "This link connects your device to the local OpenClaw gateway at ws://localhost:18789. The pairing token expires in 10 minutes."},
     {"id": "copy-btn", "component": "Button", "child": "copy-btn-text", "variant": "secondary", "action": {"event": {"name": "copy_pairing_link", "context": {"url": "ws://localhost:18789?token=demo-pair-token"}}}},
-    {"id": "copy-btn-text", "component": "Text", "text": "Copy Pairing Link"}
+    {"id": "copy-btn-text", "component": "Text", "text": "COPY PAIRING LINK"}
   ]}}
 ]
 ```''';
@@ -1147,9 +1133,8 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "manage-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "manage-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-top", "main-grid", "gap-1", "config-card", "gap-2", "action-tray"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "COMMAND CENTER", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "OPENCLAW GATEWAY v2026.2.9", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "main-grid", "gap-1", "config-card", "gap-2", "action-tray"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "COMMAND CENTER", "subtitle": "OPENCLAW GATEWAY v2026.2.9", "vibe": "ADMIN", "status": "NOMINAL"},
     {"id": "gap-top", "component": "Gap", "height": 16},
 
     {"id": "main-grid", "component": "ResponsiveContainer", "columns": 2, "mobileColumns": 1, "children": ["status-card", "config-detail-card"]},
@@ -1191,17 +1176,17 @@ class DemoCacheAiClient implements AiClient {
     {"id": "config-col", "component": "Column", "children": ["config-title", "logs-btn"]},
     {"id": "config-title", "component": "Text", "variant": "h5", "text": "AUDIT", "fontSize": 10, "letterSpacing": 1.5},
     {"id": "logs-btn", "component": "Button", "child": "logs-btn-text", "variant": "secondary", "action": {"event": {"name": "navigate", "context": {"text": "Show audit log"}}}},
-    {"id": "logs-btn-text", "component": "Text", "text": "View Audit Trail"},
+    {"id": "logs-btn-text", "component": "Text", "text": "VIEW AUDIT TRAIL"},
 
     {"id": "gap-2", "component": "Gap", "height": 16},
 
     {"id": "action-tray", "component": "Row", "children": ["update-btn", "restart-btn", "pair-btn"]},
     {"id": "update-btn", "component": "Button", "child": "update-btn-text", "variant": "primary", "action": {"event": {"name": "update_openclaw"}}},
-    {"id": "update-btn-text", "component": "Text", "text": "Check for Updates"},
+    {"id": "update-btn-text", "component": "Text", "text": "CHECK FOR UPDATES"},
     {"id": "restart-btn", "component": "Button", "child": "restart-btn-text", "variant": "secondary", "action": {"event": {"name": "restart_openclaw"}}},
-    {"id": "restart-btn-text", "component": "Text", "text": "Restart Gateway"},
+    {"id": "restart-btn-text", "component": "Text", "text": "RESTART GATEWAY"},
     {"id": "pair-btn", "component": "Button", "child": "pair-btn-text", "variant": "secondary", "action": {"event": {"name": "pair_device"}}},
-    {"id": "pair-btn-text", "component": "Text", "text": "Pair Device"}
+    {"id": "pair-btn-text", "component": "Text", "text": "PAIR DEVICE"}
   ]}}
 ]
 ```''';
@@ -1217,8 +1202,9 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "health-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "health-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "vitals-card", "indicators-card", "readings-card"]},
-    {"id": "title", "component": "Text", "text": "System Vitals", "variant": "h4"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "vitals-card", "indicators-card", "readings-card"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "SYSTEM VITALS", "subtitle": "REAL-TIME DIAGNOSTIC TELEMETRY", "vibe": "HEALTH", "status": "NOMINAL"},
+    {"id": "gap-top", "component": "Gap", "height": 16},
     {"id": "vitals-card", "component": "Card", "child": "vitals-col"},
     {"id": "vitals-col", "component": "Column", "children": ["vitals-status", "vitals-detail"]},
     {"id": "vitals-status", "component": "Text", "text": "\u2705 Healthy \u2014 All vitals normal across all systems", "variant": "h5"},
@@ -1255,13 +1241,14 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "connect-gw-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "connect-gw-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "desc", "url-field", "token-field", "connect-btn"]},
-    {"id": "title", "component": "Text", "text": "Connect to Gateway", "variant": "h4"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "desc", "url-field", "token-field", "connect-btn"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "GATEWAY CONNECTION", "subtitle": "LINK TO EXISTING OPENCLAW INSTANCE", "vibe": "ADMIN", "status": "PENDING"},
+    {"id": "gap-top", "component": "Gap", "height": 16},
     {"id": "desc", "component": "Text", "text": "Enter the URL and authentication token for your existing OpenClaw gateway. You can find these in your gateway's dashboard or config file."},
     {"id": "url-field", "component": "TextField", "label": "Gateway URL", "value": "ws://localhost:18789"},
     {"id": "token-field", "component": "TextField", "label": "Gateway Token", "value": ""},
     {"id": "connect-btn", "component": "Button", "child": "connect-btn-text", "variant": "primary", "action": {"event": {"name": "connect_gateway", "context": {"gateway_url": {"path": "url-field.value"}, "gateway_token": {"path": "token-field.value"}}}}},
-    {"id": "connect-btn-text", "component": "Text", "text": "Connect"}
+    {"id": "connect-btn-text", "component": "Text", "text": "CONNECT"}
   ]}}
 ]
 ```''';
@@ -1270,148 +1257,109 @@ class DemoCacheAiClient implements AiClient {
   // Travel: Setup concierge agent
   // ---------------------------------------------------------------------------
 
-  static const _travelSetupResponse =
-      '''Travel Concierge activated. Select your destination and persona to begin mission planning.
+      static const _travelSetupResponse =
 
-```json
-[
-  {"version": "v0.9", "createSurface": {"surfaceId": "travel-setup-001", "catalogId": "$_catalogId"}},
-  {"version": "v0.9", "updateComponents": {"surfaceId": "travel-setup-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-top", "dest-card", "gap-1", "config-card", "gap-2", "plan-btn"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "TRAVEL CONCIERGE", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "OPUS 4.6 \u2022 PERSONA-DRIVEN ITINERARY PLANNING", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
-    {"id": "gap-top", "component": "Gap", "height": 16},
+          '''Travel Concierge activated. Select your destination and vibe to begin trip planning.
 
-    {"id": "dest-card", "component": "Card", "child": "dest-col"},
-    {"id": "dest-col", "component": "Column", "children": ["dest-tt", "city-picker"]},
-    {"id": "dest-tt", "component": "Text", "variant": "h5", "text": "DESTINATION SELECT", "fontSize": 10, "letterSpacing": 1.5},
-    {"id": "city-picker", "component": "ChoicePicker", "label": "Recent Destinations", "variant": "mutuallyExclusive", "options": [{"label": "Tokyo", "value": "tokyo"}, {"label": "London", "value": "london"}, {"label": "Paris", "value": "paris"}, {"label": "New York", "value": "new-york"}, {"label": "San Francisco", "value": "san-francisco"}], "value": ["tokyo"]},
+    
 
-    {"id": "gap-1", "component": "Gap", "height": 8},
+    ```json
 
-    {"id": "config-card", "component": "Card", "child": "config-col"},
-    {"id": "config-col", "component": "Column", "children": ["config-tt", "persona-picker", "days-picker", "config-note"]},
-    {"id": "config-tt", "component": "Text", "variant": "h5", "text": "MISSION PARAMETERS", "fontSize": 10, "letterSpacing": 1.5},
-    {"id": "persona-picker", "component": "ChoicePicker", "label": "Travel Persona", "variant": "mutuallyExclusive", "options": [{"label": "Foodie", "value": "foodie"}, {"label": "Artsy", "value": "artsy"}, {"label": "Outdoorsy", "value": "outdoorsy"}, {"label": "Budget", "value": "budget"}], "value": ["foodie"]},
-    {"id": "days-picker", "component": "ChoicePicker", "label": "Trip Duration", "variant": "mutuallyExclusive", "options": [{"label": "3 Days", "value": "3"}, {"label": "5 Days", "value": "5"}, {"label": "7 Days", "value": "7"}], "value": ["3"]},
-    {"id": "config-note", "component": "Text", "variant": "caption", "text": "PERSONA SHAPES RESTAURANTS, ACTIVITIES, AND HOTEL SELECTION", "fontSize": 8, "color": "#888888"},
+    [
 
-    {"id": "gap-2", "component": "Gap", "height": 16},
+      {"version": "v0.9", "createSurface": {"surfaceId": "travel-setup-001", "catalogId": "$_catalogId"}},
 
-    {"id": "plan-btn", "component": "Button", "child": "plan-btn-text", "variant": "primary", "action": {"event": {"name": "generate_itinerary", "context": {"city": {"path": "city-picker.value"}, "persona": {"path": "persona-picker.value"}, "days": {"path": "days-picker.value"}}}}},
-    {"id": "plan-btn-text", "component": "Text", "text": "Generate Itinerary"}
-  ]}}
-]
-```''';
+      {"version": "v0.9", "updateComponents": {"surfaceId": "travel-setup-001", "components": [
+
+        {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "dest-card", "gap-1", "config-card", "gap-2", "plan-btn"]},
+
+        {"id": "header-tt", "component": "ItineraryHeader", "title": "TRAVEL CONCIERGE", "subtitle": "VIBE-DRIVEN TRIP PLANNING", "vibe": "TRAVEL", "status": "ACTIVE"},
+
+        {"id": "gap-top", "component": "Gap", "height": 16},
+
+    
+
+  
+
+      {"id": "dest-card", "component": "Card", "child": "dest-col"},
+
+      {"id": "dest-col", "component": "Column", "children": ["dest-tt", "city-picker"]},
+
+      {"id": "dest-tt", "component": "Text", "variant": "h5", "text": "DESTINATION SELECT", "fontSize": 10, "letterSpacing": 1.5},
+
+      {"id": "city-picker", "component": "ChoicePicker", "label": "RECENT DESTINATIONS", "variant": "mutuallyExclusive", "layout": "grid", "options": [{"label": "Tokyo", "value": "tokyo"}, {"label": "London", "value": "london"}, {"label": "Paris", "value": "paris"}, {"label": "New York", "value": "new-york"}, {"label": "San Francisco", "value": "san-francisco"}], "value": ["tokyo"]},
+
+  
+
+      {"id": "gap-1", "component": "Gap", "height": 8},
+
+  
+
+      {"id": "config-card", "component": "Card", "child": "config-col"},
+
+      {"id": "config-col", "component": "Column", "children": ["config-tt", "vibe-picker", "days-picker", "config-note"]},
+
+      {"id": "config-tt", "component": "Text", "variant": "h5", "text": "TRAVEL PARAMETERS", "fontSize": 10, "letterSpacing": 1.5},
+
+      {"id": "vibe-picker", "component": "ChoicePicker", "label": "TRAVEL VIBE", "variant": "mutuallyExclusive", "options": [{"label": "Foodie", "value": "foodie"}, {"label": "Artsy", "value": "artsy"}, {"label": "Outdoorsy", "value": "outdoorsy"}, {"label": "Budget", "value": "budget"}], "value": ["foodie"]},
+
+      {"id": "days-picker", "component": "ChoicePicker", "label": "TRIP DURATION", "variant": "mutuallyExclusive", "options": [{"label": "3 Days", "value": "3"}, {"label": "5 Days", "value": "5"}, {"label": "7 Days", "value": "7"}], "value": ["3"]},
+
+      {"id": "config-note", "component": "Text", "variant": "caption", "text": "VIBE INFLUENCES CURATED RESTAURANTS, ACTIVITIES, AND HOTEL MATCHES", "fontSize": 8, "color": "#888888"},
+
+  
+
+      {"id": "gap-2", "component": "Gap", "height": 16},
+
+      {"id": "plan-btn", "component": "Button", "child": "plan-btn-text", "variant": "primary", "action": {"event": {"name": "generate_itinerary", "context": {"city": {"path": "city-picker.value"}, "vibe": {"path": "vibe-picker.value"}, "days": {"path": "days-picker.value"}}}}},
+
+      {"id": "plan-btn-text", "component": "Text", "text": "GENERATE ITINERARY"}
+
+    ]}}
+
+  ]
+
+  ```''';
+
+  
 
   // ---------------------------------------------------------------------------
   // Travel: Tokyo overview (Foodie default) — VideoPlayer at top
   // ---------------------------------------------------------------------------
 
   static const _tokyoOverviewResponse =
-      '''Mission briefing complete. Here's your 3-day Tokyo foodie itinerary with flights and lodging.
+      '''Trip itinerary complete. Here's your curated 3-day Tokyo foodie experience with flights and lodging.
 
 ```json
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "tokyo-itin-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "tokyo-itin-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "subtitle-tt", "gap-1", "video", "gap-2", "trip-map", "gap-3", "days-tt", "day1-card", "gap-d1d2", "day2-card", "gap-d2d3", "day3-card", "div-hotel", "hotel-card", "div-flights", "flights-tt", "ticket1-card", "gap-t1t2", "ticket2-card", "gap-t2book", "book-card"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "TOKYO \u2014 3 DAY FOODIE ITINERARY", "fontSize": 14, "fontWeight": 800, "letterSpacing": 2.0},
-    {"id": "subtitle-tt", "component": "Text", "variant": "caption", "text": "MAR 20\u201323, 2026 \u2022 OPUS 4.6 \u2022 12 RESTAURANTS \u2022 3 MARKETS", "fontSize": 10, "letterSpacing": 1.5, "color": "#66AAFF"},
-    {"id": "gap-1", "component": "Gap", "height": 20},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-1", "video", "gap-2", "trip-map", "gap-3", "timeline-card", "gap-4", "hotel-card", "gap-5", "flights-tt", "ticket1-card", "gap-6", "ticket2-card", "gap-7", "book-card"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TOKYO 3-DAY FOODIE EXPERIENCE", "subtitle": "MAR 20\u201323, 2026 \u2022 12 RESTAURANTS", "vibe": "FOODIE", "status": "CONFIRMED"},
+    {"id": "gap-1", "component": "Gap", "size": "lg"},
     {"id": "video", "component": "VideoPlayer", "tripId": "tokyo-foodie-3d"},
-    {"id": "gap-2", "component": "Gap", "height": 24},
+    {"id": "gap-2", "component": "Gap", "size": "xxl"},
     {"id": "trip-map", "component": "TripMap", "center": [35.68, 139.76], "zoom": 12, "markers": [{"lat": 35.6654, "lng": 139.7707, "label": "Tsukiji Market"}, {"lat": 35.6812, "lng": 139.7671, "label": "Ramen Street"}, {"lat": 35.6717, "lng": 139.7650, "label": "Ginza Depachika"}, {"lat": 35.6600, "lng": 139.7300, "label": "Sukiyabashi Jiro"}, {"lat": 35.6852, "lng": 139.7100, "label": "Shinjuku Gyoen"}, {"lat": 35.6940, "lng": 139.7036, "label": "Golden Gai"}, {"lat": 35.6457, "lng": 139.7835, "label": "Toyosu Market"}, {"lat": 35.6712, "lng": 139.7639, "label": "Tempura Kondo"}, {"lat": 35.7148, "lng": 139.7967, "label": "Asakusa"}, {"lat": 35.6720, "lng": 139.7252, "label": "Narisawa"}]},
-    {"id": "gap-3", "component": "Gap", "height": 8},
-    {"id": "days-tt", "component": "Text", "variant": "h5", "text": "ITINERARY", "fontSize": 10, "fontWeight": 800, "letterSpacing": 1.5},
+    {"id": "gap-3", "component": "Gap", "size": "xxxl"},
+    {"id": "timeline-card", "component": "ItineraryTimeline", "days": [
+      {"dayLabel": "THU MAR 20 \u2022 DAY 1", "title": "Tsukiji & Ginza Exploration", "activities": [{"time": "5:30 AM", "label": "Sushi Dai breakfast", "icon": "wb_sunny"}, {"time": "12:00 PM", "label": "Rokurinsha tsukemen", "icon": "restaurant"}, {"time": "3:00 PM", "label": "Ginza depachika tour", "icon": "shopping_bag"}, {"time": "7:00 PM", "label": "Sukiyabashi Jiro Omakase", "icon": "nightlight"}]},
+      {"dayLabel": "FRI MAR 21 \u2022 DAY 2", "title": "Shinjuku Heights & Hidden Bars", "activities": [{"time": "9:00 AM", "label": "Shinjuku Gyoen Matcha", "icon": "park"}, {"time": "12:30 PM", "label": "Fuunji Ramen", "icon": "restaurant"}, {"time": "3:00 PM", "label": "Omoide Yokocho Yakitori", "icon": "local_fire_department"}, {"time": "8:00 PM", "label": "Golden Gai Bar Crawl", "icon": "sports_bar"}]},
+      {"dayLabel": "SAT MAR 22 \u2022 DAY 3", "title": "Toyosu Auction & Asakusa Tradition", "activities": [{"time": "6:00 AM", "label": "Toyosu Fish Auction", "icon": "wb_sunny"}, {"time": "12:00 PM", "label": "Tempura Kondo", "icon": "restaurant"}, {"time": "3:00 PM", "label": "Nakamise-dori Street Food", "icon": "store"}, {"time": "7:30 PM", "label": "Narisawa Innovation", "icon": "star"}]}
+    ]},
 
-    {"id": "day1-card", "component": "Card", "child": "day1-col"},
-    {"id": "day1-col", "component": "Column", "children": ["day1-img", "day1-ts", "day1-title", "day1-am", "day1-lunch", "day1-pm", "day1-dinner"]},
-    {"id": "day1-img", "component": "Image", "url": "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&h=300&fit=crop&auto=format", "variant": "header"},
-    {"id": "day1-ts", "component": "Text", "variant": "caption", "text": "THU MAR 20 \u2022 DAY 1 OF 3", "fontSize": 9, "color": "#66AAFF"},
-    {"id": "day1-title", "component": "Text", "text": "Day 1 \u2014 Tsukiji & Ginza", "variant": "h5"},
-    {"id": "day1-am", "component": "Text", "text": "\ud83c\udf05 **5:30 AM** \u2022 Tsukiji Outer Market \u2014 fresh sushi breakfast at Sushi Dai (arrive early!)"},
-    {"id": "day1-lunch", "component": "Text", "text": "\u2615 **12:00 PM** \u2022 Ramen Street, Tokyo Station \u2014 Rokurinsha\u2019s tsukemen"},
-    {"id": "day1-pm", "component": "Text", "text": "\ud83c\udfed **3:00 PM** \u2022 Ginza depachika food halls \u2014 wagashi tasting at Toraya"},
-    {"id": "day1-dinner", "component": "Text", "text": "\ud83c\udf19 **7:00 PM** \u2022 Sukiyabashi Jiro (Roppongi) \u2014 20-piece omakase"},
-    {"id": "gap-d1d2", "component": "Gap", "size": "md"},
+    {"id": "gap-4", "component": "Gap", "size": "xxxl"},
+    {"id": "hotel-card", "component": "HotelCard", "name": "Hoshinoya Tokyo", "address": "1-9-1 Otemachi, Chiyoda-ku, Tokyo", "imageUrl": "https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=800&h=400&fit=crop&auto=format", "price": "\$420", "rating": 5, "amenities": ["Private Kaiseki", "Rooftop Onsen", "Zen Garden"], "checkIn": "15:00", "checkOut": "11:00", "action": {"event": {"name": "browser_open", "context": {"url": "https://hoshinoya.com/tokyo/en/"}}}},
 
-    {"id": "day2-card", "component": "Card", "child": "day2-col"},
-    {"id": "day2-col", "component": "Column", "children": ["day2-img", "day2-ts", "day2-title", "day2-am", "day2-lunch", "day2-pm", "day2-dinner"]},
-    {"id": "day2-img", "component": "Image", "url": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800&h=300&fit=crop&auto=format", "variant": "header"},
-    {"id": "day2-ts", "component": "Text", "variant": "caption", "text": "FRI MAR 21 \u2022 DAY 2 OF 3", "fontSize": 9, "color": "#66AAFF"},
-    {"id": "day2-title", "component": "Text", "text": "Day 2 \u2014 Shinjuku & Golden Gai", "variant": "h5"},
-    {"id": "day2-am", "component": "Text", "text": "\ud83c\udf05 **9:00 AM** \u2022 Shinjuku Gyoen \u2014 matcha ceremony at the imperial tea house"},
-    {"id": "day2-lunch", "component": "Text", "text": "\u2615 **12:30 PM** \u2022 Fuunji \u2014 famous fish-broth tsukemen (expect 30-min queue)"},
-    {"id": "day2-pm", "component": "Text", "text": "\ud83c\udfed **3:00 PM** \u2022 Takashimaya food hall + Omoide Yokocho yakitori alley"},
-    {"id": "day2-dinner", "component": "Text", "text": "\ud83c\udf19 **8:00 PM** \u2022 Golden Gai bar crawl \u2014 6 tiny bars, 6 different sake"},
-    {"id": "gap-d2d3", "component": "Gap", "size": "md"},
+    {"id": "gap-5", "component": "Gap", "size": "xxxl"},
+    {"id": "flights-tt", "component": "Text", "variant": "h5", "text": "ROUND-TRIP FLIGHTS", "fontSize": 11, "fontWeight": 800, "letterSpacing": 1.5},
 
-    {"id": "day3-card", "component": "Card", "child": "day3-col"},
-    {"id": "day3-col", "component": "Column", "children": ["day3-img", "day3-ts", "day3-title", "day3-am", "day3-lunch", "day3-pm", "day3-dinner"]},
-    {"id": "day3-img", "component": "Image", "url": "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=800&h=300&fit=crop&auto=format", "variant": "header"},
-    {"id": "day3-ts", "component": "Text", "variant": "caption", "text": "SAT MAR 22 \u2022 DAY 3 OF 3", "fontSize": 9, "color": "#66AAFF"},
-    {"id": "day3-title", "component": "Text", "text": "Day 3 \u2014 Toyosu & Asakusa", "variant": "h5"},
-    {"id": "day3-am", "component": "Text", "text": "\ud83c\udf05 **6:00 AM** \u2022 Toyosu Fish Market \u2014 tuna auction viewing deck (reserve online)"},
-    {"id": "day3-lunch", "component": "Text", "text": "\u2615 **12:00 PM** \u2022 Tempura Kondo, Ginza \u2014 Michelin-starred sweet potato tempura"},
-    {"id": "day3-pm", "component": "Text", "text": "\ud83c\udfed **3:00 PM** \u2022 Asakusa \u2014 Nakamise-dori street food (melon pan, ningyo-yaki)"},
-    {"id": "day3-dinner", "component": "Text", "text": "\ud83c\udf19 **7:30 PM** \u2022 Narisawa \u2014 #12 World\u2019s 50 Best, innovative satoyama cuisine"},
+    {"id": "ticket1-card", "component": "FlightTicket", "airline": "All Nippon Airways", "logoUrl": "https://images.kiwi.com/airlines/64/NH.png", "fromCode": "SFO", "toCode": "HND", "flightNo": "NH007", "departureTime": "1:15 PM", "arrivalTime": "5:45 PM+1", "date": "THU MAR 20", "returnFlightNo": "NH008", "returnDepartureTime": "9:55 PM", "returnArrivalTime": "2:10 PM", "returnDate": "SUN MAR 23", "price": "\$2,360", "selected": true, "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "NH007", "price": 2360}}}},
+    {"id": "gap-6", "component": "Gap", "size": "lg"},
+    {"id": "ticket2-card", "component": "FlightTicket", "airline": "Japan Airlines", "logoUrl": "https://images.kiwi.com/airlines/64/JL.png", "fromCode": "SFO", "toCode": "NRT", "flightNo": "JL005", "departureTime": "11:35 AM", "arrivalTime": "3:50 PM+1", "date": "THU MAR 20", "returnFlightNo": "JL006", "returnDepartureTime": "6:30 PM", "returnArrivalTime": "11:00 AM", "returnDate": "SUN MAR 23", "price": "\$2,480", "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "JL005", "price": 2480}}}},
 
-    {"id": "div-hotel", "component": "Gap", "size": "lg"},
+    {"id": "gap-7", "component": "Gap", "size": "xxl"},
 
-    {"id": "hotel-card", "component": "Card", "child": "hotel-col"},
-    {"id": "hotel-col", "component": "Column", "children": ["hotel-badge", "hotel-img", "hotel-name", "hotel-stars", "hotel-detail", "hotel-btn"]},
-    {"id": "hotel-badge", "component": "Text", "variant": "caption", "text": "RECOMMENDED STAY", "fontSize": 9, "color": "#66AAFF"},
-    {"id": "hotel-img", "component": "Image", "url": "https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=800&h=400&fit=crop&auto=format", "variant": "header"},
-    {"id": "hotel-name", "component": "Text", "text": "Hoshinoya Tokyo", "variant": "h4"},
-    {"id": "hotel-stars", "component": "Text", "text": "\u2605\u2605\u2605\u2605\u2605 \u2022 Otemachi \u2022 3 nights", "variant": "caption"},
-    {"id": "hotel-detail", "component": "Text", "text": "Onsen ryokan in the heart of Tokyo \u2022 **\$420/night** \u2022 Private kaiseki dining \u2022 Rooftop hot spring bath"},
-    {"id": "hotel-btn", "component": "Button", "child": "hotel-btn-text", "variant": "borderless", "action": {"event": {"name": "browser_open", "context": {"url": "https://hoshinoya.com/tokyo/en/"}}}},
-    {"id": "hotel-btn-text", "component": "Text", "text": "View Hotel \u2192"},
-
-    {"id": "div-flights", "component": "Gap", "size": "lg"},
-    {"id": "flights-tt", "component": "Text", "variant": "h5", "text": "ROUND-TRIP FLIGHTS", "fontSize": 10, "fontWeight": 800, "letterSpacing": 1.5},
-
-    {"id": "ticket1-card", "component": "Card", "child": "t1-col"},
-    {"id": "t1-col", "component": "Column", "children": ["t1-logo", "t1-div1", "t1-out-label", "t1-out-route", "t1-out-detail", "t1-div2", "t1-ret-label", "t1-ret-route", "t1-ret-detail", "t1-div3", "t1-price", "t1-btn"]},
-    {"id": "t1-logo", "component": "Image", "url": "https://images.kiwi.com/airlines/64/NH.png", "variant": "smallFeature"},
-    {"id": "t1-div1", "component": "Divider"},
-    {"id": "t1-out-label", "component": "Text", "text": "OUTBOUND \u2022 Thu, Mar 20", "variant": "caption"},
-    {"id": "t1-out-route", "component": "Text", "text": "SFO \u2192 HND", "variant": "h4"},
-    {"id": "t1-out-detail", "component": "Text", "text": "NH007 \u2022 Direct \u2022 11h 30m \u2022 Dep 1:15 PM \u2192 Arr 5:45 PM+1"},
-    {"id": "t1-div2", "component": "Divider"},
-    {"id": "t1-ret-label", "component": "Text", "text": "RETURN \u2022 Sun, Mar 23", "variant": "caption"},
-    {"id": "t1-ret-route", "component": "Text", "text": "HND \u2192 SFO", "variant": "h4"},
-    {"id": "t1-ret-detail", "component": "Text", "text": "NH008 \u2022 Direct \u2022 9h 15m \u2022 Dep 9:55 PM \u2192 Arr 2:10 PM (same day)"},
-    {"id": "t1-div3", "component": "Divider"},
-    {"id": "t1-price", "component": "Text", "text": "**\$2,360** round trip \u2022 Economy", "variant": "h5"},
-    {"id": "t1-btn", "component": "Button", "child": "t1-btn-text", "variant": "primary", "value": true, "action": {"event": {"name": "book_flight", "context": {"flight": "NH007/NH008", "price": 2360}}}},
-    {"id": "t1-btn-text", "component": "Text", "text": "Selected ANA"},
-    {"id": "gap-t1t2", "component": "Gap", "size": "md"},
-
-    {"id": "ticket2-card", "component": "Card", "child": "t2-col"},
-    {"id": "t2-col", "component": "Column", "children": ["t2-logo", "t2-div1", "t2-out-label", "t2-out-route", "t2-out-detail", "t2-div2", "t2-ret-label", "t2-ret-route", "t2-ret-detail", "t2-div3", "t2-price", "t2-btn"]},
-    {"id": "t2-logo", "component": "Image", "url": "https://images.kiwi.com/airlines/64/JL.png", "variant": "smallFeature"},
-    {"id": "t2-div1", "component": "Divider"},
-    {"id": "t2-out-label", "component": "Text", "text": "OUTBOUND \u2022 Thu, Mar 20", "variant": "caption"},
-    {"id": "t2-out-route", "component": "Text", "text": "SFO \u2192 NRT", "variant": "h4"},
-    {"id": "t2-out-detail", "component": "Text", "text": "JL005 \u2022 Direct \u2022 11h 15m \u2022 Dep 11:35 AM \u2192 Arr 3:50 PM+1"},
-    {"id": "t2-div2", "component": "Divider"},
-    {"id": "t2-ret-label", "component": "Text", "text": "RETURN \u2022 Sun, Mar 23", "variant": "caption"},
-    {"id": "t2-ret-route", "component": "Text", "text": "NRT \u2192 SFO", "variant": "h4"},
-    {"id": "t2-ret-detail", "component": "Text", "text": "JL006 \u2022 Direct \u2022 9h 30m \u2022 Dep 6:30 PM \u2192 Arr 11:00 AM (same day)"},
-    {"id": "t2-div3", "component": "Divider"},
-    {"id": "t2-price", "component": "Text", "text": "**\$2,480** round trip \u2022 Economy", "variant": "h5"},
-    {"id": "t2-btn", "component": "Button", "child": "t2-btn-text", "variant": "primary", "action": {"event": {"name": "book_flight", "context": {"flight": "JL005/JL006", "price": 2480}}}},
-    {"id": "t2-btn-text", "component": "Text", "text": "Select JAL"},
-    {"id": "gap-t2book", "component": "Gap", "size": "md"},
-
-    {"id": "book-card", "component": "Card", "child": "book-col"},
-    {"id": "book-col", "component": "Column", "children": ["book-summary", "book-total", "book-btn"]},
-    {"id": "book-summary", "component": "Text", "text": "3 nights at Hoshinoya Tokyo + round-trip ANA flights + 12 restaurant reservations", "variant": "body2"},
-    {"id": "book-total", "component": "Text", "text": "Estimated total from **\$3,740**", "variant": "h5"},
-    {"id": "book-btn", "component": "Button", "child": "book-btn-text", "variant": "primary", "action": {"event": {"name": "book_trip", "context": {"city": {"path": "city-picker.value"}, "days": {"path": "days-picker.value"}, "persona": {"path": "persona-picker.value"}, "flight": "ANA"}}}},
-    {"id": "book-btn-text", "component": "Text", "text": "Book Trip"}
+    {"id": "book-card", "component": "BookingSummary", "summary": "3 nights at Hoshinoya Tokyo + round-trip flights + 12 restaurant reservations", "total": "\$3,740", "hotelPrice": "\$1,260", "flightPrice": "\$2,360", "fees": "\$120", "buttonText": "CONFIRM BOOKING", "action": {"event": {"name": "book_trip", "context": {"city": {"path": "city-picker.value"}, "days": {"path": "days-picker.value"}, "vibe": {"path": "vibe-picker.value"}, "flight": {"path": "flights.selectedId"}}}}}
   ]}}
 ]
 ```''';
@@ -1421,40 +1369,32 @@ class DemoCacheAiClient implements AiClient {
   // ---------------------------------------------------------------------------
 
   static const _tokyoArtisticResponse =
-      '''Switching to the artsy persona! Here's your Tokyo art and culture itinerary.
+      '''Switching to the artsy travel style! Here's your curated Tokyo art and culture itinerary.
 
 ```json
 [
   {"version": "v0.9", "updateComponents": {"surfaceId": "tokyo-itin-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "gap-1", "video", "gap-2", "day1-card", "gap-d1d2", "day2-card", "gap-d2d3", "day3-card", "gap-d3h", "hotel-card", "gap-hf", "flights-title", "ticket1-card", "gap-t1t2", "ticket2-card", "gap-t2book", "book-btn"]},
-    {"id": "gap-d1d2", "component": "Gap", "size": "md"},
-    {"id": "gap-d2d3", "component": "Gap", "size": "md"},
-    {"id": "gap-d3h", "component": "Gap", "size": "lg"},
-    {"id": "gap-hf", "component": "Gap", "size": "lg"},
-    {"id": "gap-t1t2", "component": "Gap", "size": "md"},
-    {"id": "gap-t2book", "component": "Gap", "size": "md"},
-    {"id": "title", "component": "Text", "text": "Tokyo \u2014 3 Day Art & Culture Itinerary", "variant": "h4"},
-    {"id": "gap-1", "component": "Gap", "height": 20},
-    {"id": "gap-2", "component": "Gap", "height": 24},
-    {"id": "hotel-img", "component": "Image", "url": "https://images.unsplash.com/photo-1480796927426-f609979314bd?w=800&h=400&fit=crop&auto=format", "variant": "header"},
-    {"id": "hotel-name", "component": "Text", "text": "Park Hyatt Tokyo \u2022 \u2605\u2605\u2605\u2605\u2605", "variant": "h6"},
-    {"id": "hotel-detail", "component": "Text", "text": "Shinjuku \u2022 Iconic Lost in Translation hotel \u2022 \$380/night \u2022 Perfect for art lovers: views of Mt. Fuji, New York Bar"},
-    {"id": "day1-title", "component": "Text", "text": "Day 1 \u2014 Roppongi Art Triangle", "variant": "h5"},
-    {"id": "day1-am", "component": "Text", "text": "\ud83c\udf05 Morning: Mori Art Museum \u2014 contemporary exhibits on the 53rd floor"},
-    {"id": "day1-lunch", "component": "Text", "text": "\u2615 Lunch: The National Art Center cafe \u2014 Kisho Kurokawa\u2019s undulating glass facade"},
-    {"id": "day1-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: 21_21 Design Sight \u2014 Tadao Ando\u2019s design museum"},
-    {"id": "day1-dinner", "component": "Text", "text": "\ud83c\udf19 Dinner: d47 Shokudo (Shibuya) \u2014 curated regional Japanese food"},
-    {"id": "day2-title", "component": "Text", "text": "Day 2 \u2014 TeamLab & Odaiba", "variant": "h5"},
-    {"id": "day2-am", "component": "Text", "text": "\ud83c\udf05 Morning: teamLab Borderless (Azabudai Hills) \u2014 immersive digital art"},
-    {"id": "day2-lunch", "component": "Text", "text": "\u2615 Lunch: Bills Odaiba \u2014 ocean-view ricotta hotcakes"},
-    {"id": "day2-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Palette Town \u2014 Toyota mega-web + VenusFort architecture"},
-    {"id": "day2-dinner", "component": "Text", "text": "\ud83c\udf19 Evening: Shimokitazawa \u2014 indie galleries, vintage shops, live jazz"},
-    {"id": "day3-title", "component": "Text", "text": "Day 3 \u2014 Yanaka & Ghibli", "variant": "h5"},
-    {"id": "day3-am", "component": "Text", "text": "\ud83c\udf05 Morning: Yanaka district \u2014 gallery alley + SCAI The Bathhouse"},
-    {"id": "day3-lunch", "component": "Text", "text": "\u2615 Lunch: Kayaba Coffee \u2014 1916 machiya renovated into a minimalist cafe"},
-    {"id": "day3-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Ghibli Museum (Mitaka) \u2014 reserve tickets 1 month ahead"},
-    {"id": "day3-dinner", "component": "Text", "text": "\ud83c\udf19 Dinner: Florilege (Aoyama) \u2014 #39 World\u2019s 50 Best, French-Japanese fusion"},
-    {"id": "book-btn-text", "component": "Text", "text": "Book Trip"}
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-1", "video", "gap-2", "timeline-card", "gap-3", "hotel-card", "gap-4", "flights-title", "ticket1-card", "gap-5", "ticket2-card", "gap-6", "book-card"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TOKYO 3-DAY ART & CULTURE EXPERIENCE", "subtitle": "MAR 20\u201323, 2026 \u2022 INDIE GALLERIES", "vibe": "ARTSY", "status": "CONFIRMED"},
+    {"id": "gap-1", "component": "Gap", "size": "lg"},
+    {"id": "video", "component": "VideoPlayer", "tripId": "tokyo-foodie-3d"},
+    {"id": "gap-2", "component": "Gap", "size": "xxl"},
+    {"id": "timeline-card", "component": "ItineraryTimeline", "days": [
+      {"dayLabel": "DAY 1 \u2022 ROPPONGI", "title": "Mori Art & Ando Design", "activities": [{"time": "10:00 AM", "label": "Mori Art Museum", "icon": "museum"}, {"time": "1:00 PM", "label": "National Art Center", "icon": "architecture"}, {"time": "3:30 PM", "label": "21_21 Design Sight", "icon": "palette"}, {"time": "7:30 PM", "label": "d47 Shokudo", "icon": "restaurant"}]},
+      {"dayLabel": "DAY 2 \u2022 ODAIBA", "title": "Digital Immersions", "activities": [{"time": "11:00 AM", "label": "teamLab Borderless", "icon": "lightbulb"}, {"time": "2:00 PM", "label": "Bills Odaiba", "icon": "restaurant"}, {"time": "4:00 PM", "label": "Palette Town", "icon": "directions_car"}, {"time": "8:30 PM", "label": "Shimokitazawa Jazz", "icon": "music_note"}]},
+      {"dayLabel": "DAY 3 \u2022 YANAKA", "title": "Nostalgic Tokyo", "activities": [{"time": "9:30 AM", "label": "Yanaka Gallery Crawl", "icon": "brush"}, {"time": "12:30 PM", "label": "Kayaba Coffee", "icon": "coffee"}, {"time": "3:00 PM", "label": "Ghibli Museum", "icon": "animation"}, {"time": "8:00 PM", "label": "Florilege", "icon": "restaurant"}]}
+    ]},
+    {"id": "gap-3", "component": "Gap", "size": "xxxl"},
+    {"id": "hotel-card", "component": "HotelCard", "name": "Park Hyatt Tokyo", "address": "3-7-1-2 Nishi Shinjuku, Shinjuku-ku, Tokyo", "imageUrl": "https://images.unsplash.com/photo-1480796927426-f609979314bd?w=800&h=400&fit=crop&auto=format", "price": "\$380", "rating": 5, "amenities": ["Sky Bar", "Peak Lounge", "Iconic Views"], "checkIn": "15:00", "checkOut": "12:00", "action": {"event": {"name": "browser_open", "context": {"url": "https://www.hyatt.com/en-US/hotel/japan/park-hyatt-tokyo/tyoph"}}}},
+    
+    {"id": "gap-4", "component": "Gap", "size": "xxxl"},
+    {"id": "flights-title", "component": "Text", "text": "AIRLINE OPTIONS", "variant": "h5", "fontSize": 11, "letterSpacing": 1.5},
+    {"id": "ticket1-card", "component": "FlightTicket", "airline": "All Nippon Airways", "logoUrl": "https://images.kiwi.com/airlines/64/NH.png", "fromCode": "SFO", "toCode": "HND", "flightNo": "NH007", "departureTime": "1:15 PM", "arrivalTime": "5:45 PM+1", "date": "THU MAR 20", "returnFlightNo": "NH008", "returnDepartureTime": "9:55 PM", "returnArrivalTime": "2:10 PM", "returnDate": "SUN MAR 23", "price": "\$2,360", "selected": true, "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "NH007", "price": 2360}}}},
+    {"id": "gap-5", "component": "Gap", "size": "lg"},
+    {"id": "ticket2-card", "component": "FlightTicket", "airline": "Japan Airlines", "logoUrl": "https://images.kiwi.com/airlines/64/JL.png", "fromCode": "SFO", "toCode": "NRT", "flightNo": "JL005", "departureTime": "11:35 AM", "arrivalTime": "3:50 PM+1", "date": "THU MAR 20", "returnFlightNo": "JL006", "returnDepartureTime": "6:30 PM", "returnArrivalTime": "11:00 AM", "returnDate": "SUN MAR 23", "price": "\$2,480", "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "JL005", "price": 2480}}}},
+
+    {"id": "gap-6", "component": "Gap", "size": "xxl"},
+    {"id": "book-card", "component": "BookingSummary", "summary": "3 nights at Park Hyatt Tokyo + round-trip flights + museum passes", "total": "\$3,620", "hotelPrice": "\$1,140", "flightPrice": "\$2,360", "fees": "\$120", "buttonText": "CONFIRM BOOKING", "action": {"event": {"name": "book_trip", "context": {"city": {"path": "city-picker.value"}, "days": {"path": "days-picker.value"}, "vibe": {"path": "vibe-picker.value"}, "flight": {"path": "flights.selectedId"}}}}}
   ]}}
 ]
 ```''';
@@ -1464,40 +1404,31 @@ class DemoCacheAiClient implements AiClient {
   // ---------------------------------------------------------------------------
 
   static const _tokyoOutdoorsyResponse =
-      '''Here's the nature and adventure version! Tokyo has amazing outdoor escapes within day-trip distance.
+      '''Here's the nature and adventure travel experience! Tokyo has amazing outdoor escapes within day-trip distance.
 
 ```json
 [
   {"version": "v0.9", "updateComponents": {"surfaceId": "tokyo-itin-001", "components": [
-    {"id": "root", "component": "Column", "children": ["title", "gap-1", "video", "gap-2", "day1-card", "gap-d1d2", "day2-card", "gap-d2d3", "day3-card", "gap-d3h", "hotel-card", "gap-hf", "flights-title", "ticket1-card", "gap-t1t2", "ticket2-card", "gap-t2book", "book-btn"]},
-    {"id": "gap-d1d2", "component": "Gap", "size": "md"},
-    {"id": "gap-d2d3", "component": "Gap", "size": "md"},
-    {"id": "gap-d3h", "component": "Gap", "size": "lg"},
-    {"id": "gap-hf", "component": "Gap", "size": "lg"},
-    {"id": "gap-t1t2", "component": "Gap", "size": "md"},
-    {"id": "gap-t2book", "component": "Gap", "size": "md"},
-    {"id": "title", "component": "Text", "text": "Tokyo \u2014 3 Day Nature & Adventure Itinerary", "variant": "h4"},
-    {"id": "gap-1", "component": "Gap", "height": 20},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-1", "video", "gap-2", "timeline-card", "gap-d3h", "hotel-card", "gap-hf", "flights-title", "ticket1-card", "gap-t1t2", "ticket2-card", "gap-t2book", "book-card"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TOKYO 3-DAY NATURE & ADVENTURE EXPERIENCE", "subtitle": "MAR 20\u201323, 2026 \u2022 ANCIENT FORESTS", "vibe": "OUTDOORSY", "status": "CONFIRMED"},
+    {"id": "gap-1", "component": "Gap", "height": 16},
     {"id": "gap-2", "component": "Gap", "height": 24},
-    {"id": "hotel-img", "component": "Image", "url": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&h=400&fit=crop&auto=format", "variant": "header"},
-    {"id": "hotel-name", "component": "Text", "text": "HOSHINOYA Fuji \u2022 \u2605\u2605\u2605\u2605", "variant": "h6"},
-    {"id": "hotel-detail", "component": "Text", "text": "Kawaguchiko \u2022 Glamping resort overlooking Mt. Fuji \u2022 \$350/night \u2022 Perfect for outdoors: forest activities, stargazing deck"},
-    {"id": "day1-title", "component": "Text", "text": "Day 1 \u2014 Mt. Takao & Meiji Shrine", "variant": "h5"},
-    {"id": "day1-am", "component": "Text", "text": "\ud83c\udf05 Morning: Mt. Takao (599m) \u2014 Trail 1 through cedar forests, 90 min to summit"},
-    {"id": "day1-lunch", "component": "Text", "text": "\u2615 Lunch: Soba noodles at the summit teahouse \u2014 hand-made with mountain spring water"},
-    {"id": "day1-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Meiji Jingu \u2014 100-year-old forest in central Tokyo, 700K trees"},
-    {"id": "day1-dinner", "component": "Text", "text": "\ud83c\udf19 Dinner: Yoyogi Park sunset picnic \u2014 grab bento from Omotesando delis"},
-    {"id": "day2-title", "component": "Text", "text": "Day 2 \u2014 Kamakura Coast", "variant": "h5"},
-    {"id": "day2-am", "component": "Text", "text": "\ud83c\udf05 Morning: Enoshima Island \u2014 sea caves + hawk viewpoint (1h train from Shinjuku)"},
-    {"id": "day2-lunch", "component": "Text", "text": "\u2615 Lunch: Shirasu (whitebait) rice bowl at Enoshima harbor"},
-    {"id": "day2-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Kamakura Great Buddha + Daibutsu hiking trail through bamboo"},
-    {"id": "day2-dinner", "component": "Text", "text": "\ud83c\udf19 Evening: Yuigahama Beach sunset + seafood izakaya"},
-    {"id": "day3-title", "component": "Text", "text": "Day 3 \u2014 Nikko National Park", "variant": "h5"},
-    {"id": "day3-am", "component": "Text", "text": "\ud83c\udf05 Morning: Kegon Falls (97m) \u2014 one of Japan\u2019s top 3 waterfalls"},
-    {"id": "day3-lunch", "component": "Text", "text": "\u2615 Lunch: Yuba (tofu skin) at Nikko\u2019s famous Buddhist restaurants"},
-    {"id": "day3-pm", "component": "Text", "text": "\ud83c\udfed Afternoon: Lake Chuzenji kayaking + Senjogahara marshland boardwalk"},
-    {"id": "day3-dinner", "component": "Text", "text": "\ud83c\udf19 Dinner: Onsen ryokan kaiseki \u2014 soak in volcanic hot springs after a full day"},
-    {"id": "book-btn-text", "component": "Text", "text": "Book Trip"}
+    {"id": "timeline-card", "component": "ItineraryTimeline", "days": [
+      {"dayLabel": "DAY 1 \u2022 MT. TAKAO", "title": "Summits & Shrines", "activities": [{"time": "8:30 AM", "label": "Mt. Takao Hike", "icon": "terrain"}, {"time": "12:30 PM", "label": "Summit Soba", "icon": "restaurant"}, {"time": "3:00 PM", "label": "Meiji Jingu Forest", "icon": "park"}, {"time": "6:30 PM", "label": "Yoyogi Park Sunset", "icon": "wb_sunny"}]},
+      {"dayLabel": "DAY 2 \u2022 KAMAKURA", "title": "Ocean Caves & Buddha", "activities": [{"time": "9:00 AM", "label": "Enoshima Island Caves", "icon": "waves"}, {"time": "1:00 PM", "label": "Harbor Seafood", "icon": "restaurant"}, {"time": "3:30 PM", "label": "Daibutsu Hiking Trail", "icon": "terrain"}, {"time": "7:00 PM", "label": "Yuigahama Beach Izakaya", "icon": "sports_bar"}]},
+      {"dayLabel": "DAY 3 \u2022 NIKKO", "title": "Waterfalls & Zen", "activities": [{"time": "10:00 AM", "label": "Kegon Falls Plunge", "icon": "water_drop"}, {"time": "1:30 PM", "label": "Buddhist Yuba Cuisine", "icon": "restaurant"}, {"time": "4:00 PM", "label": "Lake Chuzenji Kayak", "icon": "rowing"}, {"time": "8:00 PM", "label": "Volcanic Onsen Kaiseki", "icon": "hot_tub"}]}
+    ]},
+    {"id": "gap-d3h", "component": "Gap", "height": 32},
+
+    {"id": "hotel-card", "component": "HotelCard", "name": "HOSHINOYA Fuji", "address": "1408 Oishi, Fujikawaguchiko, Yamanashi", "imageUrl": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&h=400&fit=crop&auto=format", "price": "\$350", "rating": 4, "amenities": ["Glamping", "Mt. Fuji View", "Forest Trails"], "checkIn": "15:00", "checkOut": "11:00", "action": {"event": {"name": "browser_open", "context": {"url": "https://hoshinoya.com/fuji/en/"}}}},
+    
+    {"id": "flights-title", "component": "Text", "text": "AIRLINE OPTIONS", "variant": "h5", "fontSize": 11, "letterSpacing": 1.5},
+    {"id": "ticket1-card", "component": "FlightTicket", "airline": "All Nippon Airways", "logoUrl": "https://images.kiwi.com/airlines/64/NH.png", "fromCode": "SFO", "toCode": "HND", "flightNo": "NH007", "departureTime": "1:15 PM", "arrivalTime": "5:45 PM+1", "date": "THU MAR 20", "returnFlightNo": "NH008", "returnDepartureTime": "9:55 PM", "returnArrivalTime": "2:10 PM", "returnDate": "SUN MAR 23", "price": "\$2,360", "selected": true, "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "NH007", "price": 2360}}}},
+    {"id": "gap-t1t2", "component": "Gap", "height": 16},
+    {"id": "ticket2-card", "component": "FlightTicket", "airline": "Japan Airlines", "logoUrl": "https://images.kiwi.com/airlines/64/JL.png", "fromCode": "SFO", "toCode": "NRT", "flightNo": "JL005", "departureTime": "11:35 AM", "arrivalTime": "3:50 PM+1", "date": "THU MAR 20", "returnFlightNo": "JL006", "returnDepartureTime": "6:30 PM", "returnArrivalTime": "11:00 AM", "returnDate": "SUN MAR 23", "price": "\$2,480", "selectionPath": "flights.selectedId", "action": {"event": {"name": "book_flight", "context": {"flight": "JL005", "price": 2480}}}},
+
+    {"id": "gap-t2book", "component": "Gap", "height": 16},
+    {"id": "book-card", "component": "BookingSummary", "summary": "3 nights at HOSHINOYA Fuji + round-trip flights + guided trails", "total": "\$3,530", "hotelPrice": "\$1,050", "flightPrice": "\$2,360", "fees": "\$120", "buttonText": "CONFIRM BOOKING", "action": {"event": {"name": "book_trip", "context": {"city": {"path": "city-picker.value"}, "days": {"path": "days-picker.value"}, "vibe": {"path": "vibe-picker.value"}, "flight": {"path": "flights.selectedId"}}}}}
   ]}}
 ]
 ```''';
@@ -1509,22 +1440,19 @@ class DemoCacheAiClient implements AiClient {
 [
   {"version": "v0.9", "createSurface": {"surfaceId": "agent-detail-001", "catalogId": "$_catalogId"}},
   {"version": "v0.9", "updateComponents": {"surfaceId": "agent-detail-001", "components": [
-    {"id": "root", "component": "Column", "children": ["header-tt", "status-row", "gap-1", "config-card", "gap-2", "actions"]},
-    {"id": "header-tt", "component": "Text", "variant": "h4", "text": "AGENT: TRAVEL CONCIERGE", "fontSize": 14, "fontWeight": 800},
-    {"id": "status-row", "component": "Row", "children": ["status-spark", "status-tt"]},
-    {"id": "status-spark", "component": "HealthSparkline", "level": "nominal", "width": 60, "height": 20, "showGlow": true},
-    {"id": "status-tt", "component": "Text", "variant": "body", "text": "NOMINAL \u2022 OPUS 4.6", "fontSize": 10, "color": "#00FF88"},
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-1", "config-card", "gap-2", "actions"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TRAVEL CONCIERGE", "subtitle": "VIBE-DRIVEN ITINERARY PLANNING", "vibe": "TRAVEL", "status": "NOMINAL"},
     {"id": "gap-1", "component": "Gap", "height": 16},
     {"id": "config-card", "component": "Card", "child": "config-col"},
     {"id": "config-col", "component": "Column", "children": ["cfg-tt", "cfg-desc"]},
-    {"id": "cfg-tt", "component": "Text", "variant": "h5", "text": "CONFIGURATION", "fontSize": 10},
-    {"id": "cfg-desc", "component": "Text", "text": "Specialized in high-reasoning itinerary planning and persona-driven discovery."},
+    {"id": "cfg-tt", "component": "Text", "variant": "h5", "text": "CONFIGURATION", "fontSize": 10, "letterSpacing": 1.5},
+    {"id": "cfg-desc", "component": "Text", "text": "Specialized in high-reasoning itinerary planning and vibe-driven discovery."},
     {"id": "gap-2", "component": "Gap", "height": 16},
     {"id": "actions", "component": "Row", "children": ["engage-btn", "delete-btn"]},
     {"id": "engage-btn", "component": "Button", "child": "engage-tt", "variant": "primary", "action": {"event": {"name": "navigate", "context": {"text": "Plan a trip"}}}},
     {"id": "engage-tt", "component": "Text", "variant": "body", "text": "ENGAGE"},
     {"id": "delete-btn", "component": "Button", "child": "delete-tt", "variant": "secondary", "action": {"event": {"name": "navigate", "context": {"text": "Delete agent"}}}},
-    {"id": "delete-tt", "component": "Text", "variant": "body", "text": "DEcommission", "color": "#FF4444"}
+    {"id": "delete-tt", "component": "Text", "variant": "body", "text": "DECOMMISSION", "color": "#FF4444"}
   ]}}
 ]
 ```''';

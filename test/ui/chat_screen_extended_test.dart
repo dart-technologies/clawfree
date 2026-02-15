@@ -105,7 +105,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // No crash -- the screen is stable
-      expect(find.text('clawfree'), findsOneWidget);
+      expect(find.text('CLAWFREE'), findsOneWidget);
 
       session.dispose();
     });

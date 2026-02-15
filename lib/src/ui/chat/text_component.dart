@@ -72,8 +72,8 @@ Widget textOverrideCatalogBuilder(CatalogItemContext itemContext) {
         ),
         'label' => Text(
           text.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'JetBrainsMono',
+          style: ClawfreeTheme.technicalStyle(
+            context: context,
             fontWeight: _parseFontWeight(fontWeightOverride ?? 700),
             fontSize: fontSizeOverride ?? 12,
             letterSpacing: letterSpacingOverride ?? 0.8,
@@ -83,8 +83,8 @@ Widget textOverrideCatalogBuilder(CatalogItemContext itemContext) {
         ),
         'overline' => Text(
           text.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'JetBrainsMono',
+          style: ClawfreeTheme.technicalStyle(
+            context: context,
             fontWeight: _parseFontWeight(fontWeightOverride ?? 600),
             fontSize: fontSizeOverride ?? 10,
             letterSpacing: letterSpacingOverride ?? 1.5,

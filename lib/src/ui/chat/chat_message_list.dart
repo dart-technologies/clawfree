@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:genui/genui.dart';
 
 import '../../core/message_item.dart';
-import '../clawfree_icons.dart';
 import '../theme.dart';
+import '../widgets/empty_state_view.dart';
 import 'chat_message_bubble.dart';
 import 'chat_surface_panel.dart';
 import 'chat_surface_view.dart';
@@ -37,7 +36,11 @@ class ChatMessageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (messages.isEmpty) {
-      return _EmptyState(onSend: onSend, agentNames: agentNames);
+      return EmptyStateView(
+        onSend: onSend,
+        agentNames: agentNames,
+        showLogo: !isDesktop,
+      );
     }
 
     return ListView.builder(
@@ -98,70 +101,6 @@ class ChatMessageList extends StatelessWidget {
       isProcessing: isProcessing,
       isStreaming: isStreaming,
       onRetry: onRetry,
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onSend, required this.agentNames});
-
-  final ValueChanged<String> onSend;
-  final List<String> agentNames;
-
-  bool get _hasTravelConcierge =>
-      agentNames.any((name) => name.toLowerCase().contains('travel'));
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                ClawfreeIcons.mic,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Say something to get started',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: [
-                  _chip('Create an agent'),
-                  _chip('Show my agents'),
-                  _chip('Manage OpenClaw'),
-                  _chip('Pair a device'),
-                  _chip('Run a security scan'),
-                  _chip('Check system health'),
-                  if (_hasTravelConcierge) _chip('Plan a trip'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _chip(String text) {
-    return ActionChip(
-      label: Text(text, style: const TextStyle(fontSize: 13)),
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        onSend(text);
-      },
     );
   }
 }
