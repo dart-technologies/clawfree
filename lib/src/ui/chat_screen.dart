@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'watch_flow_overlay.dart';
+import 'widgets/trip_planner_genui.dart';
+import 'widgets/agent_builder_genui.dart';
+import 'package:http/http.dart' as mock_http;
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/chat_session.dart';
@@ -85,6 +88,13 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? _watchUIState;
   StreamSubscription<SyncEvent>? _syncSub;
 
+  /// Mock server polling for simulator mode
+  Timer? _mockPollTimer;
+  /// Current genUI command (from watch or mock server)
+  String? _genUICommand;
+  /// genUI parameters
+  Map<String, dynamic>? _genUIParams;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +155,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Listen for Watch voice events
     _initWatchBridge();
+
+    // Start mock server polling (for simulator demo)
+    _startMockServerPolling();
   }
 
   void _initWatchBridge() {
@@ -360,22 +373,34 @@ class _ChatScreenState extends State<ChatScreen> {
         layout = _buildWatchLayout();
     }
 
-    // Watch UI 狀態同步覆蓋層
-    if (_watchUIState != null) {
+    // genUI panel from mock server or watch command
+    if (_genUICommand != null || _watchUIState != null) {
       return Stack(
         children: [
           layout,
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 80,
-            child: Center(
+          // genUI panel (left side or bottom overlay)
+          if (_genUICommand != null)
+            Positioned(
+              left: 16,
+              bottom: 100,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
-                child: WatchFlowOverlay(state: _watchUIState!),
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: _buildGenUIPanel(),
               ),
             ),
-          ),
+          // Watch UI 狀態同步覆蓋層
+          if (_watchUIState != null && _genUICommand == null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 80,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: WatchFlowOverlay(state: _watchUIState!),
+                ),
+              ),
+            ),
         ],
       );
     }
@@ -748,6 +773,90 @@ class _ChatScreenState extends State<ChatScreen> {
   // Actions
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // Mock Server Polling (simulator demo)
+  // ---------------------------------------------------------------------------
+
+  void _startMockServerPolling() {
+    _mockPollTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+      try {
+        final response = await mock_http.get(
+          Uri.parse('http://localhost:8888/poll'),
+        ).timeout(const Duration(seconds: 2));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body) as Map<String, dynamic>;
+          final commands = (data['commands'] as List?) ?? [];
+          for (final cmd in commands) {
+            final type = cmd['type'] as String? ?? '';
+            final command = cmd['command'] as String? ?? '';
+            final text = cmd['text'] as String? ?? '';
+            final params = (cmd['params'] as Map<String, dynamic>?) ?? {};
+
+            debugPrint('[MockPoll] Received: type=$type command=$command text=$text');
+
+            if (type == 'command' && command.isNotEmpty) {
+              // Structured command → show genUI + send to chat
+              _handleMockCommand(command, params: params);
+              // Also handle via existing watch command handler
+              _handleWatchCommand(command, params: params);
+            } else if (type == 'voice_command' && text.isNotEmpty) {
+              // Voice command text → send to chat
+              if (mounted) {
+                setState(() => _textController.text = text);
+              }
+              _send(text, source: InputSource.watch);
+            }
+          }
+        }
+      } catch (_) {
+        // Mock server not running — silently ignore
+      }
+    });
+  }
+
+  void _handleMockCommand(String command, {Map<String, dynamic>? params}) {
+    if (!mounted) return;
+    setState(() {
+      _genUICommand = command;
+      _genUIParams = params;
+    });
+  }
+
+  void _dismissGenUI() {
+    if (mounted) {
+      setState(() {
+        _genUICommand = null;
+        _genUIParams = null;
+      });
+    }
+  }
+
+  Widget _buildGenUIPanel() {
+    switch (_genUICommand) {
+      case 'plan_a_trip':
+        return TripPlannerGenUI(
+          initialCity: _genUIParams?['city'] as String?,
+          initialDays: _genUIParams?['days'] as int?,
+          onCitySelected: (city, days) {
+            _send('Plan a $days day trip to $city');
+            _dismissGenUI();
+          },
+        );
+      case 'create_agent':
+        return AgentBuilderGenUI(
+          initialModel: _genUIParams?['model'] as String?,
+          initialName: _genUIParams?['name'] as String?,
+          onAgentCreated: (name, model, skills) {
+            final skillStr = skills.isNotEmpty ? ' with skills: ${skills.join(', ')}' : '';
+            _send('Create a $name agent using $model$skillStr');
+            _dismissGenUI();
+          },
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   /// 手錶 → iPhone 選項對照表（手錶簡稱 → genUI 全名）
   static const _cityMapping = {
     'Tokyo': 'Tokyo, Japan',
@@ -970,6 +1079,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _watchSync?.stop();
     _deviceRegistry?.dispose();
     _ttsPollTimer?.cancel();
+    _mockPollTimer?.cancel();
     _watchSub?.cancel();
     _syncSub?.cancel();
     _syncServer?.dispose();

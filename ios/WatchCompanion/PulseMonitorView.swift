@@ -4,9 +4,16 @@ import WatchConnectivity
 // MARK: - Main Watch View — One‑tap voice‑first UX
 
 struct PulseMonitorView: View {
+    // Use mock connectivity in simulator, real WCSession on device
+    #if targetEnvironment(simulator)
+    @StateObject private var mockConnectivity = MockConnectivityProvider()
+    #endif
     @StateObject private var connectivity = ConnectivityProvider()
     @StateObject private var tts = WatchTTSService.shared
     @StateObject private var recorder = AudioRecorder()
+
+    /// Show command picker sheet (mock mode)
+    @State private var showCommandPicker = false
 
     /// 當前顯示的互動流程
     @State private var activeFlow: InteractiveFlow = .none
@@ -103,6 +110,14 @@ struct PulseMonitorView: View {
         }
         .sheet(isPresented: $showDictation) {
             DictationSheet(text: $dictatedText, onDone: handleDictationDone)
+        }
+        .sheet(isPresented: $showCommandPicker) {
+            CommandPickerView { command, displayText, params in
+                #if targetEnvironment(simulator)
+                // Simulate recording animation then send
+                simulateRecordingAndSend(command: command, text: displayText, params: params)
+                #endif
+            }
         }
         .onAppear {
             startIdlePulse()
@@ -225,6 +240,26 @@ struct PulseMonitorView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 2)
+
+                // Simulator: "Simulate Recording" button
+                #if targetEnvironment(simulator)
+                if phase == .idle || phase == .reply {
+                    Button(action: { showCommandPicker = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "record.circle")
+                                .font(.system(size: 10))
+                            Text("Simulate Recording")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(lobsterOrange)
+                    .accessibilityIdentifier("simulateRecordingButton")
+                    .padding(.bottom, 2)
+                }
+                #endif
 
                 // 快捷操作按鈕（idle 或 reply 時顯示）
                 if phase == .idle || phase == .reply {
@@ -478,6 +513,51 @@ struct PulseMonitorView: View {
         withAnimation(.easeInOut(duration: 0.2)) { phase = .sending }
         connectivity.sendVoiceCommand(trimmed)
     }
+
+    // MARK: - Simulator Mock Mode
+
+    #if targetEnvironment(simulator)
+    /// Simulate a recording animation then send command via HTTP mock server
+    private func simulateRecordingAndSend(command: String, text: String, params: [String: Any]) {
+        // Step 1: Recording animation (2 seconds)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            phase = .recording
+            recognizedText = ""
+        }
+        startRecordingPulse()
+        startRipplePulse()
+
+        // Step 2: Typewriter effect after 1.5s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            typewriterEffect(text: text)
+        }
+
+        // Step 3: After typewriter completes (~text.count * 0.05 + 1.5s), send
+        let typewriterDuration = Double(text.count) * 0.05 + 0.3
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5 + typewriterDuration) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                phase = .sending
+                recognizedText = "Sent ✓"
+            }
+
+            // Send via mock HTTP
+            if command == "voice_command" {
+                mockConnectivity.sendVoiceCommand(text)
+            } else {
+                mockConnectivity.sendCommand(command: command, params: params)
+                mockConnectivity.sendVoiceCommand(text)
+            }
+
+            // Reset after 1s
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    phase = .idle
+                    recognizedText = ""
+                }
+            }
+        }
+    }
+    #endif
 
     // MARK: - Demo Mode Animation
 

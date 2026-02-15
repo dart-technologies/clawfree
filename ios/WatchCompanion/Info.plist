@@ -28,5 +28,10 @@
 	<string>Clawfree needs the microphone for voice commands to your AI agent.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Clawfree uses speech recognition to convert your voice to text commands.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
