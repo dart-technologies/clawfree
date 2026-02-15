@@ -5,6 +5,7 @@ import SwiftUI
 struct PulseMonitorView: View {
     @StateObject private var connectivity = ConnectivityProvider()
     @StateObject private var tts = WatchTTSService.shared
+    @StateObject private var demoRunner = DemoScriptRunner.shared
 
     /// 當前顯示的互動流程
     @State private var activeFlow: InteractiveFlow = .none
@@ -35,11 +36,13 @@ struct PulseMonitorView: View {
     @State private var demoScriptIndex = 0
     /// Auto-demo completed count
     @State private var autoDemoCompleted = 0
-    /// Demo scripts
+    /// Demo scripts (Story 1+2 combined — user utterances only)
     private let demoScripts = [
-        "Create a trip planner agent",
-        "Plan a 3 day trip to Tokyo",
-        "Add a sushi making class on day 2"
+        "Plan a 3-day foodie trip to Tokyo",
+        "Save Agent",
+        "Plan a trip",
+        "Generate Itinerary",
+        "Book Trip"
     ]
     /// Recognized text for demo mode (typewriter effect)
     @State private var recognizedText = ""
@@ -104,11 +107,10 @@ struct PulseMonitorView: View {
         }
         .onAppear {
             startIdlePulse()
-            // Auto-demo: start playing after 2s delay
+            // Auto-demo: start Story 1+2 combined script after 2s delay
             if isAutoDemoMode && isDemoMode {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    demoScriptIndex = 0
-                    playDemoAnimation()
+                    demoRunner.start(connectivity: connectivity)
                 }
             }
         }
@@ -208,8 +210,15 @@ struct PulseMonitorView: View {
 
                 Spacer()
 
+                // Chat history from DemoScriptRunner (Story 1+2)
+                if demoRunner.isRunning || demoRunner.isComplete {
+                    ChatHistoryView(messages: demoRunner.chatMessages)
+                        .frame(maxHeight: 80)
+                        .padding(.horizontal, 4)
+                }
+
                 // AI reply bubble (compact)
-                if phase == .reply, let reply = connectivity.lastAiReply {
+                if !demoRunner.isRunning && phase == .reply, let reply = connectivity.lastAiReply {
                     replyBubble(reply)
                 }
 
@@ -464,7 +473,8 @@ struct PulseMonitorView: View {
                 autoDemoCompleted += 1
                 
                 // Auto-demo: chain next script after 2s pause
-                if isAutoDemoMode && autoDemoCompleted < demoScripts.count {
+                // (DemoScriptRunner handles full Story 1+2 flow; this is legacy fallback)
+                if isAutoDemoMode && autoDemoCompleted < demoScripts.count && !demoRunner.isRunning {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         playDemoAnimation()
                     }

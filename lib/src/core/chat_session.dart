@@ -185,6 +185,11 @@ class ChatSession extends ChangeNotifier {
         _messages.add(message);
         voiceController?.speak(message.text ?? '');
         notifyListeners();
+      case SuccessFeedbackResult(:final message):
+        _messages.add(message);
+        voiceController?.speak(message.text ?? '');
+        _triggerSuccessMood();
+        notifyListeners();
       case ModeSwitchResult(:final targetMode, :final message):
         setMode(targetMode);
         if (targetMode == SessionMode.home) {

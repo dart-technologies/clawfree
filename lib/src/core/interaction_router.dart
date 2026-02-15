@@ -27,6 +27,11 @@ sealed class InteractionResult {
     String action,
     MessageItem message,
   ) = SystemActionResult;
+
+  /// Success feedback without mode switch — stay on current screen.
+  const factory InteractionResult.successFeedback(
+    MessageItem message,
+  ) = SuccessFeedbackResult;
 }
 
 class CorrectionResult extends InteractionResult {
@@ -52,6 +57,12 @@ class MaxCorrectionsResult extends InteractionResult {
 class ModeSwitchResult extends InteractionResult {
   const ModeSwitchResult(this.targetMode, this.message);
   final SessionMode targetMode;
+  final MessageItem message;
+}
+
+/// Success feedback without navigation — stays on current screen.
+class SuccessFeedbackResult extends InteractionResult {
+  const SuccessFeedbackResult(this.message);
   final MessageItem message;
 }
 
@@ -245,13 +256,17 @@ class A2uiInteractionRouter {
 
     final toolsStr = (config['tools'] as List).join(', ');
     final channelsStr = (config['channels'] as List).join(', ');
-    final message = _feedbackService.success(
-      'Agent "${config['name']}" saved! '
+
+    genUiLogger.info(
+      'Agent "${config['name']}" saved — '
       'Model: ${config['model']}, '
       'Tools: ${toolsStr.isEmpty ? 'none' : toolsStr}, '
       'Channels: ${channelsStr.isEmpty ? 'none' : channelsStr}.',
     );
-    return InteractionResult.modeSwitch(SessionMode.home, message);
+
+    // Demo flow: after saving agent, auto-trigger Plan Trip (Story 1→2 seamless)
+    // instead of returning to Home.
+    return InteractionResult.userInput('Plan a trip');
   }
 
   // ---------------------------------------------------------------------------
@@ -357,13 +372,14 @@ class A2uiInteractionRouter {
     final persona = _extractFirst(context['persona']) ?? 'foodie';
     final city = _extractFirst(context['city']) ?? 'Tokyo';
 
-    genUiLogger.info('Itinerary saved: $city ($persona)');
+    genUiLogger.info('Itinerary booked: $city ($persona)');
 
+    // Demo flow: stay on itinerary screen after booking (no Home navigation).
+    // Return success feedback without mode switch.
     final message = _feedbackService.success(
-      'Your $city $persona itinerary has been booked!',
+      'Your $city $persona itinerary has been booked! 🎉',
     );
-
-    return InteractionResult.modeSwitch(SessionMode.home, message);
+    return InteractionResult.successFeedback(message);
   }
 
   /// Extract the first element from a value that may be a List or a String.

@@ -290,12 +290,11 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       ),
     );
 
-    // Step 3: Plan Trip
-    await Future<void>.delayed(const Duration(seconds: 3));
-    await session.sendVoiceCommand('Plan a trip');
+    // Step 3: Plan Trip is auto-triggered by save_agent → userInput("Plan a trip")
+    // Wait for the travel setup genUI to render.
 
     // Step 4: Generate Itinerary interaction
-    await Future<void>.delayed(const Duration(seconds: 4));
+    await Future<void>.delayed(const Duration(seconds: 7));
     // For generate_itinerary, we simulate interaction AND handle the result text manually
     // because simulation triggers side effects but doesn't return the result synchronously here.
     // Actually, simulation triggers _performGeneration if it's UserInputResult.
