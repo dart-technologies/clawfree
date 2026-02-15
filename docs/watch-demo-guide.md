@@ -29,9 +29,23 @@ Apple Watch ──WatchConnectivity──► iPhone (Flutter) ──► AI Backe
    - 適合錄製 Demo 影片
 
 ### iPhone 端
-- 接收手錶 `command` → 對應 AI 指令（plan a trip / create agent）
+- 接收手錶 `command` + `params` → genUI 自動填入選項 + 送出 AI 指令
+- 選項對照表自動映射（如 "Tokyo" → "Tokyo, Japan"）
 - 接收手錶 `text` → 顯示在輸入框 + 自動送出
 - 接收手錶 `voice_command` → 舊格式相容
+
+### Watch ↔ iPhone 選項對照表
+
+| Watch 顯示 | iPhone genUI |
+|-----------|-------------|
+| Tokyo | Tokyo, Japan |
+| Kyoto | Kyoto, Japan |
+| Osaka | Osaka, Japan |
+| Seoul | Seoul, South Korea |
+| Bangkok | Bangkok, Thailand |
+| Opus 4.6 | Claude Opus 4.6 |
+| Sonnet 4.5 | Claude Sonnet 4.5 |
+| Gemini Pro | Gemini Pro |
 
 ## 編譯
 
@@ -78,10 +92,17 @@ open ios/Runner.xcworkspace
 3. 文字出現在手錶螢幕
 4. iPhone 同時顯示收到的指令 + AI 開始回應
 
-### 場景二：按鈕快速操作（20s）
+### 場景二：按鈕快速操作 + genUI 同步（20s）
 1. 手錶按 "Plan Trip" 按鈕
 2. 進入旅行規劃流程（選城市 → 天數 → 景點）
-3. iPhone 即時同步顯示手錶操作
+3. 點擊 "Start Planning" → 發送 `command: plan_a_trip` + `params: {city, days, attractions}`
+4. iPhone genUI 自動顯示對應選項（如 Tokyo, Japan + 3 days）
+
+### 場景四：Create Agent genUI 同步（20s）
+1. 手錶按 "Create Agent" 按鈕
+2. 選模型（Sonnet 4.5）→ 選技能 → 確認
+3. 點擊 "Create" → 發送 `command: create_agent` + `params: {model, name, skills}`
+4. iPhone genUI 自動顯示 Claude Sonnet 4.5 + 技能列表
 
 ### 場景三：中文語音指令（20s）
 1. 點擊麥克風 → 說中文 "幫我規劃三天東京行程"

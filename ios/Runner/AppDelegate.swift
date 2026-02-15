@@ -146,13 +146,17 @@ import WatchConnectivity
           }
 
       case "command":
-          // 結構化指令（按鈕觸發）：plan_a_trip, create_agent
+          // 結構化指令（按鈕觸發）：plan_a_trip, create_agent（含 params）
           if let command = message["command"] as? String {
-              WatchEventStreamHandler.shared.send([
+              var event: [String: Any] = [
                   "type": "command",
                   "command": command,
                   "timestamp": timestamp,
-              ])
+              ]
+              if let params = message["params"] as? [String: Any] {
+                  event["params"] = params
+              }
+              WatchEventStreamHandler.shared.send(event)
           }
 
       case "text":

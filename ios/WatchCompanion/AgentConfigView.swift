@@ -216,8 +216,17 @@ struct AgentConfigView: View {
                     .buttonStyle(.bordered)
 
                 Button(action: {
-                    let selectedSkills = skills.filter(\.selected).map(\.name).joined(separator: ", ")
-                    let command = "Create a trip planner agent with \(models[selectedModel].0) and skills: \(selectedSkills)"
+                    let selectedSkills = skills.filter(\.selected).map(\.name)
+                    // 發送結構化指令到 iPhone（帶參數，genUI 同步用）
+                    connectivity.sendCommand(
+                        command: "create_agent",
+                        params: [
+                            "model": models[selectedModel].0,
+                            "name": "Trip Planner Agent",
+                            "skills": selectedSkills,
+                        ]
+                    )
+                    let command = "Create a trip planner agent with \(models[selectedModel].0) and skills: \(selectedSkills.joined(separator: ", "))"
                     onComplete(command)
                 }) {
                     HStack(spacing: 4) {

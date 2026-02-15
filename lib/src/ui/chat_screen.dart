@@ -164,9 +164,9 @@ class _ChatScreenState extends State<ChatScreen> {
             _syncServer?.broadcastRaw(event.uiState!);
             if (mounted) setState(() { _watchUIState = event.uiState; });
           } else if (event.isCommand && event.command != null) {
-            // 結構化指令：plan_a_trip, create_agent → Deep Link 導航
-            debugPrint('[ChatScreen] Watch structured command: ${event.command}');
-            _handleWatchCommand(event.command!);
+            // 結構化指令：plan_a_trip, create_agent → 帶參數同步 genUI
+            debugPrint('[ChatScreen] Watch structured command: ${event.command} params=${event.params}');
+            _handleWatchCommand(event.command!, params: event.params);
             WatchBridge.broadcastToRelay(event);
           } else if (event.isTranscribedText && event.text!.isNotEmpty) {
             // 手錶 Groq STT 轉錄文字 → 顯示在畫面上 + 送出
@@ -748,17 +748,80 @@ class _ChatScreenState extends State<ChatScreen> {
   // Actions
   // ---------------------------------------------------------------------------
 
-  /// 處理手錶結構化指令 — Deep Link 風格導航
-  void _handleWatchCommand(String command) {
+  /// 手錶 → iPhone 選項對照表（手錶簡稱 → genUI 全名）
+  static const _cityMapping = {
+    'Tokyo': 'Tokyo, Japan',
+    'Kyoto': 'Kyoto, Japan',
+    'Osaka': 'Osaka, Japan',
+    'Seoul': 'Seoul, South Korea',
+    'Bangkok': 'Bangkok, Thailand',
+    'Paris': 'Paris, France',
+    'New York': 'New York, USA',
+    'London': 'London, UK',
+  };
+
+  static const _modelMapping = {
+    'Opus 4.6': 'Claude Opus 4.6',
+    'Sonnet 4.5': 'Claude Sonnet 4.5',
+    'Gemini Pro': 'Gemini Pro',
+    'GPT-4': 'GPT-4 Turbo',
+  };
+
+  /// 處理手錶結構化指令 — 帶參數同步 genUI 選項
+  void _handleWatchCommand(String command, {Map<String, dynamic>? params}) {
+    debugPrint('[ChatScreen] Watch command: $command params=$params');
+
     switch (command) {
       case 'plan_a_trip':
-        debugPrint('[ChatScreen] Watch command → Plan Trip');
-        _send('Plan a trip', source: InputSource.watch);
+        final city = params?['city'] as String? ?? '';
+        final days = params?['days'] as int? ?? 3;
+        final attractions = (params?['attractions'] as List?)?.cast<String>() ?? [];
+        final mappedCity = _cityMapping[city] ?? city;
+
+        // 同步 Watch UI 狀態到 genUI overlay
+        if (mounted) {
+          setState(() {
+            _watchUIState = {
+              'flow': 'tripPlanner',
+              'step': 3,  // 確認步驟
+              'selectedCity': city,
+              'selectedDays': days,
+              'selectedAttractions': attractions,
+              'mappedCity': mappedCity,
+              'source': 'watch_command',
+            };
+          });
+        }
+
+        final attractionStr = attractions.isNotEmpty ? ' including ${attractions.join(', ')}' : '';
+        _send('Plan a $days day trip to $mappedCity$attractionStr', source: InputSource.watch);
         break;
+
       case 'create_agent':
-        debugPrint('[ChatScreen] Watch command → Create Agent');
-        _send('Create an agent', source: InputSource.watch);
+        final model = params?['model'] as String? ?? '';
+        final name = params?['name'] as String? ?? 'Agent';
+        final skills = (params?['skills'] as List?)?.cast<String>() ?? [];
+        final mappedModel = _modelMapping[model] ?? model;
+
+        // 同步 Watch UI 狀態到 genUI overlay
+        if (mounted) {
+          setState(() {
+            _watchUIState = {
+              'flow': 'agentConfig',
+              'step': 2,  // 確認步驟
+              'selectedModel': model,
+              'selectedSkills': skills,
+              'mappedModel': mappedModel,
+              'agentName': name,
+              'source': 'watch_command',
+            };
+          });
+        }
+
+        final skillStr = skills.isNotEmpty ? ' and skills: ${skills.join(', ')}' : '';
+        _send('Create a $name with $mappedModel$skillStr', source: InputSource.watch);
         break;
+
       default:
         debugPrint('[ChatScreen] Unknown watch command: $command');
         _send(command, source: InputSource.watch);

@@ -71,6 +71,37 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// 傳送結構化指令到 iPhone（帶參數，用於 genUI 同步）
+    func sendCommand(command: String, params: [String: Any] = [:]) {
+        let state = WCSession.default.activationState
+        print("[Watch→Phone] sendCommand('\(command)') params=\(params) state=\(state.rawValue)")
+
+        guard state == .activated else {
+            print("[Watch→Phone] BLOCKED: WCSession not activated")
+            return
+        }
+
+        var payload: [String: Any] = [
+            "type": "command",
+            "command": command,
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        if !params.isEmpty {
+            payload["params"] = params
+        }
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: { reply in
+                print("[Watch→Phone] Command ACK: \(reply)")
+            }, errorHandler: { error in
+                print("[Watch→Phone] sendCommand FAILED: \(error.localizedDescription), falling back")
+                WCSession.default.transferUserInfo(payload)
+            })
+        } else {
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
+
     /// 傳送 Watch UI 狀態到 iPhone（即時同步每一步操作）
     func sendUIState(_ state: [String: Any]) {
         guard WCSession.default.activationState == .activated else { return }

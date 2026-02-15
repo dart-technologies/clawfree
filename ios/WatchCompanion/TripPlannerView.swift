@@ -289,8 +289,17 @@ struct TripPlannerView: View {
                     .buttonStyle(.bordered)
 
                 Button(action: {
-                    let selectedAttr = attractions.filter(\.selected).map(\.name).joined(separator: ", ")
-                    let command = "Plan a \(daysOptions[selectedDays]) day trip to \(cities[selectedCity].name) including \(selectedAttr)"
+                    let selectedAttr = attractions.filter(\.selected).map(\.name)
+                    // 發送結構化指令到 iPhone（帶參數，genUI 同步用）
+                    connectivity.sendCommand(
+                        command: "plan_a_trip",
+                        params: [
+                            "city": cities[selectedCity].name,
+                            "days": daysOptions[selectedDays],
+                            "attractions": selectedAttr,
+                        ]
+                    )
+                    let command = "Plan a \(daysOptions[selectedDays]) day trip to \(cities[selectedCity].name) including \(selectedAttr.joined(separator: ", "))"
                     onComplete(command)
                 }) {
                     HStack(spacing: 4) {

@@ -17,6 +17,7 @@ class WatchVoiceEvent {
     required this.timestamp,
     required this.type,
     this.command,
+    this.params,
     this.uiState,
   });
 
@@ -34,6 +35,9 @@ class WatchVoiceEvent {
 
   /// 結構化指令名稱（如 "plan_a_trip", "create_agent"）
   final String? command;
+
+  /// 結構化指令參數（如 {"city": "Tokyo", "days": 3}）
+  final Map<String, dynamic>? params;
 
   /// Watch UI 狀態資料（flow, step, selections 等）
   final Map<String, dynamic>? uiState;
@@ -56,6 +60,11 @@ class WatchVoiceEvent {
     if (map['type'] == 'ui_state') {
       uiState = Map<String, dynamic>.from(map);
     }
+    // 提取 params（結構化指令參數）
+    Map<String, dynamic>? params;
+    if (map['params'] != null) {
+      params = Map<String, dynamic>.from(map['params'] as Map);
+    }
     return WatchVoiceEvent(
       filePath: map['filePath'] as String?,
       text: map['text'] as String?,
@@ -65,6 +74,7 @@ class WatchVoiceEvent {
           : DateTime.now(),
       type: map['type'] as String? ?? 'voice',
       command: map['command'] as String?,
+      params: params,
       uiState: uiState,
     );
   }
