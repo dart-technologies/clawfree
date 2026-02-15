@@ -1,10 +1,12 @@
 import SwiftUI
+import WatchConnectivity
 
 // MARK: - Main Watch View — One‑tap voice‑first UX
 
 struct PulseMonitorView: View {
     @StateObject private var connectivity = ConnectivityProvider()
     @StateObject private var tts = WatchTTSService.shared
+    @StateObject private var recorder = AudioRecorder()
 
     /// 當前顯示的互動流程
     @State private var activeFlow: InteractiveFlow = .none
@@ -233,6 +235,9 @@ struct PulseMonitorView: View {
                                 demoScriptIndex = 0
                                 playDemoAnimation()
                             } else {
+                                // 發送結構化指令
+                                sendStructuredCommand("create_agent")
+                                connectivity.sendVoiceCommand("create agent")
                                 withAnimation { activeFlow = .agentConfig }
                             }
                         }) {
@@ -255,6 +260,9 @@ struct PulseMonitorView: View {
                                 demoScriptIndex = 1
                                 playDemoAnimation()
                             } else {
+                                // 發送結構化指令
+                                sendStructuredCommand("plan_a_trip")
+                                connectivity.sendVoiceCommand("plan a trip")
                                 withAnimation { activeFlow = .tripPlanner }
                             }
                         }) {
@@ -346,21 +354,104 @@ struct PulseMonitorView: View {
                 // Demo mode: play animation instead of real dictation
                 playDemoAnimation()
             } else {
-                // Normal mode: open dictation sheet
+                // Real mode: start recording with AVAudioRecorder
                 withAnimation(.easeInOut(duration: 0.2)) { phase = .recording }
                 startRecordingPulse()
-                dictatedText = ""
-                showDictation = true
+                recognizedText = ""
+                recorder.startRecording()
             }
         case .recording:
-            if !isDemoMode {
-                // Normal mode: tapping again while recording → cancel
-                showDictation = false
-                withAnimation { phase = .idle }
+            if isDemoMode {
+                // Demo mode: ignore tap while animating
+            } else {
+                // Real mode: stop recording → send to Groq STT
+                guard let url = recorder.stopRecording() else {
+                    withAnimation { phase = .idle }
+                    return
+                }
+                withAnimation(.easeInOut(duration: 0.2)) { phase = .sending }
+                recognizedText = "Transcribing..."
+                
+                GroqSTTService.shared.transcribe(fileURL: url) { result in
+                    DispatchQueue.main.async {
+                        recorder.cleanup()
+                        switch result {
+                        case .success(let text):
+                            guard !text.isEmpty else {
+                                recognizedText = ""
+                                withAnimation { phase = .idle }
+                                return
+                            }
+                            recognizedText = text
+                            // 自動判斷指令 or 一般文字
+                            let lower = text.lowercased()
+                            if lower.contains("create") && lower.contains("agent") {
+                                connectivity.sendVoiceCommand(text)
+                                // 也發送結構化指令
+                                sendStructuredCommand("create_agent")
+                                withAnimation { phase = .sending }
+                            } else if lower.contains("plan") && (lower.contains("trip") || lower.contains("travel")) {
+                                connectivity.sendVoiceCommand(text)
+                                sendStructuredCommand("plan_a_trip")
+                                withAnimation { phase = .sending }
+                            } else {
+                                // 一般文字：發送到 iPhone
+                                sendTranscribedText(text)
+                                connectivity.sendVoiceCommand(text)
+                                withAnimation { phase = .sending }
+                            }
+                            
+                            // 0.8s 後回到 idle
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                withAnimation { phase = .idle }
+                            }
+                            
+                        case .failure(let error):
+                            recognizedText = "Error: \(error.localizedDescription)"
+                            withAnimation { phase = .idle }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                recognizedText = ""
+                            }
+                        }
+                    }
+                }
             }
-            // Demo mode: ignore tap while animating
         case .sending:
             break // ignore taps while sending
+        }
+    }
+    
+    /// 發送結構化指令到 iPhone
+    private func sendStructuredCommand(_ command: String) {
+        let payload: [String: Any] = [
+            "type": "command",
+            "command": command,
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        guard WCSession.default.activationState == .activated else { return }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: { error in
+                print("[Watch] sendStructuredCommand error: \(error)")
+            })
+        } else {
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
+    
+    /// 發送轉錄文字到 iPhone
+    private func sendTranscribedText(_ text: String) {
+        let payload: [String: Any] = [
+            "type": "text",
+            "text": text,
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ]
+        guard WCSession.default.activationState == .activated else { return }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: { error in
+                print("[Watch] sendTranscribedText error: \(error)")
+            })
+        } else {
+            WCSession.default.transferUserInfo(payload)
         }
     }
 

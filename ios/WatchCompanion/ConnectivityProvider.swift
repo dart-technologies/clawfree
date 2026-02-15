@@ -107,6 +107,12 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
             self.healthLevel = applicationContext["healthLevel"] as? String ?? "nominal"
             self.isListening = applicationContext["isListening"] as? Bool ?? false
             self.isPhoneActive = applicationContext["isPhoneActive"] as? Bool ?? false
+
+            // 從 iPhone 接收 Groq API Key
+            if let groqKey = applicationContext["groqApiKey"] as? String, !groqKey.isEmpty {
+                GroqSTTService.setApiKey(groqKey)
+                print("[Watch] Groq API Key received from iPhone")
+            }
         }
     }
 

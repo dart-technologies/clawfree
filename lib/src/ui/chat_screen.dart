@@ -157,12 +157,27 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       _watchSub = WatchBridge.onVoiceReceived.listen(
         (event) {
-          debugPrint('[ChatScreen] Watch event received: type=${event.type} text="${event.text}" isTextCommand=${event.isTextCommand}');
+          debugPrint('[ChatScreen] Watch event received: type=${event.type} text="${event.text}" command="${event.command}" isTextCommand=${event.isTextCommand}');
           if (event.isUIState && event.uiState != null) {
             // Watch UI 狀態同步 → 廣播到 iPad/macOS + 更新本機顯示
             debugPrint('[ChatScreen] Watch UI state: ${event.uiState}');
             _syncServer?.broadcastRaw(event.uiState!);
             if (mounted) setState(() { _watchUIState = event.uiState; });
+          } else if (event.isCommand && event.command != null) {
+            // 結構化指令：plan_a_trip, create_agent → Deep Link 導航
+            debugPrint('[ChatScreen] Watch structured command: ${event.command}');
+            _handleWatchCommand(event.command!);
+            WatchBridge.broadcastToRelay(event);
+          } else if (event.isTranscribedText && event.text!.isNotEmpty) {
+            // 手錶 Groq STT 轉錄文字 → 顯示在畫面上 + 送出
+            debugPrint('[ChatScreen] Watch transcribed text: "${event.text}"');
+            if (mounted) {
+              setState(() {
+                _textController.text = event.text!;
+              });
+            }
+            _send(event.text!, source: InputSource.watch);
+            WatchBridge.broadcastToRelay(event);
           } else if (event.isTextCommand && event.text!.isNotEmpty) {
             debugPrint('[ChatScreen] Forwarding Watch command to chat: "${event.text}"');
             // (a) Display in input field
@@ -732,6 +747,23 @@ class _ChatScreenState extends State<ChatScreen> {
   // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
+
+  /// 處理手錶結構化指令 — Deep Link 風格導航
+  void _handleWatchCommand(String command) {
+    switch (command) {
+      case 'plan_a_trip':
+        debugPrint('[ChatScreen] Watch command → Plan Trip');
+        _send('Plan a trip', source: InputSource.watch);
+        break;
+      case 'create_agent':
+        debugPrint('[ChatScreen] Watch command → Create Agent');
+        _send('Create an agent', source: InputSource.watch);
+        break;
+      default:
+        debugPrint('[ChatScreen] Unknown watch command: $command');
+        _send(command, source: InputSource.watch);
+    }
+  }
 
   void _sendFromTextField() {
     final text = _textController.text.trim();

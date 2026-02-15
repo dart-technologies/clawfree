@@ -132,16 +132,45 @@ import WatchConnectivity
   private func handleWatchVoiceCommand(_ message: [String: Any]) {
       guard let type = message["type"] as? String else { return }
 
-      if type == "voice_command", let text = message["text"] as? String {
-          let event: [String: Any] = [
-              "type": "voice_command",
-              "text": text,
-              "timestamp": message["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000),
-          ]
-          WatchEventStreamHandler.shared.send(event)
-      } else if type == "ui_state" {
+      let timestamp = message["timestamp"] ?? Int(Date().timeIntervalSince1970 * 1000)
+
+      switch type {
+      case "voice_command":
+          // 語音指令（舊格式，向後相容）
+          if let text = message["text"] as? String {
+              WatchEventStreamHandler.shared.send([
+                  "type": "voice_command",
+                  "text": text,
+                  "timestamp": timestamp,
+              ])
+          }
+
+      case "command":
+          // 結構化指令（按鈕觸發）：plan_a_trip, create_agent
+          if let command = message["command"] as? String {
+              WatchEventStreamHandler.shared.send([
+                  "type": "command",
+                  "command": command,
+                  "timestamp": timestamp,
+              ])
+          }
+
+      case "text":
+          // 手錶轉錄文字（Groq Whisper STT 結果）
+          if let text = message["text"] as? String {
+              WatchEventStreamHandler.shared.send([
+                  "type": "text",
+                  "text": text,
+                  "timestamp": timestamp,
+              ])
+          }
+
+      case "ui_state":
           // Watch UI 狀態同步 → 直接轉發到 Flutter
           WatchEventStreamHandler.shared.send(message)
+
+      default:
+          print("[Watch] Unknown message type: \(type)")
       }
   }
 }

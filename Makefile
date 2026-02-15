@@ -58,8 +58,11 @@ build-apk: ## Build Android release (APK)
 # WatchOS Companion
 # ---------------------------------------------------------------------------
 
-build-watch: ## Build WatchOS companion
-	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build
+build-watch: ## Build WatchOS companion (no signing, for CI)
+	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build CODE_SIGNING_ALLOWED=NO
+
+build-watch-device: ## Build + install WatchOS companion to device (requires signing)
+	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build -allowProvisioningUpdates
 
 # ---------------------------------------------------------------------------
 # Production & QA (Docker)

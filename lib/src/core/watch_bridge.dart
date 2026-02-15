@@ -16,6 +16,7 @@ class WatchVoiceEvent {
     this.text,
     required this.timestamp,
     required this.type,
+    this.command,
     this.uiState,
   });
 
@@ -27,14 +28,24 @@ class WatchVoiceEvent {
 
   final DateTime timestamp;
 
-  /// Event type: `"voice"` (file), `"voice_command"` (text), `"ai_reply"`, or `"ui_state"`.
+  /// Event type: `"voice"` (file), `"voice_command"` (text), `"command"` (structured),
+  /// `"text"` (transcribed), `"ai_reply"`, or `"ui_state"`.
   final String type;
+
+  /// 結構化指令名稱（如 "plan_a_trip", "create_agent"）
+  final String? command;
 
   /// Watch UI 狀態資料（flow, step, selections 等）
   final Map<String, dynamic>? uiState;
 
   /// Whether this is a text-based voice command (speech recognized on Watch).
   bool get isTextCommand => type == 'voice_command' && text != null;
+
+  /// Whether this is a structured command from Watch buttons.
+  bool get isCommand => type == 'command' && command != null;
+
+  /// Whether this is transcribed text from Watch Groq STT.
+  bool get isTranscribedText => type == 'text' && text != null;
 
   /// Whether this is a Watch UI state sync event.
   bool get isUIState => type == 'ui_state';
@@ -53,6 +64,7 @@ class WatchVoiceEvent {
               (map['timestamp'] as num).toInt())
           : DateTime.now(),
       type: map['type'] as String? ?? 'voice',
+      command: map['command'] as String?,
       uiState: uiState,
     );
   }

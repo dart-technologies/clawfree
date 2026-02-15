@@ -14,6 +14,8 @@
 		5067092B572DA3867142BD27 /* WatchCompanion.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 5731CB3D7A8BF86FF55E0F2B /* WatchCompanion.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		888581C3F9047B3049648DC9 /* WatchTTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6507D09E771C459BFCF9A8 /* WatchTTSService.swift */; };
+		AA0001010000000000000001 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001020000000000000001 /* AudioRecorder.swift */; };
+		AA0001030000000000000001 /* GroqSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001040000000000000001 /* GroqSTTService.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -111,6 +113,8 @@
 		E0F2F43C2BC8F51A224D0568 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		E0F4477AB7CFC973950E10CE /* WatchCompanionUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WatchCompanionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF6507D09E771C459BFCF9A8 /* WatchTTSService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchTTSService.swift; sourceTree = "<group>"; };
+		AA0001020000000000000001 /* AudioRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
+		AA0001040000000000000001 /* GroqSTTService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GroqSTTService.swift; sourceTree = "<group>"; };
 		TR01TRIP0001000000000001 /* TripPlannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripPlannerView.swift; sourceTree = "<group>"; };
 		WC000005000000000000000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		WC000007000000000000000A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -258,6 +262,8 @@
 				4ECFCEB1F8047B9579A1D484 /* ConnectivityProvider.swift */,
 				WC000005000000000000000A /* Info.plist */,
 				FF6507D09E771C459BFCF9A8 /* WatchTTSService.swift */,
+				AA0001020000000000000001 /* AudioRecorder.swift */,
+				AA0001040000000000000001 /* GroqSTTService.swift */,
 				AC01AGNT0001000000000001 /* AgentConfigView.swift */,
 				TR01TRIP0001000000000001 /* TripPlannerView.swift */,
 				WC000007000000000000000A /* Assets.xcassets */,
@@ -556,6 +562,8 @@
 				WC000003000000000000000A /* SpeechRecognizer.swift in Sources */,
 				WC000004000000000000000A /* ConnectivityProvider.swift in Sources */,
 				888581C3F9047B3049648DC9 /* WatchTTSService.swift in Sources */,
+				AA0001010000000000000001 /* AudioRecorder.swift in Sources */,
+				AA0001030000000000000001 /* GroqSTTService.swift in Sources */,
 				AC02AGNT0002000000000001 /* AgentConfigView.swift in Sources */,
 				TR02TRIP0002000000000001 /* TripPlannerView.swift in Sources */,
 			);
