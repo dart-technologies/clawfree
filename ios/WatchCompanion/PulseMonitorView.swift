@@ -233,55 +233,55 @@ struct PulseMonitorView: View {
                 }
                 .padding(.bottom, 2)
 
-                // 快捷操作按鈕（idle 或 reply 時顯示）
-                if phase == .idle || phase == .reply {
-                    HStack(spacing: 6) {
-                        Button(action: {
-                            if isDemoMode {
-                                // Demo mode: trigger "Create Agent" script
-                                demoScriptIndex = 0
-                                playDemoAnimation()
-                            } else {
-                                withAnimation { activeFlow = .agentConfig }
-                            }
-                        }) {
-                            HStack(spacing: 2) {
-                                Image(systemName: "cpu")
-                                    .font(.system(size: 8))
-                                Text("Create Agent")
-                                    .font(.system(size: 9))
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(lobsterOrange)
-                        .accessibilityIdentifier("createAgentButton")
-
-                        Button(action: {
-                            if isDemoMode {
-                                // Demo mode: trigger "Plan Trip" script
-                                demoScriptIndex = 1
-                                playDemoAnimation()
-                            } else {
-                                withAnimation { activeFlow = .tripPlanner }
-                            }
-                        }) {
-                            HStack(spacing: 2) {
-                                Image(systemName: "airplane")
-                                    .font(.system(size: 8))
-                                Text("Plan Trip")
-                                    .font(.system(size: 9))
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(teal)
-                        .accessibilityIdentifier("planTripButton")
-                    }
-                    .padding(.bottom, 2)
-                }
+                // 快捷操作按鈕（Demo Mode 移除，腳本自動執行）
+                // if phase == .idle || phase == .reply {
+                //     HStack(spacing: 6) {
+                //         Button(action: {
+                //             if isDemoMode {
+                //                 // Demo mode: trigger "Create Agent" script
+                //                 demoScriptIndex = 0
+                //                 playDemoAnimation()
+                //             } else {
+                //                 withAnimation { activeFlow = .agentConfig }
+                //             }
+                //         }) {
+                //             HStack(spacing: 2) {
+                //                 Image(systemName: "cpu")
+                //                     .font(.system(size: 8))
+                //                 Text("Create Agent")
+                //                     .font(.system(size: 9))
+                //             }
+                //             .padding(.horizontal, 6)
+                //             .padding(.vertical, 3)
+                //         }
+                //         .buttonStyle(.bordered)
+                //         .tint(lobsterOrange)
+                //         .accessibilityIdentifier("createAgentButton")
+                //
+                //         Button(action: {
+                //             if isDemoMode {
+                //                 // Demo mode: trigger "Plan Trip" script
+                //                 demoScriptIndex = 1
+                //                 playDemoAnimation()
+                //             } else {
+                //                 withAnimation { activeFlow = .tripPlanner }
+                //             }
+                //         }) {
+                //             HStack(spacing: 2) {
+                //                 Image(systemName: "airplane")
+                //                     .font(.system(size: 8))
+                //                 Text("Plan Trip")
+                //                     .font(.system(size: 9))
+                //             }
+                //             .padding(.horizontal, 6)
+                //             .padding(.vertical, 3)
+                //         }
+                //         .buttonStyle(.bordered)
+                //         .tint(teal)
+                //         .accessibilityIdentifier("planTripButton")
+                //     }
+                //     .padding(.bottom, 2)
+                // }
             }
         }
     
