@@ -46,7 +46,7 @@ class DemoScriptRunner: ObservableObject {
 
         // Step 7: AI starts planning
         ScriptStep(text: "Perfect! I'll start planning your 3-day foodie trip to Tokyo now.",
-                   isUser: false, delayAfter: 2.5, sendToPhone: false,
+                   isUser: false, delayAfter: 6.0, sendToPhone: false,
                    isThinking: false, isSuccess: false, isHighlight: true),
 
         // Step 8: User requests itinerary
