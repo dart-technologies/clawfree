@@ -55,6 +55,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   bool _handsFreeEnabled = false;
+  bool _pendingGenUIScroll = false;
 
   @override
   void initState() {
@@ -87,7 +88,23 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _onSessionChanged() {
-    _scrollToBottom();
+    // 檢查是否有新的 Surface 訊息（genUI），如果有則延遲滾動讓 UI 渲染完成
+    final hasNewSurface = _session.messages.isNotEmpty &&
+        _session.messages.last.isSurface;
+    
+    if (hasNewSurface && !_pendingGenUIScroll) {
+      // 設定標誌避免重複觸發
+      _pendingGenUIScroll = true;
+      // 延遲 2 秒讓 genUI 完整渲染
+      Future<void>.delayed(const Duration(seconds: 2), () {
+        _scrollToBottom(smooth: true);
+        _pendingGenUIScroll = false;
+      });
+    } else if (!hasNewSurface) {
+      // 一般訊息立即滾動
+      _scrollToBottom();
+    }
+    
     if (mounted) setState(() {});
   }
 
@@ -541,13 +558,15 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool smooth = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          duration: smooth 
+              ? const Duration(milliseconds: 1500)
+              : const Duration(milliseconds: 300),
+          curve: smooth ? Curves.easeInOut : Curves.easeOut,
         );
       }
     });
