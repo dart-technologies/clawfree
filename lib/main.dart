@@ -238,6 +238,8 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     if (_useDemoMode) {
       _syncClient = DemoSyncClient();
       unawaited(_syncClient!.connect());
+      // Hot Reload 時先取消舊訂閱，避免重複
+      _syncSubscription?.cancel();
       _syncSubscription = _syncClient!.onMessage.listen((msg) {
         if (msg.isUser && _chatSession != null) {
           // 收到 Watch 的使用者訊息，送入 ChatSession 處理（會觸發 AI 回覆 + genUI）
@@ -247,6 +249,8 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       });
 
       // 監聽 genUI 觸發事件：Watch 關鍵字 → 模擬 Surface 互動推進 genUI 狀態
+      // Hot Reload 時先取消舊訂閱，避免重複
+      _triggerSubscription?.cancel();
       _triggerSubscription = _syncClient!.onGenUITrigger.listen((action) {
         if (_chatSession == null) return;
         debugPrint('[DemoSync] 🎯 處理 genUI 觸發: $action');
