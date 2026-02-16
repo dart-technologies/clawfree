@@ -59,9 +59,9 @@ class DemoScriptRunner: ObservableObject {
                    isUser: false, delayAfter: 0.5, sendToPhone: false,
                    isThinking: true, isSuccess: false, isHighlight: false),
 
-        // Step 9: Itinerary ready (longer delay for user to review itinerary)
+        // Step 9: Itinerary ready (5秒展示 genUI)
         ScriptStep(text: "Here's your Tokyo foodie adventure:\n\n• Day 1: Tsukiji Market\n• Day 2: Ramen masterclass\n• Day 3: Michelin kaiseki\n\nFlight: ANA ✓\nHotel: Hoshinoya Tokyo",
-                   isUser: false, delayAfter: 12.0, sendToPhone: false,
+                   isUser: false, delayAfter: 5.0, sendToPhone: false,
                    isThinking: false, isSuccess: false, isHighlight: false),
 
         // Step 10: User books trip (after reviewing itinerary)
