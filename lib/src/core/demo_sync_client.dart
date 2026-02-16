@@ -143,25 +143,38 @@ class DemoSyncClient extends ChangeNotifier {
 
 /// genUI 觸發事件類型（Watch 關鍵字 → genUI 狀態推進）
 enum GenUITriggerAction {
-  /// "OK, confirm" → 確認 Agent 配置並儲存
-  confirmAgent,
+  /// "Plan a 3-day trip" → 顯示 Create Agent UI
+  createAgent,
+
+  /// "OK, confirm" → 顯示 Plan a Trip UI
+  planTrip,
 
   /// "Generate Itinerary" → 產生行程
   generateItinerary,
 
-  /// "Book Trip" → 預訂行程
+  /// "Book Trip" → 預訂行程（停留在當前畫面）
   bookTrip,
 }
 
 /// 關鍵字→genUI 動作的映射表
+/// 注意：順序很重要！更具體的關鍵字要放在前面
 const _keywordTriggers = <String, GenUITriggerAction>{
-  'ok, confirm': GenUITriggerAction.confirmAgent,
-  'ok confirm': GenUITriggerAction.confirmAgent,
-  'confirm': GenUITriggerAction.confirmAgent,
+  // 階段 1: Plan a 3-day trip → Create Agent
+  'plan a 3-day': GenUITriggerAction.createAgent,
+  'plan a 3 day': GenUITriggerAction.createAgent,
+  
+  // 階段 2: OK, confirm → Plan a Trip
+  'ok, confirm': GenUITriggerAction.planTrip,
+  'ok confirm': GenUITriggerAction.planTrip,
+  
+  // 階段 3: Generate Itinerary → 行程卡片
   'generate itinerary': GenUITriggerAction.generateItinerary,
   'generate the itinerary': GenUITriggerAction.generateItinerary,
+  
+  // 階段 4: Book Trip → 停留在行程畫面
   'book trip': GenUITriggerAction.bookTrip,
   'book the trip': GenUITriggerAction.bookTrip,
+  'book': GenUITriggerAction.bookTrip,
 };
 
 /// 從同步伺服器收到的訊息

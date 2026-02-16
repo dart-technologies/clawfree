@@ -53,6 +53,21 @@ class DemoCacheAiClient implements AiClient {
       return 'Let me try a different approach. What would you like to do?';
     }
 
+    // DEMO FLOW v2: Plan a 3-day trip → Create Agent UI
+    if (lower.contains('plan a 3-day') || lower.contains('plan a 3 day')) {
+      return _createTravelAgentResponse;
+    }
+
+    // DEMO FLOW v2: OK, confirm → Plan a Trip UI
+    if (lower.contains('ok') && lower.contains('confirm')) {
+      return _confirmAgentResponse;
+    }
+
+    // DEMO FLOW v2: Book Trip → Confirmation (不觸發新 UI)
+    if (lower.contains('book') && (lower.contains('trip') || lower.contains('the'))) {
+      return _bookTripResponse;
+    }
+
     // WORKFLOW 1: Agent Creation Alignment
     if (lower.contains('create') && lower.contains('travel')) {
       return _createTravelAgentResponse;
@@ -1456,4 +1471,47 @@ class DemoCacheAiClient implements AiClient {
   ]}}
 ]
 ```''';
+
+  // ---------------------------------------------------------------------------
+  // Demo Flow: Confirm Agent → Plan a Trip UI
+  // ---------------------------------------------------------------------------
+
+  static const _confirmAgentResponse =
+      '''Perfect! Your Travel Concierge agent is configured. Let's plan your Tokyo adventure. Confirm your destination and travel vibe below.
+
+```json
+[
+  {"version": "v0.9", "createSurface": {"surfaceId": "travel-setup-002", "catalogId": "$_catalogId"}},
+  {"version": "v0.9", "updateComponents": {"surfaceId": "travel-setup-002", "components": [
+    {"id": "root", "component": "Column", "children": ["header-tt", "gap-top", "dest-card", "gap-1", "config-card", "gap-2", "plan-btn"]},
+    {"id": "header-tt", "component": "ItineraryHeader", "title": "TRAVEL CONCIERGE", "subtitle": "VIBE-DRIVEN TRIP PLANNING", "vibe": "TRAVEL", "status": "ACTIVE"},
+    {"id": "gap-top", "component": "Gap", "height": 16},
+
+    {"id": "dest-card", "component": "Card", "child": "dest-col"},
+    {"id": "dest-col", "component": "Column", "children": ["dest-tt", "city-picker"]},
+    {"id": "dest-tt", "component": "Text", "variant": "h5", "text": "DESTINATION SELECT", "fontSize": 10, "letterSpacing": 1.5},
+    {"id": "city-picker", "component": "ChoicePicker", "label": "RECENT DESTINATIONS", "variant": "mutuallyExclusive", "layout": "grid", "options": [{"label": "Tokyo", "value": "tokyo"}, {"label": "London", "value": "london"}, {"label": "Paris", "value": "paris"}, {"label": "New York", "value": "new-york"}, {"label": "San Francisco", "value": "san-francisco"}], "value": ["tokyo"]},
+
+    {"id": "gap-1", "component": "Gap", "height": 8},
+
+    {"id": "config-card", "component": "Card", "child": "config-col"},
+    {"id": "config-col", "component": "Column", "children": ["config-tt", "vibe-picker", "days-picker", "config-note"]},
+    {"id": "config-tt", "component": "Text", "variant": "h5", "text": "TRAVEL PARAMETERS", "fontSize": 10, "letterSpacing": 1.5},
+    {"id": "vibe-picker", "component": "ChoicePicker", "label": "TRAVEL VIBE", "variant": "mutuallyExclusive", "options": [{"label": "Foodie", "value": "foodie"}, {"label": "Artsy", "value": "artsy"}, {"label": "Outdoorsy", "value": "outdoorsy"}, {"label": "Budget", "value": "budget"}], "value": ["foodie"]},
+    {"id": "days-picker", "component": "ChoicePicker", "label": "TRIP DURATION", "variant": "mutuallyExclusive", "options": [{"label": "3 Days", "value": "3"}, {"label": "5 Days", "value": "5"}, {"label": "7 Days", "value": "7"}], "value": ["3"]},
+    {"id": "config-note", "component": "Text", "variant": "caption", "text": "VIBE INFLUENCES CURATED RESTAURANTS, ACTIVITIES, AND HOTEL MATCHES", "fontSize": 8, "color": "#888888"},
+
+    {"id": "gap-2", "component": "Gap", "height": 16},
+    {"id": "plan-btn", "component": "Button", "child": "plan-btn-text", "variant": "primary", "action": {"event": {"name": "generate_itinerary", "context": {"city": {"path": "city-picker.value"}, "vibe": {"path": "vibe-picker.value"}, "days": {"path": "days-picker.value"}}}}},
+    {"id": "plan-btn-text", "component": "Text", "text": "GENERATE ITINERARY"}
+  ]}}
+]
+```''';
+
+  // ---------------------------------------------------------------------------
+  // Demo Flow: Book Trip → Confirmation Response
+  // ---------------------------------------------------------------------------
+
+  static const _bookTripResponse =
+      '''Excellent! Your 3-day Tokyo foodie experience has been booked. Confirmation emails will be sent to your registered address. Your flights, hotel, and restaurant reservations are all confirmed. Have an amazing trip!''';
 }

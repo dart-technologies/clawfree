@@ -296,7 +296,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   /// 根據 genUI 觸發動作建構對應的 Surface 互動事件
   ChatMessage? _buildTriggerInteraction(GenUITriggerAction action) {
     switch (action) {
-      case GenUITriggerAction.confirmAgent:
+      case GenUITriggerAction.createAgent:
+        // "Plan a 3-day trip" → 顯示 Create Agent UI（不需要互動事件）
+        return null;
+      case GenUITriggerAction.planTrip:
         return ChatMessage(
           role: ChatMessageRole.user,
           parts: [
