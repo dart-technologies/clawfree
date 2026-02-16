@@ -51,12 +51,12 @@ class DemoScriptRunner: ObservableObject {
 
         // Step 8: User requests itinerary
         ScriptStep(text: "Generate Itinerary",
-                   isUser: true, delayAfter: 3.5, sendToPhone: true,
+                   isUser: true, delayAfter: 0.5, sendToPhone: true,
                    isThinking: false, isSuccess: false, isHighlight: false),
 
-        // Step 8b: AI thinking for itinerary (wait for genUI generation)
+        // Step 8b: AI thinking for itinerary (短暫顯示，立即進入結果)
         ScriptStep(text: "",
-                   isUser: false, delayAfter: 12.0, sendToPhone: false,
+                   isUser: false, delayAfter: 0.5, sendToPhone: false,
                    isThinking: true, isSuccess: false, isHighlight: false),
 
         // Step 9: Itinerary ready (longer delay for user to review itinerary)
