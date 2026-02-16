@@ -181,26 +181,26 @@ Voice-first interaction meets Opus 4.6's real-time UI streaming for a fully hand
 - [x] Video Generation: FFmpeg pipeline reinstated (concat demuxer → H.264 MP4) with iOS-only stub (missing arm64-sim slice)
 
 ### Voice + Interaction (Roy)
-- [ ] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory (auto on native, mock on web/demo)
+- [x] Swap to real voice: `PlatformSttService` + `PlatformTtsService` in VoiceServiceFactory (auto on native, mock on web/demo)
 - [x] Device-level mic permissions (iOS Info.plist, macOS entitlements, Android manifest)
-- [ ] Continuous listening / hands-free mode (`VoiceController.continuousMode`)
-- [ ] Push-to-talk fallback
-- [ ] Voice → chat session integration (STT text → sendMessage)
-- [ ] TTS action confirmations
-- [ ] Apple Watch voice companion (spike)
-- [ ] Watch → iPhone handoff flow
-- [ ] Voice-only mode (no screen touch needed)
+- [x] Continuous listening / hands-free mode (`VoiceController.continuousMode`)
+- [x] Push-to-talk fallback
+- [x] Voice → chat session integration (STT text → sendMessage)
+- [x] TTS action confirmations
+- [x] Apple Watch voice companion (spike)
+- [x] Watch → iPhone handoff flow
+- [x] Voice-only mode (no screen touch needed)
 
 ### Remaining Integration (Both)
 - [x] Surface interaction → OpenClaw agent API (`GatewayClient.createAgent` + fire-and-forget from router)
 - [x] OpenClaw gateway: agent persistence + management endpoints (dual-proxy: /agents, /sessions, /onboard → OpenClaw)
 
 ### Demo + Submission
-- [ ] Demo scenario 1: Create travel agent builder (Watch + iPad)
-- [ ] Demo scenario 2: Use Travel Concierge to book 3-day Tokyo foodie trip
-- [ ] 3-minute demo video
-- [ ] 100-200 word written summary
-- [ ] Submission on Cerebral Valley portal
+- [x] Demo scenario 1: Create travel agent builder (Watch + iPad)
+- [x] Demo scenario 2: Use Travel Concierge to book 3-day Tokyo foodie trip
+- [x] 3-minute demo video: [https://youtu.be/7kTwZudx40Y](https://youtu.be/7kTwZudx40Y)
+- [x] 100-200 word written summary
+- [x] Submission on Cerebral Valley portal
 
 ---
 

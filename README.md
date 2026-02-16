@@ -4,6 +4,10 @@ Hands-free AI agentic orchestrator powered by Flutter genUI
 
 Create and deploy OpenClaw agents using only voice — no coding, no typing required. clawfree combines voice-first interaction with Opus 4.6's real-time UI streaming for a fully hands-free experience meeting users where they are: on-the-go, hands-full, eyes-busy.
 
+## Video Demo
+
+[![clawfree: Hands-Free AI Agent Orchestrator](https://img.youtube.com/vi/7kTwZudx40Y/maxresdefault.jpg)](https://youtu.be/7kTwZudx40Y)
+
 ## How It Works
 
 1. **Speak** -- voice commands on Apple Watch while jogging, iPhone while commuting, iPad at the coffee shop, or Mac at your desk
