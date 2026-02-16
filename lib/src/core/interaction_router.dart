@@ -274,7 +274,18 @@ class A2uiInteractionRouter {
 
     // Demo flow: after saving agent, auto-trigger Plan Trip (Story 1→2 seamless)
     // instead of returning to Home.
-    return InteractionResult.userInput('Plan a trip');
+    // BUT in Demo mode (_gatewayClient == null), Watch sends the message itself,
+    // so we should not auto-trigger to avoid conversation reset.
+    if (_gatewayClient != null) {
+      return InteractionResult.userInput('Plan a trip');
+    }
+
+    // Demo mode: return success feedback, stay in current conversation
+    return InteractionResult.successFeedback(
+      MessageItem.aiText(
+        text: 'Agent "${config['name']}" saved successfully',
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
