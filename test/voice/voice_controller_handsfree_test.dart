@@ -141,5 +141,13 @@ class ManualMockTtsService implements TtsService {
   Future<void> setRate(double rate) async {}
 
   @override
+  Future<void> setPitch(double pitch) async {}
+
+  @override
+  Future<bool> setVoice(String name) async {
+    return true;
+  }
+
+  @override
   void dispose() {}
 }

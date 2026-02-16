@@ -111,18 +111,23 @@ flutter run -d chrome
 ### Using the Makefile
 
 ```bash
-make help           # Show all targets
-make demo           # Run in demo mode (no API key)
-make run            # Run on macOS with API key
-make test           # Run all tests
-make analyze        # Run Dart analyzer (0 issues)
-make qa             # Launch Zero-to-One QA stack (Frontend + OpenClaw + Redis)
-make stop           # Stop all Docker services and clear volumes
-make health         # Check full stack health (Gateway + Frontend)
-make gateway        # Start CORS gateway (Docker)
-make gateway-down   # Stop gateway
-make icons          # Regenerate macOS app icons
-make clean          # Clean build artifacts
+make help              # Show all targets
+make demo              # Run in demo mode (no API key)
+make run               # Run on macOS with API key
+make test              # Run all tests
+make test-e2e-ui       # Run high-fidelity UI automation (macOS, 5x timeout)
+make record-demo       # Record E2E demo to MP4 with audio (BlackHole 2ch)
+make record-demo-silent# Record E2E demo to MP4 (video only)
+make analyze           # Run Dart analyzer (0 issues)
+make icons             # Regenerate macOS + watchOS app icons
+make sim-boot          # Boot paired iPhone + Watch simulators
+make sim-install       # Build and install on iPhone+Watch simulator
+make sim-run           # Launch app on iPhone+Watch simulator
+make qa                # Launch Zero-to-One QA stack
+make stop              # Stop all Docker services and clear volumes
+make health            # Check full stack health
+make gateway           # Start CORS gateway (Docker)
+make clean             # Clean build artifacts
 ```
 
 ### Zero-to-One QA (Docker)

@@ -77,6 +77,7 @@ class ChatSurfacePanel extends StatelessWidget {
             borderRadius: borderRadius,
           ),
           child: SingleChildScrollView(
+            key: Key('surface-scroll-${latest.surfaceId}'),
             primary: false,
             physics: ClawfreeTheme.isApple
                 ? const BouncingScrollPhysics(

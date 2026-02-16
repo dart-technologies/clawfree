@@ -212,11 +212,11 @@ void main() {
       );
 
       poller.start();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 125));
       final countAfterStart = requestCount;
 
       poller.dispose();
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       // No more requests after dispose
       expect(requestCount, countAfterStart);

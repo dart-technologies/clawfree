@@ -108,9 +108,15 @@ class _PhoneLayoutState extends State<PhoneLayout> with TickerProviderStateMixin
     // Auto-expand tray when the first text message arrives
     final hadText = oldWidget.messages.any((m) => !m.isSurface);
     final hasText = widget.messages.any((m) => !m.isSurface);
-    
+
     if (!hadText && hasText && _historyHeight == 0) {
       _animateToHeight(200);
+    }
+
+    // Reset surface scroll to top when a new surface appears
+    if (widget.activeSurfaceId != oldWidget.activeSurfaceId &&
+        _surfaceScrollController.hasClients) {
+      _surfaceScrollController.jumpTo(0);
     }
   }
 

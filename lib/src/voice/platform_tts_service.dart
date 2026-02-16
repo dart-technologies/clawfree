@@ -76,6 +76,35 @@ class PlatformTtsService implements TtsService {
   }
 
   @override
+  Future<void> setPitch(double pitch) async {
+    await _tts.setPitch(pitch);
+  }
+
+  @override
+  Future<bool> setVoice(String name) async {
+    final voices = await _tts.getVoices;
+    if (voices is List) {
+      for (final v in voices) {
+        if (v is Map) {
+          final voiceName = v['name']?.toString() ?? '';
+          if (voiceName.toLowerCase().contains(name.toLowerCase())) {
+            final res = await _tts.setVoice({
+              "name": voiceName,
+              "locale": v['locale']?.toString() ?? 'en-US',
+            });
+            if (res == 1) {
+              debugPrint('[PlatformTTS] Successfully set voice to $voiceName');
+              return true;
+            }
+          }
+        }
+      }
+    }
+    debugPrint('[PlatformTTS] Voice "$name" not found or could not be set.');
+    return false;
+  }
+
+  @override
   void dispose() {
     _tts.stop();
   }

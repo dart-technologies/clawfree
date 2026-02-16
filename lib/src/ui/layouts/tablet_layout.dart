@@ -307,13 +307,16 @@ class _Sidebar extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 4, 16, 8),
                     child: Row(
                       children: [
-                        Text(
-                          'AGENTS',
-                          style: ClawfreeTheme.technicalStyle(
-                            context: context,
-                            fontSize: 10,
-                            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                            letterSpacing: 1.5,
+                        Expanded(
+                          child: Text(
+                            'AGENTS',
+                            style: ClawfreeTheme.technicalStyle(
+                              context: context,
+                              fontSize: 10,
+                              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                              letterSpacing: 1.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const Spacer(),

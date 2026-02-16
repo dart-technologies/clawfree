@@ -112,7 +112,7 @@ clawfree/
 - Flutter targets: web (Chrome), iOS (iPad), watchOS (Apple Watch voice)
 - A2UI v0.9 flat component format: `{"component": "Text", "text": "Hello"}`
 - System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + inline catalog rules with `catalogId: "clawfree-catalog"`
-- **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs)
+- **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs). `TtsService` supports `setPitch()` and `setVoice()` for voice customization (used in demo driver for user/agent differentiation)
 - **Theme**: HUD-style glassmorphism with `ClawfreeTheme.glassDecoration()`, ghost header (transparent AppBar), `SpringCurve` animations, ultra-thin borders (0.5px), `BackdropFilter` blur on glass cards
 - **Design tokens**: `ClawfreeTheme.success/warning/error/info/neutral` (status colors), `onboardingMode/homeMode/agentBuilderMode` (session mode colors), `glassOverlayColor/glassBlur/itineraryAccent` (glass constants), `hudActive/scaffoldBlack/ratingGold` (accent colors), `hudBorder/hudSurfaceFaint/hudDivider/hudContainerColor/hudOverlayColor` (surface tokens), `hudTextPrimary/Secondary/Muted/Faint` (text opacity hierarchy). All color literals must use centralized tokens — no `Colors.white70`, `Colors.black.withValues(alpha:)`, or `Color(0xFF...)` in component files.
 - **Typography**: JetBrainsMono font family throughout (w800–w900 headlines, w700 titles, w400 body). Use `ClawfreeTheme.technicalStyle()` for consistent technical text. UI labels are **uppercased** (`text.toUpperCase()`).

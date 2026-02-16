@@ -17,11 +17,16 @@ abstract class TtsService {
   /// Set speech rate (0.0 to 1.0).
   Future<void> setRate(double rate);
 
+  /// Set speech pitch (0.5 to 2.0).
+  Future<void> setPitch(double pitch);
+
+  /// Set a specific voice by name. Returns true if voice was found and set.
+  Future<bool> setVoice(String name);
+
   void dispose();
 }
 
 /// Mock TTS service for development and web testing.
-/// Logs speech output to console instead of producing audio.
 class MockTtsService implements TtsService {
   bool _isSpeaking = false;
 
@@ -50,6 +55,17 @@ class MockTtsService implements TtsService {
   @override
   Future<void> setRate(double rate) async {
     debugPrint('[MockTTS] Rate set to $rate');
+  }
+
+  @override
+  Future<void> setPitch(double pitch) async {
+    debugPrint('[MockTTS] Pitch set to $pitch');
+  }
+
+  @override
+  Future<bool> setVoice(String name) async {
+    debugPrint('[MockTTS] Voice set to $name');
+    return true;
   }
 
   @override

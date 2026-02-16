@@ -54,7 +54,10 @@ class DemoCacheAiClient implements AiClient {
     }
 
     // WORKFLOW 1: Agent Creation Alignment
-    if (lower.contains('create') && lower.contains('travel')) {
+    if ((lower.contains('create') && lower.contains('travel')) ||
+        (lower.contains('plan') &&
+            lower.contains('foodie') &&
+            lower.contains('trip'))) {
       return _createTravelAgentResponse;
     }
 
@@ -87,6 +90,11 @@ class DemoCacheAiClient implements AiClient {
     'artsy plan': _tokyoArtisticResponse,
     'outdoorsy plan': _tokyoOutdoorsyResponse,
     'budget plan': _tokyoOverviewResponse,
+    // Travel: Interaction Confirmations (prioritize over broad keywords)
+    'save agent': 'Understood. Saving agent configuration...',
+    'generate itinerary': 'Processing your request... Generating the Tokyo itinerary now.',
+    'book trip': 'Excellent choice. Finalizing your booking...',
+    
     // Travel: all initial requests → vibe picker
     'tokyo': _travelSetupResponse,
     'travel': _travelSetupResponse,

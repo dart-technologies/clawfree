@@ -11,11 +11,17 @@ help: ## Show this help
 get: ## Get dependencies
 	flutter pub get
 
-icons: ## Regenerate macOS app icons from assets/icon.png
+icons: ## Regenerate all app icons from assets/icon.png
+	@echo "Generating macOS icons..."
 	@for size in 16 32 64 128 256 512 1024; do \
 		sips -z $$size $$size assets/icon.png --out macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$$size.png 2>/dev/null; \
-		echo "Generated $${size}x$${size}"; \
 	done
+	@echo "Generating WatchOS icons..."
+	@mkdir -p ios/WatchCompanion/Assets.xcassets/AppIcon.appiconset
+	@for size in 48 55 58 80 87 88 100 172 196 216 1024; do \
+		sips -z $$size $$size assets/icon.png --out ios/WatchCompanion/Assets.xcassets/AppIcon.appiconset/icon_$$size.png 2>/dev/null; \
+	done
+	@echo "✅ Icons generated for all platforms."
 
 clean: ## Clean build artifacts
 	flutter clean
@@ -52,10 +58,16 @@ test-e2e-logic: ## Run fast logic-only E2E tests (no UI)
 	flutter test test/integration/demo_trip_e2e_test.dart
 
 test-e2e-ui: ## Run high-fidelity UI automation with voiceover (macOS only)
-	flutter test integration_test/demo_driver.dart -d macos
+	flutter test integration_test/demo_driver.dart -d macos --timeout 5x
 
 test-integration: ## Run all integration tests (logic + UI)
 	flutter test test/integration/ integration_test/
+
+record-demo: ## Record E2E UI demo to MP4 with audio (macOS + BlackHole 2ch required)
+	@./scripts/record_window.sh demo_recording.mp4 1
+
+record-demo-silent: ## Record E2E UI demo to MP4 (video only, no audio device)
+	@./scripts/record_window.sh demo_recording_silent.mp4 999 2>/dev/null || true
 
 test-all: test test-integration ## Run unit + logic + UI tests
 
@@ -90,6 +102,51 @@ build-apk: ## Build Android release (APK)
 
 build-watch: ## Build WatchOS companion
 	xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'generic/platform=watchOS' build
+
+# ---------------------------------------------------------------------------
+# Simulator Management
+# ---------------------------------------------------------------------------
+
+sim-list: ## List all available simulators
+	xcrun simctl list devices
+
+sim-boot: ## Boot the iPhone and Watch simulators
+	@echo "Booting iPhone+Watch..."
+	@xcrun simctl boot "iPhone+Watch" 2>/dev/null || true
+	@echo "Booting Apple Watch Series 11..."
+	@xcrun simctl boot "94CC285A-30F3-41DD-B254-E1560AF1E167" 2>/dev/null || true
+	@open -a Simulator
+
+sim-build-watch: ## Build WatchOS companion for simulator
+	@echo "Building Watch companion for simulator..."
+	@xcodebuild -workspace ios/Runner.xcworkspace -scheme "WatchCompanion" -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)' -derivedDataPath build/watch build > /dev/null
+
+sim-install: ## Build and install on the "iPhone+Watch" simulator
+	@echo "Building for simulator..."
+	flutter build ios --simulator --no-codesign
+	@echo "Installing on iPhone+Watch..."
+	xcrun simctl install "iPhone+Watch" build/ios/iphonesimulator/Runner.app
+	@echo "✅ Installed. iOS will sync to paired Watch automatically."
+
+sim-install-all: ## Install the built apps on ALL booted simulators (iOS + Watch)
+	@echo "Installing iOS app on booted iPhone/iPad simulators..."
+	@for udid in $$(xcrun simctl list devices booted | awk '/-- iOS/ || /-- iPadOS/ { f=1 } /-- / && !(/iOS/ || /iPadOS/) { f=0 } f && /Booted/ { match($$0, /[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}/); if (RSTART > 0) print substr($$0, RSTART, RLENGTH); }'); do \
+		echo "  -> $$udid"; \
+		xcrun simctl install $$udid build/ios/iphonesimulator/Runner.app || echo "  ⚠️ Failed to install on $$udid"; \
+	done
+	@echo "Installing Watch app on booted Watch simulators..."
+	@for udid in $$(xcrun simctl list devices booted | awk '/-- watchOS/ { f=1 } /-- / && !/watchOS/ { f=0 } f && /Booted/ { match($$0, /[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}/); if (RSTART > 0) print substr($$0, RSTART, RLENGTH); }'); do \
+		echo "  -> $$udid"; \
+		if [ -d "build/watch/Build/Products/Debug-watchsimulator/WatchCompanion.app" ]; then \
+			xcrun simctl install $$udid build/watch/Build/Products/Debug-watchsimulator/WatchCompanion.app || echo "  ⚠️ Failed to install Watch app on $$udid"; \
+		else \
+			echo "  ⚠️ Watch app not found. Run 'make sim-build-watch' first."; \
+		fi \
+	done
+	@echo "✅ Done."
+
+sim-run: ## Launch the app on the iPhone+Watch simulator
+	xcrun simctl launch "iPhone+Watch" art.dart.clawfree
 
 # ---------------------------------------------------------------------------
 # Infrastructure (Docker)

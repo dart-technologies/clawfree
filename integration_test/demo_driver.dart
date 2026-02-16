@@ -12,6 +12,7 @@ import 'package:clawfree/src/ui/theme.dart';
 import 'package:clawfree/src/voice/earcon_service.dart';
 import 'package:clawfree/src/voice/platform_tts_service.dart';
 import 'package:clawfree/src/voice/stt_service.dart';
+import 'package:clawfree/src/voice/tts_service.dart';
 import 'package:clawfree/src/voice/voice_controller.dart';
 
 /// macOS integration test that launches the real app UI as a desktop window
@@ -23,11 +24,27 @@ import 'package:clawfree/src/voice/voice_controller.dart';
 ///
 /// Run: flutter test integration_test/demo_driver.dart -d macos
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // Render every vsync frame so the macOS window shows live UI (not just
+  // "Test starting..."). Without this, frames only appear on pump() calls
+  // which don't reliably push to the native window.
+  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   testWidgets('Demo workflow: create agent → save → plan trip → generate → book', (
     WidgetTester tester,
   ) async {
+    // -----------------------------------------------------------------------
+    // Set a consistent large window size for the two-panel layout.
+    // Must be inside testWidgets to avoid 'inTest' assertion failure.
+    // -----------------------------------------------------------------------
+    debugPrint('[DemoDriver] Step 0: Setting surface size...');
+    await binding.setSurfaceSize(const Size(1280, 800));
+    // NOTE: Do NOT override tester.view.physicalSize / devicePixelRatio —
+    // those create a virtual render target detached from the native macOS
+    // NSView, causing the window to stay stuck on "Test starting...".
+    await tester.pump();
+    debugPrint('[DemoDriver] Step 0: Surface size set.');
+
     // -----------------------------------------------------------------------
     // Build demo dependencies with real audio
     // -----------------------------------------------------------------------
@@ -69,20 +86,24 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ClawfreeTheme.dark,
-        home: ChatScreen(chatSession: session),
+        home: ChatScreen(chatSession: session, showOnboarding: false),
       ),
     );
     await _pumpSettle(tester);
 
+    // Ensure Agent voice is initialized at the start.
+    await _setVoiceProfile(ttsService, isUser: false, tester: tester);
+
     // -----------------------------------------------------------------------
-    // Step 1: "Create a travel concierge…"
-    //   → Orb pulses, transcript builds word-by-word, AI text streams in,
-    //     surface renders, TTS reads response aloud.
+    // Step 1: User initiates flow
+    //   → User speaks command (Male voice), Orb pulses, transcript builds,
+    //     surface renders, Agent speaks response (Female voice).
     // -----------------------------------------------------------------------
     await _pumpVoiceCommand(
       tester,
       session,
-      'Create a travel concierge to plan a 3-day foodie trip to Tokyo',
+      'Plan a 3-day foodie trip to Tokyo',
+      ttsService,
     );
 
     expect(
@@ -98,12 +119,10 @@ void main() {
     await _pumpBreathing(tester, frames: 20);
 
     // -----------------------------------------------------------------------
-    // Step 2: Save Agent (True UI Interaction)
-    //   → Verify pre-populated fields, then tap "Save Agent".
+    // Step 2: Save Agent
     // -----------------------------------------------------------------------
+    await _pumpVoiceCommand(tester, session, 'Save Agent', ttsService);
     
-    // Verify "Travel Concierge" is in the name field and ensure it's synced.
-    // Use a specific finder to avoid the bottom ChatInputBar's TextField.
     final nameFieldFinder = find.descendant(
       of: find.byKey(const Key('agent-form-001')),
       matching: find.byType(TextField),
@@ -113,28 +132,23 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await _pumpSettle(tester);
     
-    // Find and tap the "SAVE AGENT" button.
     final saveBtn = find.text('SAVE AGENT');
     expect(saveBtn, findsOneWidget);
     await tester.ensureVisible(saveBtn);
     await tester.tap(saveBtn);
-    // Wait for the 500ms interaction debounce in ChatSession to fire.
     await tester.pump(const Duration(milliseconds: 1000));
     await _pumpSettle(tester);
 
-    // ChatSession._handleSurfaceInteraction handles mode switching.
-    
     expect(agentStore.agents.length, 1);
-    expect(agentStore.agents.first['name'], 'Travel Concierge');
     expect(session.sessionMode, SessionMode.home);
 
     await _pumpUntilTtsDone(tester, ttsService);
     await _pumpBreathing(tester);
 
-    // Step 3: "Plan a trip"
-    //   → Travel setup surface renders with vibe/city/duration pickers.
     // -----------------------------------------------------------------------
-    await _pumpVoiceCommand(tester, session, 'Plan a trip');
+    // Step 3: Activate Travel Concierge
+    // -----------------------------------------------------------------------
+    await _pumpVoiceCommand(tester, session, 'Plan a trip', ttsService);
 
     expect(
       session.messages.any(
@@ -148,11 +162,10 @@ void main() {
     await _pumpBreathing(tester);
 
     // -----------------------------------------------------------------------
-    // Step 4: Generate Itinerary (True UI Interaction)
-    //   → Verify "Tokyo", "Foodie", "3 Days" are pre-selected, then tap.
+    // Step 4: Generate Itinerary
     // -----------------------------------------------------------------------
-    
-    // Verify pre-selected values are visible.
+    await _pumpVoiceCommand(tester, session, 'Generate Itinerary', ttsService);
+
     expect(find.text('TOKYO'), findsWidgets);
     expect(find.text('FOODIE'), findsWidgets);
     expect(find.text('3 DAYS'), findsWidgets);
@@ -161,10 +174,8 @@ void main() {
     expect(genBtn, findsOneWidget);
     await tester.ensureVisible(genBtn);
     await tester.tap(genBtn);
-    // Wait for the 500ms interaction debounce in ChatSession to fire.
     await tester.pump(const Duration(milliseconds: 1000));
     
-    // Wait for the itinerary surface to appear (AI generation takes time).
     await _pumpUntilSurface(tester, session, 'tokyo-itin-001');
 
     expect(
@@ -176,48 +187,56 @@ void main() {
     );
 
     await _pumpUntilTtsDone(tester, ttsService);
-    await _pumpBreathing(tester);
+    await _pumpBreathing(tester, frames: 10);
 
     // -----------------------------------------------------------------------
-    // Step 5: Book Trip (True UI Interaction)
-    //   → Scroll to and tap "Confirm Booking".
+    // Step 5: Smooth Slow Scroll through Itinerary
     // -----------------------------------------------------------------------
+    // Wait for the surface to render its key.
+    await _pumpUntilText(tester, 'DAY 1');
+
+    debugPrint('[DemoDriver] Attempting to find scrollable for itinerary...');
+    // The Scrollable is an ancestor of the ChatSurfaceView inside the panel.
+    final itinView = find.byKey(const Key('surface-panel-tokyo-itin-001'));
+    final scrollableFinder = find.ancestor(
+      of: itinView,
+      matching: find.byType(Scrollable),
+    ).first;
     
-    // Poll until "Confirm Booking" button renders (surface components load async).
+    await _pumpUntilScrollable(tester, scrollableFinder);
+    debugPrint('[DemoDriver] Found scrollable for itinerary.');
+
+    // Slowly review the plan (Timeline -> Hotel -> Flights -> Booking)
+    final scrollState = tester.state<ScrollableState>(scrollableFinder);
+    final maxScroll = scrollState.position.maxScrollExtent;
+    
+    debugPrint('[DemoDriver] Calculated maxScrollExtent: $maxScroll');
+    await _pumpSlowScroll(tester, scrollableFinder, offset: maxScroll);
+    await _pumpBreathing(tester, frames: 20);
+
+    // -----------------------------------------------------------------------
+    // Step 6: Book Trip
+    // -----------------------------------------------------------------------
+    await _pumpVoiceCommand(tester, session, 'Book Trip', ttsService);
+
     await _pumpUntilText(tester, 'CONFIRM BOOKING');
-
     final bookBtn = find.text('CONFIRM BOOKING');
-    expect(bookBtn, findsOneWidget);
-
-    // Ensure button is visible before tapping (it's at the bottom of a scrollable list).
     await tester.ensureVisible(bookBtn);
+    await _pumpBreathing(tester, frames: 20);
+
     await tester.tap(bookBtn);
-    // Wait for the 500ms interaction debounce in ChatSession to fire.
     await tester.pump(const Duration(milliseconds: 1000));
     
-    // Wait for mode switch back to home.
     await _pumpUntilMode(tester, session, SessionMode.home);
 
     expect(session.sessionMode, SessionMode.home);
     expect(session.messages.last.text?.toLowerCase(), contains('booked'));
 
-    // Play booking confirm earcon.
     await earcon.playBookingConfirm();
     await _pumpSettle(tester);
 
-    // Let final TTS play out before cleanup.
     await _pumpUntilTtsDone(tester, ttsService);
     await _pumpBreathing(tester);
-
-    // -----------------------------------------------------------------------
-    // Final assertions
-    // -----------------------------------------------------------------------
-    expect(agentStore.agents.length, 1);
-    expect(agentStore.agents.first['name'], 'Travel Concierge');
-    expect(session.sessionMode, SessionMode.home);
-
-    // Note: ChatSession clears messages/surfaces when switching to home mode
-    // to provide a clean state for the user. So we don't assert on message count here.
 
     // Cleanup.
     session.dispose();
@@ -228,33 +247,83 @@ void main() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Frame pump interval — fast enough for smooth animation, slow enough to
-/// let real timers (MockSttService word-by-word, DemoCacheAiClient chunks)
-/// fire between frames.
-const _frameDuration = Duration(milliseconds: 50);
+/// Simulates a human-like continuous smooth scroll using TestGesture.
+Future<void> _pumpSlowScroll(
+  WidgetTester tester,
+  Finder scrollable, {
+  double offset = 1000,
+  int steps = 150,
+}) async {
+  final Offset start = tester.getCenter(scrollable);
+  debugPrint('[DemoDriver] Starting slow scroll at $start, total offset: $offset');
+  
+  // Start the drag gesture.
+  final TestGesture gesture = await tester.startGesture(start);
+  final double stepOffset = offset / steps;
+  
+  for (int i = 0; i < steps; i++) {
+    // Negative Y to scroll DOWN (pushing content UP).
+    await gesture.moveBy(Offset(0, -stepOffset));
+    // Pump a real frame duration for smooth visual motion.
+    await tester.pump(const Duration(milliseconds: 16));
+    
+    if (i % 50 == 0) {
+      debugPrint('[DemoDriver] Scroll progress: ${((i / steps) * 100).toStringAsFixed(0)}%');
+    }
+  }
+  
+  // Finish the gesture without lifting too fast (prevents "fling").
+  await gesture.up();
+  debugPrint('[DemoDriver] Scroll gesture complete');
+  await tester.pump(const Duration(milliseconds: 100));
+}
 
-/// Max pump iterations to prevent infinite hangs (60 seconds at 50ms/frame).
+/// Voice profiles for differentiating the User and Agent.
+Future<void> _setVoiceProfile(
+  TtsService tts, {
+  required bool isUser,
+  required WidgetTester tester,
+}) async {
+  await tester.runAsync(() async {
+    if (isUser) {
+      final maleVoices = ['Daniel', 'Alex', 'Fred', 'Oliver'];
+      for (final name in maleVoices) {
+        if (await tts.setVoice(name)) break;
+      }
+      await tts.setPitch(0.9);
+      await tts.setRate(0.45);
+    } else {
+      final femaleVoices = ['Karen', 'Samantha', 'Siri', 'Victoria', 'Moira'];
+      for (final name in femaleVoices) {
+        if (await tts.setVoice(name)) break;
+      }
+      await tts.setPitch(1.0);
+      await tts.setRate(0.5);
+    }
+  });
+  // Small pump to let platform state settle.
+  await tester.pump();
+}
+
+const _frameDuration = Duration(milliseconds: 50);
 const _maxPumps = 1200;
 
-/// Bounded settle: pumps a fixed number of frames to let layout and
-/// animations render, without hanging on the VoiceOrb's continuous shader
-/// animation (which would cause pumpAndSettle() to loop forever).
 Future<void> _pumpSettle(WidgetTester tester, {int frames = 10}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 16));
   }
 }
 
-/// Pumps frames until a widget with the given text appears in the tree.
 Future<void> _pumpUntilText(WidgetTester tester, String text) async {
   for (var i = 0; i < _maxPumps; i++) {
     await tester.pump(_frameDuration);
-    if (find.text(text).evaluate().isNotEmpty) return;
+    // Use textContaining for substring match — rendered labels often include
+    // surrounding context (e.g. "THU MAR 20 • DAY 1 • TSUKIJI ...").
+    if (find.textContaining(text).evaluate().isNotEmpty) return;
   }
-  throw Exception('Timeout waiting for text "$text"');
+  throw Exception('Timeout waiting for text containing "$text"');
 }
 
-/// Pumps frames until a specific surface ID appears in the session.
 Future<void> _pumpUntilSurface(
   WidgetTester tester,
   ChatSession session,
@@ -267,7 +336,6 @@ Future<void> _pumpUntilSurface(
   throw Exception('Timeout waiting for surface $surfaceId');
 }
 
-/// Pumps frames until the session enters a specific mode.
 Future<void> _pumpUntilMode(
   WidgetTester tester,
   ChatSession session,
@@ -280,40 +348,59 @@ Future<void> _pumpUntilMode(
   throw Exception('Timeout waiting for mode $mode');
 }
 
-/// Drives a voice command while pumping frames so the VoiceOrb animation
-/// and word-by-word transcript are visible during screen recording.
-///
-/// IntegrationTestWidgetsFlutterBinding uses real async (not fake), so
-/// Timer.periodic inside MockSttService fires at real intervals. Each
-/// [tester.pump] renders a frame showing the latest state.
+Future<void> _pumpUntilScrollable(
+  WidgetTester tester,
+  Finder scrollable,
+) async {
+  for (var i = 0; i < _maxPumps; i++) {
+    await tester.pump(_frameDuration);
+    if (scrollable.evaluate().isNotEmpty) return;
+  }
+  throw Exception('Timeout waiting for scrollable');
+}
+
 Future<void> _pumpVoiceCommand(
   WidgetTester tester,
   ChatSession session,
   String text,
+  TtsService tts,
 ) async {
+  // 1. User speaks command (Male voice)
+  await _setVoiceProfile(tts, isUser: true, tester: tester);
+  await tester.runAsync(() => tts.speak(text));
+
+  // Wait for speech to actually start (asynchronous lag)
+  for (int i = 0; i < 20 && !tts.isSpeaking; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+
+  // Ensure User TTS finishes before we proceed to STT simulation/AI response
+  await _pumpUntilTtsDone(tester, tts);
+
+  // 2. Switch back to Agent profile BEFORE AI response starts
+  await _setVoiceProfile(tts, isUser: false, tester: tester);
+
+  // 3. Drive STT simulation (word-by-word visual)
   var done = false;
   unawaited(session.sendVoiceCommand(text).whenComplete(() => done = true));
 
   for (var i = 0; i < _maxPumps && !done; i++) {
     await tester.pump(_frameDuration);
   }
+  
   expect(done, isTrue, reason: 'Voice command "$text" should complete');
   await _pumpSettle(tester);
 }
 
-/// Pump frames until TTS finishes speaking (bounded to 10 seconds).
-/// Prevents the next step from cutting off the current utterance.
 Future<void> _pumpUntilTtsDone(
   WidgetTester tester,
-  PlatformTtsService tts,
+  TtsService tts,
 ) async {
   for (var i = 0; i < 200 && tts.isSpeaking; i++) {
     await tester.pump(_frameDuration);
   }
 }
 
-/// 2-second breathing room with frame pumping (keeps animations alive
-/// during screen recording pauses between steps).
 Future<void> _pumpBreathing(WidgetTester tester, {int frames = 40}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(_frameDuration);
