@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=368">
+<title>Clawfree Watch UI V3 Refined</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: -apple-system, 'SF Pro', 'Helvetica Neue', sans-serif; }
+.controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+.controls button { padding: 6px 14px; border: none; border-radius: 16px; background: #333; color: #fff; font-size: 13px; cursor: pointer; }
+.controls button.active { background: #0a84ff; }
+#autoBtn { background: #30d158; }
+#autoBtn.running { background: #ff453a; }
+
+.watch { width: 368px; height: 448px; background: #000; border-radius: 72px; position: relative; overflow: hidden; border: 2px solid #222; }
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+.screen.active { display: flex; }
+
+/* Idle */
+#idle .brand { font-size: 42px; font-weight: 700; color: #fff; letter-spacing: -1px; }
+#idle .sub { font-size: 16px; color: #888; margin-top: 8px; }
+#idle .hint { position: absolute; bottom: 90px; right: 60px; font-size: 12px; color: #666; }
+
+/* FABs */
+.fab { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.fab-mic { bottom: 32px; right: 32px; background: #0a84ff; color: #fff; }
+.fab-send { bottom: 32px; right: 32px; background: #30d158; color: #fff; }
+.fab-cancel { bottom: 32px; left: 32px; background: #444; color: #aaa; }
+.fab-stop { bottom: 32px; right: 32px; background: #ff453a; color: #fff; }
+
+/* Pulse on listening mic */
+#listening .pulse-ring { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #0a84ff; animation: pulse 1.5s ease-out infinite; position: absolute; }
+#listening .pulse-ring:nth-child(2) { animation-delay: .5s; }
+#listening .pulse-ring:nth-child(3) { animation-delay: 1s; }
+#listening .mic-icon { font-size: 48px; color: #0a84ff; z-index: 2; }
+@keyframes pulse { 0% { transform: scale(.8); opacity: .8; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Recognizing */
+#recognizing { justify-content: flex-start; padding-top: 80px; }
+#recognizing .recog-text { font-size: 22px; color: #fff; text-align: center; line-height: 1.4; padding: 0 16px; }
+
+/* Soundwave */
+.soundwave { display: flex; align-items: center; justify-content: center; gap: 4px; height: 32px; position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); }
+.soundwave .bar { width: 4px; border-radius: 2px; background: #0a84ff; animation: wave 1s ease-in-out infinite; }
+.soundwave .bar:nth-child(1) { height: 12px; animation-delay: 0s; }
+.soundwave .bar:nth-child(2) { height: 20px; animation-delay: .1s; }
+.soundwave .bar:nth-child(3) { height: 28px; animation-delay: .2s; }
+.soundwave .bar:nth-child(4) { height: 20px; animation-delay: .3s; }
+.soundwave .bar:nth-child(5) { height: 12px; animation-delay: .4s; }
+.soundwave .bar:nth-child(6) { height: 24px; animation-delay: .15s; }
+.soundwave .bar:nth-child(7) { height: 16px; animation-delay: .35s; }
+@keyframes wave { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+/* Conversation */
+#conversation { justify-content: flex-start; padding: 20px 12px 110px; }
+.chat-scroll { width: 100%; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.chat-scroll::-webkit-scrollbar { width: 0; }
+.bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
+.bubble.user { background: #0a7e8c; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.bubble.ai { background: #2c2c2e; color: #e5e5e7; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+/* Complete */
+#complete { justify-content: center; gap: 16px; padding: 40px 24px; }
+.done-item { font-size: 17px; color: #30d158; text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button onclick="show('idle')" id="btnA">A: Idle</button>
+  <button onclick="show('listening')" id="btnB">B: Listen</button>
+  <button onclick="show('recognizing')" id="btnC">C: Recog</button>
+  <button onclick="show('conversation')" id="btnD">D: Conv</button>
+  <button onclick="show('complete')" id="btnE">E: Done</button>
+  <button id="autoBtn" onclick="toggleAuto()">▶ Auto Demo</button>
+</div>
+
+<div class="watch">
+  <!-- A: Idle -->
+  <div class="screen active" id="idle">
+    <div class="brand">Clawfree</div>
+    <div class="sub">Ready to Assist</div>
+    <div class="hint">Tap Mic to Start</div>
+    <button class="fab fab-mic" onclick="show('listening')">🎤</button>
+  </div>
+
+  <!-- B: Listening -->
+  <div class="screen" id="listening">
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="mic-icon">🎤</div>
+    <button class="fab fab-cancel" onclick="show('idle')">✕</button>
+    <button class="fab fab-send" onclick="show('recognizing')">✓</button>
+  </div>
+
+  <!-- C: Recognizing -->
+  <div class="screen" id="recognizing">
+    <div class="recog-text">Plan a 3-day foodie trip to Tokyo</div>
+    <div class="soundwave">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+    <button class="fab fab-stop" onclick="show('conversation')">■</button>
+  </div>
+
+  <!-- D: Conversation -->
+  <div class="screen" id="conversation">
+    <div class="chat-scroll" id="chatScroll">
+      <div class="bubble user">Plan a 3-day foodie trip to Tokyo</div>
+      <div class="bubble ai">Creating your travel agent...</div>
+      <div class="bubble user">Save Agent</div>
+      <div class="bubble ai">Agent saved! Setting up your trip...</div>
+    </div>
+    <div class="soundwave">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+    <button class="fab fab-stop" onclick="show('complete')">■</button>
+  </div>
+
+  <!-- E: Complete -->
+  <div class="screen" id="complete">
+    <div class="done-item">✅ Successfully created a travel agent</div>
+    <div class="done-item">✅ Successfully planned a food trip to Tokyo</div>
+    <button class="fab fab-mic" onclick="show('idle')">🎤</button>
+  </div>
+</div>
+
+<script>
+const screens = ['idle','listening','recognizing','conversation','complete'];
+const btnMap = {idle:'btnA',listening:'btnB',recognizing:'btnC',conversation:'btnD',complete:'btnE'};
+let autoTimer = null;
+
+function show(id) {
+  screens.forEach(s => {
+    document.getElementById(s).classList.toggle('active', s === id);
+  });
+  Object.values(btnMap).forEach(b => document.getElementById(b).classList.remove('active'));
+  document.getElementById(btnMap[id]).classList.add('active');
+  if (id === 'conversation') {
+    const el = document.getElementById('chatScroll');
+    setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+  }
+}
+
+function toggleAuto() {
+  const btn = document.getElementById('autoBtn');
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; btn.textContent = '▶ Auto Demo'; btn.classList.remove('running'); return; }
+  btn.textContent = '■ Stop'; btn.classList.add('running');
+  let i = 0; show(screens[0]);
+  autoTimer = setInterval(() => { i = (i + 1) % screens.length; show(screens[i]); }, 3000);
+}
+</script>
+</body>
+</html>

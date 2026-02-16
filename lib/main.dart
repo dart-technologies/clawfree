@@ -14,6 +14,7 @@ import 'src/core/chat_session.dart';
 import 'src/core/demo_ai_client.dart';
 import 'src/core/gateway_client.dart';
 
+import 'src/core/demo_sync_client.dart';
 import 'src/core/local_network.dart';
 import 'src/core/platform_config.dart';
 import 'src/core/prompt_library.dart';
@@ -95,6 +96,9 @@ class ClawfreeHome extends StatefulWidget {
 class _ClawfreeHomeState extends State<ClawfreeHome> {
   ChatSession? _chatSession;
   SttService? _sttService;
+  DemoSyncClient? _syncClient;
+  StreamSubscription<DemoSyncMessage>? _syncSubscription;
+  StreamSubscription<GenUITriggerAction>? _triggerSubscription;
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
@@ -230,6 +234,34 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
 
     _sttService = sl.tryGet<SttService>();
 
+    // Demo 模式：連線到本地同步伺服器，接收 Watch 訊息
+    if (_useDemoMode) {
+      _syncClient = DemoSyncClient();
+      unawaited(_syncClient!.connect());
+      _syncSubscription = _syncClient!.onMessage.listen((msg) {
+        if (msg.isUser && _chatSession != null) {
+          // 收到 Watch 的使用者訊息，送入 ChatSession 處理（會觸發 AI 回覆 + genUI）
+          debugPrint('[DemoSync] 轉發使用者訊息到 ChatSession: "${msg.text}"');
+          unawaited(_chatSession!.sendMessage(msg.text));
+        }
+      });
+
+      // 監聽 genUI 觸發事件：Watch 關鍵字 → 模擬 Surface 互動推進 genUI 狀態
+      _triggerSubscription = _syncClient!.onGenUITrigger.listen((action) {
+        if (_chatSession == null) return;
+        debugPrint('[DemoSync] 🎯 處理 genUI 觸發: $action');
+        final interaction = _buildTriggerInteraction(action);
+        if (interaction != null) {
+          // 延遲執行，確保 sendMessage 的 AI 回覆先完成
+          Future<void>.delayed(const Duration(seconds: 2), () {
+            if (_chatSession != null) {
+              _chatSession!.simulateSurfaceInteraction(interaction);
+            }
+          });
+        }
+      });
+    }
+
     if (_useDemoMode && _demoScenario == 'travel') {
       unawaited(_runDemoAutomation());
     }
@@ -259,6 +291,68 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
           sl.tryGet<GatewayClient>()?.dispose();
           sl.reset();
         }));
+  }
+
+  /// 根據 genUI 觸發動作建構對應的 Surface 互動事件
+  ChatMessage? _buildTriggerInteraction(GenUITriggerAction action) {
+    switch (action) {
+      case GenUITriggerAction.confirmAgent:
+        return ChatMessage(
+          role: ChatMessageRole.user,
+          parts: [
+            TextPart(
+              jsonEncode({
+                'action': {
+                  'name': 'save_agent',
+                  'context': {
+                    'name': 'Travel Concierge',
+                    'model': ['claude-opus-4-6'],
+                    'tools': ['browser', 'code', 'search', 'api'],
+                    'channels': ['telegram', 'slack', 'discord'],
+                  },
+                },
+              }),
+            ),
+          ],
+        );
+      case GenUITriggerAction.generateItinerary:
+        return ChatMessage(
+          role: ChatMessageRole.user,
+          parts: [
+            TextPart(
+              jsonEncode({
+                'action': {
+                  'name': 'generate_itinerary',
+                  'context': {
+                    'city': ['tokyo'],
+                    'vibe': ['foodie'],
+                    'days': ['3'],
+                  },
+                },
+              }),
+            ),
+          ],
+        );
+      case GenUITriggerAction.bookTrip:
+        return ChatMessage(
+          role: ChatMessageRole.user,
+          parts: [
+            TextPart(
+              jsonEncode({
+                'action': {
+                  'name': 'book_trip',
+                  'context': {
+                    'city': 'tokyo',
+                    'days': 3,
+                    'vibe': 'foodie',
+                    'flight': 'ANA',
+                  },
+                },
+              }),
+            ),
+          ],
+        );
+    }
   }
 
   /// Runs the full "Tokyo Travel" demo workflow automatically.
@@ -599,6 +693,9 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _syncSubscription?.cancel();
+    _triggerSubscription?.cancel();
+    _syncClient?.dispose();
     _chatSession?.dispose();
     _sttService?.dispose();
     _apiKeyController.dispose();

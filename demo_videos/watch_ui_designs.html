@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apple Watch UI 設計方案 — 5 版本</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'SF Pro', 'Helvetica Neue', sans-serif; background:#1a1a2e; color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px; }
+h1 { font-size:24px; margin-bottom:8px; }
+.subtitle { color:#888; margin-bottom:20px; font-size:14px; }
+
+/* Controls */
+.controls { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; }
+.btn { padding:8px 16px; border:2px solid #444; background:transparent; color:#fff; border-radius:20px; cursor:pointer; font-size:13px; transition:all .2s; }
+.btn:hover { border-color:#888; }
+.btn.active { background:#0a84ff; border-color:#0a84ff; }
+.state-btns { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; justify-content:center; }
+.state-btn { padding:6px 14px; border:1px solid #555; background:transparent; color:#aaa; border-radius:16px; cursor:pointer; font-size:12px; transition:all .2s; }
+.state-btn:hover { color:#fff; border-color:#888; }
+.state-btn.active { background:#30d158; border-color:#30d158; color:#000; font-weight:600; }
+
+/* Watch Frame */
+.watch-container { display:flex; gap:40px; flex-wrap:wrap; justify-content:center; }
+.watch-wrap { text-align:center; }
+.watch-label { font-size:13px; color:#888; margin-bottom:8px; }
+.watch-frame { width:368px; height:448px; border-radius:80px; background:#000; border:4px solid #333; overflow:hidden; position:relative; box-shadow: 0 0 40px rgba(0,0,0,.5); }
+.watch-screen { width:100%; height:100%; position:relative; overflow:hidden; }
+
+/* Shared styles */
+.screen { width:100%; height:100%; position:absolute; top:0; left:0; display:flex; flex-direction:column; }
+.time-bar { text-align:center; padding:12px 0 4px; font-size:13px; color:#999; font-weight:500; }
+
+/* Animations */
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:.7} }
+@keyframes ripple { 0%{transform:scale(.8);opacity:.6} 100%{transform:scale(2.5);opacity:0} }
+@keyframes dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes timelineDot { 0%{box-shadow:0 0 0 0 rgba(10,132,255,.4)} 70%{box-shadow:0 0 0 8px rgba(10,132,255,0)} 100%{box-shadow:0 0 0 0 rgba(10,132,255,0)} }
+
+/* ===== VERSION 1: Tap to Speak + Scrollable ===== */
+.v1 .idle-center { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.v1 .tap-btn { width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg,#0a84ff,#5e5ce6); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; cursor:pointer; }
+.v1 .tap-btn .mic { font-size:36px; }
+.v1 .tap-btn .label { font-size:12px; color:rgba(255,255,255,.8); }
+.v1 .greeting { color:#999; font-size:14px; }
+.v1 .listening .pulse-ring { width:140px; height:140px; border-radius:50%; background:rgba(10,132,255,.15); display:flex; align-items:center; justify-content:center; animation:pulse 1.5s infinite; }
+.v1 .listening .inner { width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,#0a84ff,#5e5ce6); display:flex; align-items:center; justify-content:center; font-size:40px; }
+.v1 .listening-text { color:#0a84ff; font-size:14px; margin-top:12px; }
+.v1 .recognizing-text { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+.v1 .recog-content { font-size:20px; font-weight:600; text-align:center; animation:fadeIn .5s; }
+.v1 .recog-dots span { display:inline-block; width:6px; height:6px; border-radius:50%; background:#0a84ff; margin:0 3px; animation:dots 1.4s infinite; }
+.v1 .recog-dots span:nth-child(2){animation-delay:.2s} .v1 .recog-dots span:nth-child(3){animation-delay:.4s}
+.v1 .chat-area { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+.v1 .msg { max-width:80%; padding:10px 14px; border-radius:18px; font-size:14px; animation:slideUp .3s; line-height:1.4; }
+.v1 .msg.user { align-self:flex-end; background:#0a84ff; }
+.v1 .msg.ai { align-self:flex-start; background:#333; }
+.v1 .input-bar { padding:8px 16px 20px; display:flex; justify-content:center; }
+.v1 .mini-mic { width:44px; height:44px; border-radius:50%; background:#0a84ff; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; }
+.v1 .complete-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+.v1 .check { font-size:48px; }
+.v1 .complete-text { font-size:14px; color:#30d158; }
+
+/* ===== VERSION 2: Minimal Fullscreen ===== */
+.v2 .idle-full { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(180deg,#000 0%,#0a1628 100%); }
+.v2 .big-greeting { font-size:28px; font-weight:700; margin-bottom:6px; }
+.v2 .sub-greeting { font-size:14px; color:#666; margin-bottom:40px; }
+.v2 .float-btn { position:absolute; bottom:30px; left:50%; transform:translateX(-50%); width:60px; height:60px; border-radius:50%; background:#0a84ff; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 20px rgba(10,132,255,.4); cursor:pointer; }
+.v2 .full-listening { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at center,#0a2a5c 0%,#000 70%); }
+.v2 .wave-bars { display:flex; gap:4px; align-items:center; height:60px; }
+.v2 .wave-bar { width:4px; background:#0a84ff; border-radius:2px; animation:waveAnim 1s infinite ease-in-out; }
+@keyframes waveAnim { 0%,100%{height:10px} 50%{height:50px} }
+.v2 .wave-bar:nth-child(1){animation-delay:0s;height:20px} .v2 .wave-bar:nth-child(2){animation-delay:.1s;height:35px} .v2 .wave-bar:nth-child(3){animation-delay:.2s;height:50px} .v2 .wave-bar:nth-child(4){animation-delay:.3s;height:35px} .v2 .wave-bar:nth-child(5){animation-delay:.4s;height:20px} .v2 .wave-bar:nth-child(6){animation-delay:.5s;height:35px} .v2 .wave-bar:nth-child(7){animation-delay:.6s;height:20px}
+.v2 .listening-label { color:#0a84ff; font-size:16px; margin-top:20px; font-weight:600; }
+.v2 .full-text { flex:1; display:flex; align-items:center; justify-content:center; padding:30px; }
+.v2 .big-text { font-size:22px; font-weight:600; text-align:center; line-height:1.4; animation:fadeIn .5s; }
+.v2 .full-chat { flex:1; padding:20px; display:flex; flex-direction:column; justify-content:center; gap:16px; }
+.v2 .chat-block { text-align:center; animation:fadeIn .5s; }
+.v2 .chat-block.user-block { font-size:15px; color:#999; }
+.v2 .chat-block.ai-block { font-size:20px; font-weight:600; line-height:1.4; }
+.v2 .divider { width:40px; height:1px; background:#333; margin:0 auto; }
+.v2 .complete-full { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(180deg,#0a2a1a 0%,#000 100%); }
+.v2 .big-check { font-size:64px; margin-bottom:12px; }
+.v2 .done-text { font-size:16px; color:#30d158; font-weight:600; }
+
+/* ===== VERSION 3: Card Stack + Status Bar ===== */
+.v3 .status-bar { padding:10px 20px 6px; display:flex; justify-content:space-between; align-items:center; font-size:11px; }
+.v3 .status-dot { width:8px; height:8px; border-radius:50%; }
+.v3 .status-dot.gray { background:#666; }
+.v3 .status-dot.blue { background:#0a84ff; animation:pulse 1.5s infinite; }
+.v3 .status-dot.green { background:#30d158; }
+.v3 .status-label { color:#888; }
+.v3 .card-area { flex:1; padding:8px 16px; display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.v3 .card { background:#1c1c1e; border-radius:16px; padding:16px; animation:slideUp .3s; }
+.v3 .card.highlight { border:1px solid #0a84ff; }
+.v3 .card-title { font-size:11px; color:#888; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+.v3 .card-content { font-size:15px; line-height:1.4; }
+.v3 .idle-card { text-align:center; padding:30px 16px; }
+.v3 .idle-card .mic-icon { font-size:44px; margin-bottom:12px; }
+.v3 .idle-card .tap-text { color:#0a84ff; font-size:15px; }
+.v3 .listen-card { text-align:center; }
+.v3 .listen-card .waves { font-size:30px; letter-spacing:8px; animation:pulse 1s infinite; }
+.v3 .action-footer { padding:8px 16px 16px; text-align:center; }
+.v3 .action-footer .mini-btn { display:inline-block; padding:8px 20px; background:#0a84ff; border-radius:20px; font-size:13px; cursor:pointer; }
+
+/* ===== VERSION 4: Split Screen ===== */
+.v4 .split { flex:1; display:flex; flex-direction:row; }
+.v4 .split-left { flex:1; background:#0a1628; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; border-right:1px solid #222; }
+.v4 .split-right { flex:1; background:#1a0a28; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+.v4 .split-label { font-size:10px; color:#666; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.v4 .split-content { font-size:14px; text-align:center; line-height:1.5; }
+.v4 .split-icon { font-size:32px; margin-bottom:8px; }
+.v4 .idle-split { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.v4 .idle-split .center-mic { font-size:56px; margin-bottom:12px; }
+.v4 .idle-split .tap-label { color:#666; font-size:14px; }
+.v4 .full-center { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+.v4 .split-bubble { background:#1c1c1e; padding:10px 14px; border-radius:14px; font-size:13px; max-width:90%; text-align:center; line-height:1.4; }
+.v4 .user-side { color:#0a84ff; }
+.v4 .ai-side { color:#bf5af2; }
+
+/* ===== VERSION 5: Timeline ===== */
+.v5 .timeline { flex:1; padding:8px 20px 8px 40px; overflow-y:auto; display:flex; flex-direction:column; gap:0; position:relative; }
+.v5 .timeline::before { content:''; position:absolute; left:28px; top:20px; bottom:20px; width:2px; background:#333; }
+.v5 .tl-item { position:relative; padding:10px 0 10px 24px; animation:fadeIn .4s; }
+.v5 .tl-dot { position:absolute; left:-16px; top:14px; width:10px; height:10px; border-radius:50%; background:#444; border:2px solid #000; z-index:1; }
+.v5 .tl-dot.active { background:#0a84ff; animation:timelineDot 2s infinite; }
+.v5 .tl-dot.done { background:#30d158; }
+.v5 .tl-time { font-size:10px; color:#666; margin-bottom:2px; }
+.v5 .tl-content { font-size:14px; line-height:1.4; }
+.v5 .tl-content.user-text { color:#0a84ff; }
+.v5 .tl-content.ai-text { color:#fff; }
+.v5 .tl-content.system-text { color:#888; font-size:12px; }
+.v5 .idle-timeline { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.v5 .idle-timeline .start-btn { width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,#0a84ff,#5e5ce6); display:flex; align-items:center; justify-content:center; font-size:36px; cursor:pointer; margin-bottom:12px; }
+.v5 .idle-timeline .start-text { color:#888; font-size:13px; }
+.v5 .tl-footer { padding:8px 16px 16px; display:flex; justify-content:center; }
+.v5 .tl-mic { width:40px; height:40px; border-radius:50%; background:#0a84ff; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<h1>⌚ Apple Watch UI 設計方案</h1>
+<p class="subtitle">5 個版本 × 5 個流程狀態 = 25 個畫面</p>
+
+<div class="controls">
+  <button class="btn active" onclick="setVersion(1)">版本 1 — 當前設計</button>
+  <button class="btn" onclick="setVersion(2)">版本 2 — 極簡</button>
+  <button class="btn" onclick="setVersion(3)">版本 3 — 卡片式</button>
+  <button class="btn" onclick="setVersion(4)">版本 4 — 分屏</button>
+  <button class="btn" onclick="setVersion(5)">版本 5 — 時間軸</button>
+</div>
+<div class="state-btns">
+  <button class="state-btn active" onclick="setState('A')">A — Idle</button>
+  <button class="state-btn" onclick="setState('B')">B — Listening</button>
+  <button class="state-btn" onclick="setState('C')">C — Recognizing</button>
+  <button class="state-btn" onclick="setState('D')">D — Conversation</button>
+  <button class="state-btn" onclick="setState('E')">E — Complete</button>
+</div>
+
+<div class="watch-container">
+  <div class="watch-wrap">
+    <div class="watch-label" id="screenLabel">畫面 1-A：Idle</div>
+    <div class="watch-frame">
+      <div class="watch-screen" id="watchScreen"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentVersion = 1, currentState = 'A';
+const stateNames = {A:'Idle',B:'Listening',C:'Recognizing',D:'Conversation',E:'Complete'};
+
+function setVersion(v) {
+  currentVersion = v;
+  document.querySelectorAll('.btn').forEach((b,i) => b.classList.toggle('active', i===v-1));
+  render();
+}
+function setState(s) {
+  currentState = s;
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.toggle('active', b.textContent.startsWith(s)));
+  render();
+}
+
+function render() {
+  const label = document.getElementById('screenLabel');
+  label.textContent = `畫面 ${currentVersion}-${currentState}：${stateNames[currentState]}`;
+  const screen = document.getElementById('watchScreen');
+  screen.innerHTML = versions[currentVersion][currentState]();
+}
+
+const versions = {
+  1: {
+    A: () => `<div class="screen v1"><div class="time-bar">9:41</div><div class="idle-center"><div class="greeting">嗨，Roy 👋</div><div class="tap-btn"><span class="mic">🎙️</span><span class="label">Tap to Speak</span></div></div></div>`,
+    B: () => `<div class="screen v1"><div class="time-bar">9:41</div><div class="idle-center"><div class="listening"><div class="pulse-ring"><div class="inner">🎙️</div></div></div><div class="listening-text">正在聆聽...</div></div></div>`,
+    C: () => `<div class="screen v1"><div class="time-bar">9:41</div><div class="recognizing-text"><div class="recog-content">「幫我查一下<br>今天的行程」</div><div class="recog-dots" style="margin-top:16px"><span></span><span></span><span></span></div><div style="color:#888;font-size:12px;margin-top:8px">辨識中...</div></div></div>`,
+    D: () => `<div class="screen v1"><div class="time-bar">9:41</div><div class="chat-area"><div class="msg user">幫我查一下今天的行程</div><div class="msg ai">你今天有 3 個行程：<br>• 10:00 團隊週會<br>• 14:00 客戶 Demo<br>• 16:30 1on1</div></div><div class="input-bar"><div class="mini-mic">🎙️</div></div></div>`,
+    E: () => `<div class="screen v1"><div class="time-bar">9:41</div><div class="complete-area"><div class="check">✅</div><div class="complete-text">已完成</div><div style="color:#888;font-size:13px;margin-top:8px">查詢了今天的行程</div></div></div>`
+  },
+  2: {
+    A: () => `<div class="screen v2"><div class="idle-full"><div class="big-greeting">Mai</div><div class="sub-greeting">你的 AI 助理</div></div><div class="float-btn">🎙️</div></div>`,
+    B: () => `<div class="screen v2"><div class="full-listening"><div class="wave-bars"><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div></div><div class="listening-label">聆聽中</div></div></div>`,
+    C: () => `<div class="screen v2"><div class="full-text"><div class="big-text">「幫我查一下<br>今天的行程」</div></div><div class="float-btn" style="background:#30d158">⏳</div></div>`,
+    D: () => `<div class="screen v2"><div class="time-bar">9:41</div><div class="full-chat"><div class="chat-block user-block">幫我查一下今天的行程</div><div class="divider"></div><div class="chat-block ai-block">你今天有 3 個行程：<br>10:00 週會<br>14:00 Demo<br>16:30 1on1</div></div><div class="float-btn">🎙️</div></div>`,
+    E: () => `<div class="screen v2"><div class="complete-full"><div class="big-check">✅</div><div class="done-text">完成</div></div></div>`
+  },
+  3: {
+    A: () => `<div class="screen v3"><div class="status-bar"><span class="status-label">Mai Assistant</span><span class="status-dot gray"></span></div><div class="card-area"><div class="card idle-card"><div class="mic-icon">🎙️</div><div class="tap-text">點擊開始對話</div></div></div></div>`,
+    B: () => `<div class="screen v3"><div class="status-bar"><span class="status-label">聆聽中</span><span class="status-dot blue"></span></div><div class="card-area"><div class="card highlight listen-card"><div class="waves">〰️〰️〰️</div><div style="color:#0a84ff;margin-top:8px;font-size:14px">請說話...</div></div></div></div>`,
+    C: () => `<div class="screen v3"><div class="status-bar"><span class="status-label">辨識中</span><span class="status-dot blue"></span></div><div class="card-area"><div class="card"><div class="card-title">你說的是</div><div class="card-content">「幫我查一下今天的行程」</div></div></div></div>`,
+    D: () => `<div class="screen v3"><div class="status-bar"><span class="status-label">對話中</span><span class="status-dot blue"></span></div><div class="card-area"><div class="card" style="opacity:.6"><div class="card-title">你</div><div class="card-content" style="font-size:13px">幫我查一下今天的行程</div></div><div class="card highlight"><div class="card-title">Mai</div><div class="card-content">你今天有 3 個行程：<br>• 10:00 週會<br>• 14:00 Demo<br>• 16:30 1on1</div></div></div><div class="action-footer"><span class="mini-btn">🎙️ 繼續對話</span></div></div>`,
+    E: () => `<div class="screen v3"><div class="status-bar"><span class="status-label">完成</span><span class="status-dot green"></span></div><div class="card-area"><div class="card" style="border:1px solid #30d158"><div class="card-title" style="color:#30d158">✅ 任務完成</div><div class="card-content" style="color:#999;font-size:13px">已查詢今天的行程</div></div></div></div>`
+  },
+  4: {
+    A: () => `<div class="screen v4"><div class="time-bar">9:41</div><div class="idle-split"><div class="center-mic">🎙️</div><div class="tap-label">點擊開始</div></div></div>`,
+    B: () => `<div class="screen v4"><div class="time-bar">9:41</div><div class="full-center"><div style="font-size:48px;animation:pulse 1.5s infinite">🎙️</div><div style="color:#0a84ff;font-size:16px;margin-top:12px">聆聽中...</div></div></div>`,
+    C: () => `<div class="screen v4"><div class="time-bar">9:41</div><div class="split"><div class="split-left"><div class="split-label">你</div><div class="split-icon">🗣️</div><div class="split-content user-side">幫我查一下今天的行程</div></div><div class="split-right"><div class="split-label">Mai</div><div class="split-icon" style="animation:pulse 1s infinite">⏳</div><div class="split-content ai-side" style="color:#666">思考中...</div></div></div></div>`,
+    D: () => `<div class="screen v4"><div class="time-bar">9:41</div><div class="split"><div class="split-left"><div class="split-label">你</div><div class="split-bubble"><span class="user-side">幫我查一下今天的行程</span></div></div><div class="split-right"><div class="split-label">Mai</div><div class="split-bubble"><span class="ai-side">3 個行程：<br>10:00 週會<br>14:00 Demo<br>16:30 1on1</span></div></div></div></div>`,
+    E: () => `<div class="screen v4"><div class="time-bar">9:41</div><div class="full-center"><div style="font-size:56px">✅</div><div style="color:#30d158;font-size:16px;margin-top:8px">對話完成</div><div style="color:#666;font-size:12px;margin-top:4px">1 個問題 · 1 個回覆</div></div></div>`
+  },
+  5: {
+    A: () => `<div class="screen v5"><div class="time-bar">9:41</div><div class="idle-timeline"><div class="start-btn">🎙️</div><div class="start-text">開始新對話</div></div></div>`,
+    B: () => `<div class="screen v5"><div class="time-bar">9:41</div><div class="timeline"><div class="tl-item"><div class="tl-dot active"></div><div class="tl-time">9:41:00</div><div class="tl-content system-text">🎙️ 開始聆聽</div></div></div></div>`,
+    C: () => `<div class="screen v5"><div class="time-bar">9:41</div><div class="timeline"><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:00</div><div class="tl-content system-text">🎙️ 開始聆聽</div></div><div class="tl-item"><div class="tl-dot active"></div><div class="tl-time">9:41:03</div><div class="tl-content user-text">「幫我查一下今天的行程」</div></div></div></div>`,
+    D: () => `<div class="screen v5"><div class="time-bar">9:41</div><div class="timeline"><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:00</div><div class="tl-content system-text">🎙️ 聆聽</div></div><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:03</div><div class="tl-content user-text">幫我查今天行程</div></div><div class="tl-item"><div class="tl-dot active"></div><div class="tl-time">9:41:05</div><div class="tl-content ai-text">你今天有 3 個行程：<br>• 10:00 週會<br>• 14:00 Demo<br>• 16:30 1on1</div></div></div><div class="tl-footer"><div class="tl-mic">🎙️</div></div></div>`,
+    E: () => `<div class="screen v5"><div class="time-bar">9:41</div><div class="timeline"><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:00</div><div class="tl-content system-text">🎙️ 聆聽</div></div><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:03</div><div class="tl-content user-text">幫我查今天行程</div></div><div class="tl-item"><div class="tl-dot done"></div><div class="tl-time">9:41:05</div><div class="tl-content ai-text">3 個行程：週會、Demo、1on1</div></div><div class="tl-item"><div class="tl-dot" style="background:#30d158"></div><div class="tl-time">9:41:06</div><div class="tl-content system-text">✅ 對話完成</div></div></div></div>`
+  }
+};
+
+render();
+</script>
+</body>
+</html>

@@ -8,6 +8,12 @@ class WatchTTSService: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     private let synthesizer = AVSpeechSynthesizer()
 
+    /// Voice gender for TTS
+    enum VoiceGender {
+        case male
+        case female
+    }
+
     override init() {
         super.init()
         synthesizer.delegate = self
@@ -18,8 +24,11 @@ class WatchTTSService: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         try? session.setActive(true)
     }
 
-    /// Speak the given text. Auto-detects language (defaults to zh-TW, falls back to en-US).
-    func speak(_ text: String) {
+    /// Speak the given text with specified voice gender.
+    /// - Parameters:
+    ///   - text: Text to speak
+    ///   - voice: Voice gender (male: lower pitch, female: higher pitch)
+    func speak(_ text: String, voice: VoiceGender = .female) {
         // Stop any current speech first
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
@@ -27,13 +36,21 @@ class WatchTTSService: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
         let utterance = AVSpeechUtterance(string: text)
 
-        // Auto-detect: if mostly CJK characters, use zh-TW; otherwise en-US
-        let cjkCount = text.unicodeScalars.filter { $0.value >= 0x4E00 && $0.value <= 0x9FFF }.count
-        let ratio = text.isEmpty ? 0.0 : Double(cjkCount) / Double(text.count)
-        utterance.voice = AVSpeechSynthesisVoice(language: ratio > 0.1 ? "zh-TW" : "en-US")
+        // Use default en-US voice
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
 
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        utterance.pitchMultiplier = 1.0
+        // Differentiate by pitch and rate
+        switch voice {
+        case .male:
+            // Lower pitch and slightly slower for male voice
+            utterance.pitchMultiplier = 0.85
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
+        case .female:
+            // Higher pitch and slightly faster for female voice
+            utterance.pitchMultiplier = 1.15
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.05
+        }
+
         utterance.volume = 1.0
 
         isSpeaking = true

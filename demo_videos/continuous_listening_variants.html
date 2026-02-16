@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuous Listening - UI Variants</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .variants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .variant-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .variant-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .watch-frame {
+            width: 280px;
+            height: 340px;
+            margin: 0 auto;
+            background: black;
+            border-radius: 50px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .watch-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 42px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-text {
+            color: #a0a0a0;
+            font-size: 12px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .message-bubble {
+            background: rgba(100, 100, 255, 0.2);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+        
+        .ai-bubble {
+            background: rgba(255, 100, 100, 0.2);
+            align-self: flex-start;
+        }
+        
+        /* Wave Animation Variants */
+        
+        /* Variant 1: Bottom Fixed Bar */
+        .wave-bar-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(100, 100, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            border-radius: 0 0 42px 42px;
+        }
+        
+        .wave-bar-bottom .bar {
+            width: 3px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 3px;
+            animation: wave-bounce 1.2s ease-in-out infinite;
+        }
+        
+        .wave-bar-bottom .bar:nth-child(1) { height: 10px; animation-delay: 0s; }
+        .wave-bar-bottom .bar:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+        .wave-bar-bottom .bar:nth-child(3) { height: 30px; animation-delay: 0.2s; }
+        .wave-bar-bottom .bar:nth-child(4) { height: 40px; animation-delay: 0.3s; }
+        .wave-bar-bottom .bar:nth-child(5) { height: 30px; animation-delay: 0.4s; }
+        .wave-bar-bottom .bar:nth-child(6) { height: 20px; animation-delay: 0.5s; }
+        .wave-bar-bottom .bar:nth-child(7) { height: 10px; animation-delay: 0.6s; }
+        
+        @keyframes wave-bounce {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.5); }
+        }
+        
+        /* Variant 2: Circular Wave Around Content */
+        .wave-circle {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(100, 100, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .wave-circle::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        
+        .wave-circle::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #764ba2;
+            animation: pulse-ring 2s ease-out infinite;
+            animation-delay: 1s;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+        
+        .mic-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            z-index: 1;
+        }
+        
+        /* Variant 3: Horizontal Wave Below Messages */
+        .wave-inline {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 40px;
+        }
+        
+        .wave-inline .bar {
+            width: 4px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 4px;
+            animation: wave-bounce 1s ease-in-out infinite;
+        }
+        
+        .wave-inline .bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .wave-inline .bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+        .wave-inline .bar:nth-child(3) { height: 24px; animation-delay: 0.2s; }
+        .wave-inline .bar:nth-child(4) { height: 32px; animation-delay: 0.3s; }
+        .wave-inline .bar:nth-child(5) { height: 24px; animation-delay: 0.4s; }
+        .wave-inline .bar:nth-child(6) { height: 16px; animation-delay: 0.5s; }
+        .wave-inline .bar:nth-child(7) { height: 8px; animation-delay: 0.6s; }
+        
+        /* Variant 4: Pulsing Glow Background */
+        .glow-background {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: radial-gradient(circle at center bottom, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+            animation: glow-pulse 2s ease-in-out infinite;
+            border-radius: 0 0 42px 42px;
+        }
+        
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        /* Variant 5: Minimal Indicator */
+        .minimal-indicator {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+        }
+        
+        .minimal-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: dot-bounce 1.4s ease-in-out infinite;
+        }
+        
+        .minimal-indicator .dot:nth-child(1) { animation-delay: 0s; }
+        .minimal-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+        .minimal-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes dot-bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .listening-text {
+            color: #667eea;
+            font-size: 12px;
+            margin-top: 8px;
+            animation: fade-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes fade-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .description {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            text-align: center;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+        
+        .pros-cons {
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .pros-cons div {
+            margin: 5px 0;
+        }
+        
+        .pros { color: #4ade80; }
+        .cons { color: #fb7185; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Continuous Listening Mode - UI Variants</h1>
+        
+        <div class="variants-grid">
+            <!-- Variant 1: Bottom Fixed Bar -->
+            <div class="variant-card">
+                <div class="variant-title">V1: Bottom Fixed Wave Bar</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div class="status-text">Conversation Active</div>
+                        <div class="message-bubble">
+                            I want to plan a trip to Tokyo
+                        </div>
+                        <div class="message-bubble ai-bubble">
+                            Great! When are you planning to visit?
+                        </div>
+                        <div class="wave-bar-bottom">
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    固定在底部的声波条，类似音乐播放器
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 视觉明确，一直可见</div>
+                    <div class="pros">✅ 不遮挡对话内容</div>
+                    <div class="cons">❌ 占用底部空间</div>
+                </div>
+            </div>
+            
+            <!-- Variant 2: Circular Wave -->
+            <div class="variant-card">
+                <div class="variant-title">V2: Circular Pulse (ChatGPT Style)</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div class="status-text">Listening...</div>
+                        <div class="message-bubble">
+                            I want to plan a trip to Tokyo
+                        </div>
+                        <div class="message-bubble ai-bubble">
+                            Great! When are you planning to visit?
+                        </div>
+                        <div class="wave-circle">
+                            <div class="mic-icon">🎤</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    圆形脉冲动画，类似 ChatGPT 语音模式
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 符合 ChatGPT 用户习惯</div>
+                    <div class="pros">✅ 动画优雅</div>
+                    <div class="cons">❌ 可能遮挡部分对话</div>
+                </div>
+            </div>
+            
+            <!-- Variant 3: Inline Wave -->
+            <div class="variant-card">
+                <div class="variant-title">V3: Inline Wave Below Messages</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div class="status-text">Conversation Active</div>
+                        <div class="message-bubble">
+                            I want to plan a trip to Tokyo
+                        </div>
+                        <div class="message-bubble ai-bubble">
+                            Great! When are you planning to visit?
+                        </div>
+                        <div class="wave-inline">
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                        <div class="listening-text">Listening for your response...</div>
+                    </div>
+                </div>
+                <div class="description">
+                    声波嵌入在对话流中，带文字提示
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 紧跟对话流程</div>
+                    <div class="pros">✅ 有文字说明</div>
+                    <div class="cons">❌ 对话多时可能滚动到屏幕外</div>
+                </div>
+            </div>
+            
+            <!-- Variant 4: Glow Background -->
+            <div class="variant-card">
+                <div class="variant-title">V4: Ambient Glow Background</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div class="glow-background"></div>
+                        <div class="status-text">Conversation Active</div>
+                        <div class="message-bubble">
+                            I want to plan a trip to Tokyo
+                        </div>
+                        <div class="message-bubble ai-bubble">
+                            Great! When are you planning to visit?
+                        </div>
+                        <div class="minimal-indicator">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    底部脉冲光晕 + 最小化指示点
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 视觉柔和，不突兀</div>
+                    <div class="pros">✅ 氛围感强</div>
+                    <div class="cons">❌ 可能不够明显</div>
+                </div>
+            </div>
+            
+            <!-- Variant 5: Minimal Status Indicator -->
+            <div class="variant-card">
+                <div class="variant-title">V5: Minimal Status Bar</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div class="message-bubble">
+                            I want to plan a trip to Tokyo
+                        </div>
+                        <div class="message-bubble ai-bubble">
+                            Great! When are you planning to visit?
+                        </div>
+                        <div style="position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;">
+                            <div class="wave-inline" style="height: 30px; margin: 0 auto;">
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                            </div>
+                            <div style="color: #667eea; font-size: 11px; margin-top: 5px;">🎤 Listening</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    简洁的底部状态条 + 文字
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 简洁清晰</div>
+                    <div class="pros">✅ 占用空间最小</div>
+                    <div class="cons">❌ 动画效果较弱</div>
+                </div>
+            </div>
+            
+            <!-- Variant 6: Top Status Bar -->
+            <div class="variant-card">
+                <div class="variant-title">V6: Top Status Bar (Alternative)</div>
+                <div class="watch-frame">
+                    <div class="watch-screen">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; background: rgba(102, 126, 234, 0.2); padding: 8px; border-radius: 42px 42px 0 0;">
+                            <div class="wave-inline" style="height: 20px; margin: 0 auto;">
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                                <div class="bar"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 40px;">
+                            <div class="message-bubble">
+                                I want to plan a trip to Tokyo
+                            </div>
+                            <div class="message-bubble ai-bubble">
+                                Great! When are you planning to visit?
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    顶部状态栏（类似通知栏）
+                </div>
+                <div class="pros-cons">
+                    <div class="pros">✅ 不遮挡主要内容</div>
+                    <div class="cons">❌ 不符合手表视觉习惯</div>
+                    <div class="cons">❌ 可能被忽略</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; border: 2px solid rgba(255, 255, 255, 0.2); max-width: 800px; margin: 0 auto;">
+            <h2 style="color: white; margin-bottom: 20px;">💡 设计建议</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); line-height: 1.8; font-size: 15px;">
+                <p style="margin-bottom: 15px;"><strong>推荐组合：</strong></p>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="margin-bottom: 10px;">🥇 <strong>V1 或 V2</strong> - 视觉效果最强，用户清楚知道系统在监听</li>
+                    <li style="margin-bottom: 10px;">🥈 <strong>V4</strong> - 如果要氛围感，适合长时间对话</li>
+                    <li style="margin-bottom: 10px;">🥉 <strong>V5</strong> - 如果要极简设计</li>
+                </ul>
+                <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                    <strong>技术实现：</strong><br>
+                    • V1/V3/V5: 使用 SwiftUI GeometryReader + Animation<br>
+                    • V2: 使用 Circle + scaleEffect 动画<br>
+                    • V4: 使用 ZStack + LinearGradient + opacity 动画<br>
+                    <br>
+                    所有动画都可以用 <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">withAnimation(.easeInOut(duration: 1.2).repeatForever())</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

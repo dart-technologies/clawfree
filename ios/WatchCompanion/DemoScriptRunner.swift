@@ -1,49 +1,93 @@
 import SwiftUI
 import Combine
 
-/// Runs the combined Story 1 + Story 2 demo script on Watch.
+/// V1 Demo: 12-step story matching the HTML prototype.
 ///
-/// Flow:
-/// 1. "Plan a 3-day foodie trip to Tokyo" → user voice (male TTS)
-/// 2. AI: "Creating your travel agent..." → AI voice (female TTS)
-/// 3. "Save Agent" → user voice
-/// 4. AI: "Agent saved! Setting up your trip..." → AI voice
-/// 5. (No home navigation — seamless transition)
-/// 6. "Plan a trip" → user voice
-/// 7. AI: "Tokyo pre-selected, 3 days, foodie theme" → AI voice
-/// 8. "Generate Itinerary" → user voice
-/// 9. AI: "Here's your Tokyo foodie itinerary..." → AI voice
-/// 10. "Book Trip" → user voice
-/// 11. AI: "Booked! Your trip is confirmed." → AI voice (stay on screen)
+/// States: idle → conversation (steps 2-11) → complete (step 12)
 class DemoScriptRunner: ObservableObject {
     static let shared = DemoScriptRunner()
 
     struct ScriptStep {
         let text: String
-        let isUser: Bool       // true = user (male), false = AI (female)
-        let delayAfter: Double // seconds to wait after this step
-        let sendToPhone: Bool  // send via WCSession to iPhone
+        let isUser: Bool          // true = user (male TTS), false = AI (female TTS)
+        let delayAfter: Double    // seconds to wait after this step
+        let sendToPhone: Bool     // send via WCSession to iPhone
+        let isThinking: Bool      // show thinking dots instead of text
+        let isSuccess: Bool       // green success style
+        let isHighlight: Bool     // highlight/accent style
     }
 
-    /// The combined Story 1 + 2 script (no home navigation between stories).
+    /// The complete 12-step V1 story (matching HTML prototype)
     let script: [ScriptStep] = [
-        // Story 1: Create Agent
-        ScriptStep(text: "Plan a 3-day foodie trip to Tokyo", isUser: true, delayAfter: 2.0, sendToPhone: true),
-        ScriptStep(text: "Creating your travel agent...", isUser: false, delayAfter: 3.0, sendToPhone: false),
-        ScriptStep(text: "Save Agent", isUser: true, delayAfter: 2.0, sendToPhone: true),
-        ScriptStep(text: "Agent saved! Setting up your trip...", isUser: false, delayAfter: 2.5, sendToPhone: false),
+        // Step 2: User speaks
+        ScriptStep(text: "Plan a 3-day foodie trip to Tokyo",
+                   isUser: true, delayAfter: 5.0, sendToPhone: true,
+                   isThinking: false, isSuccess: false, isHighlight: false),
 
-        // Story 2: Plan Trip (seamless — no home navigation)
-        ScriptStep(text: "Plan a trip", isUser: true, delayAfter: 2.5, sendToPhone: true),
-        ScriptStep(text: "Tokyo pre-selected, 3 days, foodie theme ready!", isUser: false, delayAfter: 2.0, sendToPhone: false),
-        ScriptStep(text: "Generate Itinerary", isUser: true, delayAfter: 3.0, sendToPhone: true),
-        ScriptStep(text: "Day 1: Tsukiji → Ginza. Day 2: Shibuya → Harajuku. Day 3: Asakusa → Akihabara.", isUser: false, delayAfter: 3.0, sendToPhone: false),
-        ScriptStep(text: "Book Trip", isUser: true, delayAfter: 2.0, sendToPhone: true),
-        ScriptStep(text: "Booked! ANA flights + Hoshinoya Tokyo confirmed. 🎉", isUser: false, delayAfter: 0, sendToPhone: false),
+        // Step 3: AI Thinking (wait for genUI to display)
+        ScriptStep(text: "",
+                   isUser: false, delayAfter: 2.5, sendToPhone: false,
+                   isThinking: true, isSuccess: false, isHighlight: false),
+
+        // Step 4: Agent created (longer delay for user to browse genUI)
+        ScriptStep(text: "I've created a Travel Concierge Agent with Claude Opus 4.6, all tools and channels enabled.",
+                   isUser: false, delayAfter: 8.0, sendToPhone: false,
+                   isThinking: false, isSuccess: false, isHighlight: false),
+
+        // Step 5: User confirms (after reviewing genUI)
+        ScriptStep(text: "OK, confirm",
+                   isUser: true, delayAfter: 1.5, sendToPhone: true,
+                   isThinking: false, isSuccess: false, isHighlight: false),
+
+        // Step 6: Agent saved
+        ScriptStep(text: "✓ Agent saved successfully!",
+                   isUser: false, delayAfter: 2.0, sendToPhone: false,
+                   isThinking: false, isSuccess: true, isHighlight: false),
+
+        // Step 7: AI starts planning
+        ScriptStep(text: "Perfect! I'll start planning your 3-day foodie trip to Tokyo now.",
+                   isUser: false, delayAfter: 2.5, sendToPhone: false,
+                   isThinking: false, isSuccess: false, isHighlight: true),
+
+        // Step 8: User requests itinerary
+        ScriptStep(text: "Generate Itinerary",
+                   isUser: true, delayAfter: 1.5, sendToPhone: true,
+                   isThinking: false, isSuccess: false, isHighlight: false),
+
+        // Step 8b: AI thinking for itinerary (wait for genUI generation)
+        ScriptStep(text: "",
+                   isUser: false, delayAfter: 5.0, sendToPhone: false,
+                   isThinking: true, isSuccess: false, isHighlight: false),
+
+        // Step 9: Itinerary ready (longer delay for user to review itinerary)
+        ScriptStep(text: "Here's your Tokyo foodie adventure:\n\n• Day 1: Tsukiji Market\n• Day 2: Ramen masterclass\n• Day 3: Michelin kaiseki\n\nFlight: ANA ✓\nHotel: Hoshinoya Tokyo",
+                   isUser: false, delayAfter: 8.0, sendToPhone: false,
+                   isThinking: false, isSuccess: false, isHighlight: false),
+
+        // Step 10: User books trip (after reviewing itinerary)
+        ScriptStep(text: "Book Trip",
+                   isUser: true, delayAfter: 1.5, sendToPhone: true,
+                   isThinking: false, isSuccess: false, isHighlight: false),
+
+        // Step 11: Booking in progress
+        ScriptStep(text: "Booking your trip now...",
+                   isUser: false, delayAfter: 2.0, sendToPhone: false,
+                   isThinking: false, isSuccess: false, isHighlight: false),
     ]
 
+    // MARK: - Chat Message Model
+
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let text: String
+        let isUser: Bool
+        let isThinking: Bool
+        let isSuccess: Bool
+        let isHighlight: Bool
+    }
+
     @Published var currentStepIndex: Int = -1
-    @Published var chatMessages: [(text: String, isUser: Bool)] = []
+    @Published var chatMessages: [ChatMessage] = []
     @Published var isRunning = false
     @Published var isComplete = false
 
@@ -70,11 +114,19 @@ class DemoScriptRunner: ObservableObject {
         isRunning = false
     }
 
+    /// Reset to initial state.
+    func reset() {
+        stop()
+        isComplete = false
+        chatMessages = []
+        currentStepIndex = -1
+    }
+
     private func playNextStep(connectivity: ConnectivityProvider) {
         currentStepIndex += 1
 
         guard currentStepIndex < script.count else {
-            // Demo complete
+            // All conversation steps done → transition to Complete
             isRunning = false
             isComplete = true
             earcon.play(.success)
@@ -83,22 +135,39 @@ class DemoScriptRunner: ObservableObject {
 
         let step = script[currentStepIndex]
 
+        // If this is a thinking step, replace previous thinking dots first
+        if !step.isThinking {
+            // Remove any existing thinking message
+            withAnimation(.easeInOut(duration: 0.3)) {
+                chatMessages.removeAll { $0.isThinking }
+            }
+        }
+
         // Add to chat history
+        let msg = ChatMessage(
+            text: step.text,
+            isUser: step.isUser,
+            isThinking: step.isThinking,
+            isSuccess: step.isSuccess,
+            isHighlight: step.isHighlight
+        )
         withAnimation(.easeInOut(duration: 0.3)) {
-            chatMessages.append((text: step.text, isUser: step.isUser))
+            chatMessages.append(msg)
         }
 
         // Play earcon
         if step.isUser {
             earcon.play(.thinking)
-        } else if currentStepIndex == script.count - 1 {
+        } else if step.isSuccess {
             earcon.play(.success)
         } else {
             earcon.play(.surfaceArrival)
         }
 
-        // TTS
-        tts.speak(step.text, voice: step.isUser ? .male : .female)
+        // TTS (skip for thinking dots)
+        if !step.isThinking {
+            tts.speak(step.text, voice: step.isUser ? .male : .female)
+        }
 
         // Send to iPhone via WCSession
         if step.sendToPhone {

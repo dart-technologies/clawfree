@@ -1,6 +1,8 @@
 import WatchConnectivity
 import SwiftUI
 
+/// 連線提供者：透過 HTTP POST 將 Watch 訊息發送到本地同步伺服器
+/// 模擬器環境下 WCSession 無法使用，改用 HTTP POST 繞過限制
 class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     @Published var activeAgentCount: Int = 0
     @Published var healthLevel: String = "nominal"
@@ -8,6 +10,9 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
     @Published var lastAiReply: String?
     @Published var isReachable: Bool = false
     @Published var isPhoneActive: Bool = false
+
+    /// Demo 同步伺服器的 URL（模擬器用 localhost）
+    private let syncServerURL = "http://localhost:8080/message"
 
     var healthColor: Color {
         switch healthLevel {
@@ -39,41 +44,65 @@ class ConnectivityProvider: NSObject, ObservableObject, WCSessionDelegate {
         } else {
             print("[Watch] WCSession NOT supported on this device")
         }
+        // 模擬器環境下，標記為可達（透過 HTTP）
+        DispatchQueue.main.async {
+            self.isReachable = true
+        }
     }
 
-    /// Send a voice command text to the iPhone app.
+    /// 發送語音指令到同步伺服器（HTTP POST）
+    /// 伺服器會廣播給所有連線的 iPhone / macOS 客戶端
     func sendVoiceCommand(_ text: String) {
-        let state = WCSession.default.activationState
-        print("[Watch→Phone] sendVoiceCommand('\(text)') state=\(state.rawValue) reachable=\(WCSession.default.isReachable)")
+        print("[Watch→Server] sendVoiceCommand('\(text)')")
+        sendToSyncServer(text: text, isUser: true)
+    }
 
-        guard state == .activated else {
-            print("[Watch→Phone] BLOCKED: WCSession not activated (state=\(state.rawValue))")
+    /// 發送 AI 回覆到同步伺服器
+    func sendAIReply(_ text: String) {
+        print("[Watch→Server] sendAIReply('\(text.prefix(60))...')")
+        sendToSyncServer(text: text, isUser: false)
+    }
+
+    /// 透過 HTTP POST 將訊息發送到本地同步伺服器
+    private func sendToSyncServer(text: String, isUser: Bool) {
+        guard let url = URL(string: syncServerURL) else {
+            print("[Watch→Server] ❌ 無效的 URL: \(syncServerURL)")
             return
         }
 
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 5.0
+
         let payload: [String: Any] = [
-            "type": "user_message",
             "text": text,
+            "isUser": isUser,
             "source": "watch",
             "timestamp": ISO8601DateFormatter().string(from: Date())
         ]
 
-        if WCSession.default.isReachable {
-            print("[Watch→Phone] Sending via sendMessage (reachable)")
-            WCSession.default.sendMessage(payload, replyHandler: { reply in
-                print("[Watch→Phone] ACK received: \(reply)")
-            }, errorHandler: { error in
-                print("[Watch→Phone] sendMessage FAILED: \(error.localizedDescription), falling back to transferUserInfo")
-                WCSession.default.transferUserInfo(payload)
-            })
-        } else {
-            print("[Watch→Phone] Not reachable, using transferUserInfo")
-            WCSession.default.transferUserInfo(payload)
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        } catch {
+            print("[Watch→Server] ❌ JSON 序列化失敗: \(error)")
+            return
         }
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("[Watch→Server] ❌ 發送失敗: \(error.localizedDescription)")
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse {
+                print("[Watch→Server] ✅ 回應: \(httpResponse.statusCode)")
+            }
+        }.resume()
     }
 
-    /// 傳送 Watch UI 狀態到 iPhone（即時同步每一步操作）
+    /// 傳送 Watch UI 狀態到同步伺服器
     func sendUIState(_ state: [String: Any]) {
+        // UI 狀態目前不透過同步伺服器傳送，保留原有邏輯
         guard WCSession.default.activationState == .activated else { return }
         var payload = state
         payload["type"] = "ui_state"

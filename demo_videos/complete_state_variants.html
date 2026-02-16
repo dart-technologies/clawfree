@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clawfree Watch - Complete State Variants</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .variants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .variant-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .variant-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .watch-frame {
+            width: 280px;
+            height: 340px;
+            margin: 0 auto;
+            background: black;
+            border-radius: 50px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .watch-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 42px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        /* Lobster Logo Styles */
+        .logo-lobster {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo-circle {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2);
+        }
+        
+        .logo-gradient {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        
+        .logo-minimal {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        /* Success Icon */
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            animation: pop 0.5s ease;
+        }
+        
+        @keyframes pop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Text Styles */
+        .complete-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .complete-subtitle {
+            color: #a0a0a0;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        
+        .complete-details {
+            color: #667eea;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        
+        /* Mic Button */
+        .mic-button-small {
+            width: 48px;
+            height: 48px;
+            background: rgba(100, 100, 100, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin: 0 auto;
+        }
+        
+        .hint-text-small {
+            color: #667eea;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+        
+        /* Variant Specific */
+        .v1 .logo-lobster {
+            filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.3));
+        }
+        
+        .v2 {
+            background: linear-gradient(135deg, #1e1e2e 0%, #1a1a2e 100%);
+        }
+        
+        .v3 .success-icon {
+            color: #4ade80;
+        }
+        
+        .v4 {
+            background: radial-gradient(circle at center, #2a2a3e 0%, #1a1a2e 100%);
+        }
+        
+        .v5 .complete-title {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .description {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            text-align: center;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+        
+        .features {
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .features div {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦞 Clawfree Watch - Complete State Variants</h1>
+        
+        <div class="variants-grid">
+            <!-- Variant 1: Floating Lobster -->
+            <div class="variant-card">
+                <div class="variant-title">V1: Floating Lobster (Animated)</div>
+                <div class="watch-frame">
+                    <div class="watch-screen v1">
+                        <div class="logo-lobster">🦞</div>
+                        <div class="success-icon">✅</div>
+                        <div class="complete-title">Trip Booked!</div>
+                        <div class="complete-subtitle">Tokyo 3-Day Foodie Adventure</div>
+                        <div class="mic-button-small">🎤</div>
+                        <div class="hint-text-small">Tap to start</div>
+                    </div>
+                </div>
+                <div class="description">
+                    **浮动龙虾 Logo**：龙虾图标上下浮动动画 + 勾勾 + 简洁文字
+                </div>
+                <div class="features">
+                    <div>✅ 品牌识别度高</div>
+                    <div>✅ 动画生动活泼</div>
+                    <div>✅ 清晰简洁</div>
+                </div>
+            </div>
+            
+            <!-- Variant 2: White Circle Logo -->
+            <div class="variant-card">
+                <div class="variant-title">V2: White Circle Logo</div>
+                <div class="watch-frame">
+                    <div class="watch-screen v2">
+                        <div class="logo-circle">🦞</div>
+                        <div class="complete-title">✅ Trip Booked!</div>
+                        <div class="complete-subtitle">Tokyo 3-Day Foodie</div>
+                        <div class="complete-details">ANA Flight + Hoshinoya Tokyo</div>
+                        <div class="mic-button-small">🎤</div>
+                    </div>
+                </div>
+                <div class="description">
+                    **白色圆形底**：龙虾在白色圆形背景上 + 更多细节信息
+                </div>
+                <div class="features">
+                    <div>✅ 白色底突出 Logo</div>
+                    <div>✅ 显示更多行程细节</div>
+                    <div>⚠️ 稍微多一点信息</div>
+                </div>
+            </div>
+            
+            <!-- Variant 3: Gradient Circle Logo -->
+            <div class="variant-card">
+                <div class="variant-title">V3: Gradient Circle Logo</div>
+                <div class="watch-frame">
+                    <div class="watch-screen v3">
+                        <div class="logo-gradient">🦞</div>
+                        <div class="success-icon">✓</div>
+                        <div class="complete-title">Booked!</div>
+                        <div class="complete-subtitle">Tokyo 3-Day Foodie</div>
+                        <div class="mic-button-small">🎤</div>
+                        <div class="hint-text-small">Tap to continue</div>
+                    </div>
+                </div>
+                <div class="description">
+                    **渐变圆形底**：品牌色渐变背景 + 极简文字
+                </div>
+                <div class="features">
+                    <div>✅ 品牌色统一</div>
+                    <div>✅ 极简设计</div>
+                    <div>✅ 视觉平衡</div>
+                </div>
+            </div>
+            
+            <!-- Variant 4: Minimal Lobster Only -->
+            <div class="variant-card">
+                <div class="variant-title">V4: Minimal - Lobster Only</div>
+                <div class="watch-frame">
+                    <div class="watch-screen v4">
+                        <div class="logo-minimal">🦞</div>
+                        <div class="complete-title">Trip Booked! ✓</div>
+                        <div class="complete-subtitle">Tokyo 3 Days</div>
+                        <div style="margin: 30px 0;">
+                            <div class="mic-button-small">🎤</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    **极简主义**：只有龙虾 + 最少文字 + 大量留白
+                </div>
+                <div class="features">
+                    <div>✅ 最简洁</div>
+                    <div>✅ 聚焦品牌</div>
+                    <div>✅ 优雅留白</div>
+                </div>
+            </div>
+            
+            <!-- Variant 5: Logo + Gradient Text -->
+            <div class="variant-card">
+                <div class="variant-title">V5: Logo + Gradient Text</div>
+                <div class="watch-frame">
+                    <div class="watch-screen v5">
+                        <div style="font-size: 56px; margin-bottom: 15px;">🦞</div>
+                        <div class="complete-title">Trip Booked!</div>
+                        <div class="complete-subtitle" style="margin-bottom: 10px;">Tokyo 3-Day Foodie Adventure</div>
+                        <div class="complete-details" style="color: #667eea; font-size: 11px; margin-bottom: 25px;">
+                            ANA + Hoshinoya Tokyo
+                        </div>
+                        <div class="mic-button-small">🎤</div>
+                        <div class="hint-text-small">Tap to start new chat</div>
+                    </div>
+                </div>
+                <div class="description">
+                    **渐变文字标题**：龙虾 + 渐变色标题 + 详细信息 + 提示文字
+                </div>
+                <div class="features">
+                    <div>✅ 视觉层次丰富</div>
+                    <div>✅ 渐变色强调标题</div>
+                    <div>⚠️ 信息较多</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; border: 2px solid rgba(255, 255, 255, 0.2); max-width: 800px; margin: 0 auto;">
+            <h2 style="color: white; margin-bottom: 20px;">💡 设计建议</h2>
+            <div style="color: rgba(255, 255, 255, 0.9); line-height: 1.8; font-size: 15px;">
+                <p style="margin-bottom: 15px;"><strong>推荐排序：</strong></p>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="margin-bottom: 10px;">🥇 <strong>V4 (Minimal)</strong> - 最简洁，聚焦品牌，优雅留白</li>
+                    <li style="margin-bottom: 10px;">🥈 <strong>V3 (Gradient Circle)</strong> - 品牌色统一，视觉平衡</li>
+                    <li style="margin-bottom: 10px;">🥉 <strong>V1 (Floating Lobster)</strong> - 动画生动，品牌识别度高</li>
+                </ul>
+                <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                    <strong>核心原则：</strong><br>
+                    • 完成画面要简洁，不复杂<br>
+                    • 突出 Clawfree 品牌（龙虾 logo）<br>
+                    • 白色/渐变色底风格统一<br>
+                    • 保留麦克风按钮（可重新开始对话）<br>
+                    <br>
+                    <strong>技术实现（SwiftUI）：</strong><br>
+                    <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 13px;">
+                    VStack { Text("🦞").font(.system(size: 64)) + Text("✅") + Text("Trip Booked!") + Button(🎤) }
+                    </code>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
