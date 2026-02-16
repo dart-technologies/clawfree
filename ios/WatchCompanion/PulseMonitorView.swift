@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Main Watch View — One‑tap voice‑first UX
+// MARK: - V3 Watch View — Floating FAB 語音助理 UX
 
 struct PulseMonitorView: View {
     @StateObject private var connectivity = ConnectivityProvider()
@@ -16,27 +16,18 @@ struct PulseMonitorView: View {
         case tripPlanner    // 規劃旅行流程
     }
 
-    /// Current UI phase
+    /// V3 UI 階段
     @State private var phase: VoicePhase = .idle
-    /// Pulsing animation scale for the mic ring
-    @State private var pulseScale: CGFloat = 1.0
-    /// Recording ring animation
-    @State private var recordingPulse: CGFloat = 1.0
-    /// Dictation result (set by TextField sheet)
+
+    /// Dictation result
     @State private var dictatedText: String = ""
-    /// Show the dictation sheet
     @State private var showDictation = false
 
     // MARK: - Demo Mode
-    /// Demo mode flag (hard-coded for now, can be changed to env var later)
     private let isDemoMode = true
-    /// Auto-demo: automatically play all 3 demo scripts on launch (for recording)
     private let isAutoDemoMode = true
-    /// Current demo script index
     @State private var demoScriptIndex = 0
-    /// Auto-demo completed count
     @State private var autoDemoCompleted = 0
-    /// Demo scripts (Story 1+2 combined — user utterances only)
     private let demoScripts = [
         "Plan a 3-day foodie trip to Tokyo",
         "Save Agent",
@@ -44,33 +35,28 @@ struct PulseMonitorView: View {
         "Generate Itinerary",
         "Book Trip"
     ]
-    /// Recognized text for demo mode (typewriter effect)
     @State private var recognizedText = ""
-    /// Is currently showing recognition animation
     @State private var isRecognizing = false
-    /// Ripple animation scale for demo recording
-    @State private var rippleScale: CGFloat = 1.0
+
+    /// V3 脈衝動畫
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var micPulseScale: CGFloat = 1.0
 
     enum VoicePhase {
-        case idle       // Big mic button
-        case recording  // Listening… (dictation active)
-        case sending    // Sending…
-        case reply      // AI answered
+        case idle        // V3-A: Clawfree + 浮動麥克風
+        case listening   // V3-B: 麥克風脈衝 + 送出/取消按鈕
+        case recognizing // V3-C: 辨識文字 + 聲波 + 停止
+        case reply       // V3-D: 對話訊息 + 聲波 + 停止
+        case complete    // V3-E: 成功訊息 + 麥克風重新開始
     }
 
     // MARK: - Brand colours
-    private let lobsterOrange = Color(red: 1.0, green: 0.42, blue: 0.21)   // #FF6B35
-    private let teal          = Color(red: 0.0, green: 0.75, blue: 0.65)   // #00BFA5
-    private let darkBg        = Color(red: 0.1, green: 0.1, blue: 0.1)     // #1A1A1A
+    private let lobsterOrange = Color(red: 1.0, green: 0.42, blue: 0.21)
+    private let teal          = Color(red: 0.0, green: 0.75, blue: 0.65)
+    private let darkBg        = Color(red: 0.1, green: 0.1, blue: 0.1)
 
-    private var accentColor: Color {
-        switch phase {
-        case .idle:      return teal
-        case .recording: return .red
-        case .sending:   return lobsterOrange
-        case .reply:     return teal
-        }
-    }
+    // MARK: - 浮動按鈕大小
+    private let fabSize: CGFloat = 44
 
     // MARK: - Body
 
@@ -78,14 +64,13 @@ struct PulseMonitorView: View {
         ZStack {
             darkBg.ignoresSafeArea()
 
-            // 互動流程覆蓋主畫面
             switch activeFlow {
             case .agentConfig:
                 AgentConfigView(
                     connectivity: connectivity,
                     onComplete: { command in
                         connectivity.sendVoiceCommand(command)
-                        withAnimation { activeFlow = .none; phase = .sending }
+                        withAnimation { activeFlow = .none; phase = .recognizing }
                     },
                     onCancel: { withAnimation { activeFlow = .none } }
                 )
@@ -94,28 +79,36 @@ struct PulseMonitorView: View {
                     connectivity: connectivity,
                     onComplete: { command in
                         connectivity.sendVoiceCommand(command)
-                        withAnimation { activeFlow = .none; phase = .sending }
+                        withAnimation { activeFlow = .none; phase = .recognizing }
                     },
                     onCancel: { withAnimation { activeFlow = .none } }
                 )
             case .none:
-                mainVoiceView
+                mainV3View
             }
         }
         .sheet(isPresented: $showDictation) {
             DictationSheet(text: $dictatedText, onDone: handleDictationDone)
         }
         .onAppear {
-            startIdlePulse()
-            // Auto-demo: start Story 1+2 combined script after 2s delay
             if isAutoDemoMode && isDemoMode {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     demoRunner.start(connectivity: connectivity)
                 }
             }
         }
+        .onChange(of: demoRunner.isRunning) { running in
+            if running && phase == .idle {
+                withAnimation { phase = .reply }
+            }
+        }
+        .onChange(of: demoRunner.isComplete) { complete in
+            if complete {
+                withAnimation(.easeInOut(duration: 0.5)) { phase = .complete }
+            }
+        }
         .onChange(of: connectivity.lastAiReply) { newReply in
-            if newReply != nil && phase == .sending {
+            if newReply != nil && phase == .recognizing {
                 withAnimation(.easeInOut(duration: 0.3)) { phase = .reply }
                 if let r = newReply {
                     WatchTTSService.shared.speak(r)
@@ -124,182 +117,209 @@ struct PulseMonitorView: View {
         }
     }
 
-    // MARK: - 主語音畫面
-    private var mainVoiceView: some View {
-        VStack(spacing: 0) {
-                // Top bar: Branding + Pause button (when running)
-                HStack(spacing: 4) {
-                    Image(systemName: "hand.raised.slash.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(lobsterOrange)
-                    Text("Clawfree")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(lobsterOrange)
+    // MARK: - V3 主畫面
 
-                    Spacer()
+    private var mainV3View: some View {
+        ZStack {
+            // 主內容區域
+            mainContentArea
 
-                    // Cancel / Pause buttons
-                    if phase == .recording {
-                        // ✕ Cancel button (stop listening)
-                        Button(action: {
-                            if demoRunner.isRunning { demoRunner.stop() }
-                            withAnimation { phase = .idle; recognizedText = ""; isRecognizing = false }
-                        }) {
+            // 浮動按鈕層（always on top）
+            VStack {
+                // 左上角 ✕ 離開按鈕（V3-D 對話模式）
+                HStack {
+                    if phase == .reply && demoRunner.isRunning {
+                        Button(action: stopAndReset) {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 18))
+                                .foregroundColor(.gray.opacity(0.7))
                         }
                         .buttonStyle(.plain)
-                    } else if demoRunner.isRunning {
-                        // Pause button (during demo conversation)
-                        Button(action: { demoRunner.stop() }) {
-                            Image(systemName: "pause.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(accentColor)
-                        }
-                        .buttonStyle(.plain)
-                    } else if demoRunner.isComplete || phase == .reply || phase == .sending {
-                        // ✕ Leave conversation button
-                        Button(action: {
-                            demoRunner.stop()
-                            demoRunner.isComplete = false
-                            demoRunner.chatMessages = []
-                            withAnimation { phase = .idle; recognizedText = "" }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
-                        }
-                        .buttonStyle(.plain)
-                    } else if connectivity.isPhoneActive {
-                        Image(systemName: "iphone")
-                            .font(.system(size: 9))
-                            .foregroundColor(.green)
+                        .padding(.leading, 8)
+                        .padding(.top, 4)
                     }
+                    Spacer()
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
 
-                // Main content area
-                if phase == .idle && !demoRunner.isRunning && !demoRunner.isComplete {
-                    // Initial state: Greeting + "Tap to speak" button
-                    Spacer()
-                    
-                    Text("Hi, how are you")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                Spacer()
+
+                // 聲波動畫（V3-C, V3-D）
+                if phase == .recognizing || (phase == .reply && demoRunner.isRunning) {
+                    WaveformView()
+                        .frame(height: 25)
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 4)
-                    
-                    Button(action: { handleTap() }) {
-                        VStack(spacing: 6) {
-                            Image(systemName: "mic.circle.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(accentColor)
-                            Text("Tap to speak")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(accentColor)
+                }
+
+                // 底部浮動按鈕列
+                HStack {
+                    // 左下角取消按鈕（V3-B Listening 狀態）
+                    if phase == .listening {
+                        Button(action: cancelListening) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: fabSize, height: fabSize)
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
                         }
+                        .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("micButton")
+
                     Spacer()
-                    
-                    // Connection status at bottom
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(connectivity.isReachable ? Color.green : Color.gray)
-                            .frame(width: 6, height: 6)
-                        Text(connectivity.isReachable ? "Connected" : "Offline")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.bottom, 8)
-                } else {
-                    // Conversation mode: Show scrollable chat history
-                    ScrollView {
-                        VStack(spacing: 8) {
-                            // Demo script messages (Story 1+2)
-                            if demoRunner.isRunning || demoRunner.isComplete {
-                                ForEach(Array(demoRunner.chatMessages.enumerated()), id: \.offset) { index, msg in
-                                    HStack {
-                                        if msg.isUser {
-                                            Spacer()
-                                            Text(msg.text)
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 6)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 12)
-                                                        .fill(teal)
-                                                )
-                                                .frame(maxWidth: 130, alignment: .trailing)
-                                        } else {
-                                            Text(msg.text)
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.primary)
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 6)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 12)
-                                                        .fill(Color.gray.opacity(0.2))
-                                                )
-                                                .frame(maxWidth: 130, alignment: .leading)
-                                            Spacer()
-                                        }
-                                    }
-                                    .padding(.horizontal, 8)
-                                }
-                            }
-                            
-                            // Live recognized text (during recording)
-                            if phase == .recording && !recognizedText.isEmpty {
-                                HStack {
+
+                    // 右下角主按鈕
+                    mainFAB
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 4)
+            }
+        }
+    }
+
+    // MARK: - 主內容區域（依階段切換）
+
+    @ViewBuilder
+    private var mainContentArea: some View {
+        switch phase {
+        case .idle:
+            idleView
+        case .listening:
+            listeningView
+        case .recognizing:
+            recognizingView
+        case .reply:
+            conversationView
+        case .complete:
+            completeView
+        }
+    }
+
+    // MARK: - V3-A: Idle 狀態
+    private var idleView: some View {
+        VStack(spacing: 8) {
+            Spacer()
+
+            // 品牌 Logo
+            HStack(spacing: 4) {
+                Image(systemName: "hand.raised.slash.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(lobsterOrange)
+                Text("Clawfree")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(lobsterOrange)
+            }
+
+            Text("Ready to Assist")
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.6))
+
+            Spacer()
+
+            // 提示文字（麥克風按鈕上方）
+            Text("Tap Mic to Start")
+                .font(.system(size: 11))
+                .foregroundColor(teal.opacity(0.8))
+                .padding(.bottom, fabSize + 12)
+        }
+    }
+
+    // MARK: - V3-B: Listening 狀態
+    private var listeningView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            // 麥克風脈衝動畫
+            ZStack {
+                // 外圈脈衝
+                Circle()
+                    .stroke(teal.opacity(0.2), lineWidth: 2)
+                    .frame(width: 70, height: 70)
+                    .scaleEffect(pulseScale)
+
+                Circle()
+                    .stroke(teal.opacity(0.1), lineWidth: 1)
+                    .frame(width: 90, height: 90)
+                    .scaleEffect(pulseScale * 0.9)
+
+                // 中央麥克風
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 32, weight: .medium))
+                    .foregroundColor(teal)
+                    .scaleEffect(micPulseScale)
+            }
+            .onAppear {
+                startListeningPulse()
+            }
+
+            Text("Listening…")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+
+            Spacer()
+            // 為底部按鈕留空間
+            Spacer().frame(height: fabSize + 16)
+        }
+    }
+
+    // MARK: - V3-C: Recognizing 狀態
+    private var recognizingView: some View {
+        VStack(spacing: 8) {
+            Spacer()
+
+            // 辨識文字
+            if !recognizedText.isEmpty {
+                Text(recognizedText)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(teal.opacity(0.15))
+                    )
+                    .padding(.horizontal, 12)
+            }
+
+            if isRecognizing {
+                Text("Recognizing…")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+            // 為聲波 + 按鈕留空間
+            Spacer().frame(height: 70)
+        }
+    }
+
+    // MARK: - V3-D: Conversation 狀態
+    private var conversationView: some View {
+        VStack(spacing: 0) {
+            // 對話滾動區域
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 6) {
+                        ForEach(Array(demoRunner.chatMessages.enumerated()), id: \.offset) { index, msg in
+                            HStack {
+                                if msg.isUser {
                                     Spacer()
-                                    VStack(alignment: .trailing, spacing: 4) {
-                                        Text(recognizedText)
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 6)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(teal.opacity(0.7))
-                                            )
-                                            .frame(maxWidth: 130, alignment: .trailing)
-                                        if isRecognizing {
-                                            Text("Recognizing...")
-                                                .font(.system(size: 9))
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 8)
-                            }
-                            
-                            // Demo complete: show success messages
-                            if demoRunner.isComplete {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("✅ Successfully created a travel agent")
+                                    Text(msg.text)
                                         .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.green)
-                                    Text("✅ Successfully planned a food trip to Tokyo")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.green)
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.green.opacity(0.1))
-                                )
-                                .padding(.horizontal, 8)
-                            }
-                            
-                            // AI reply (when not in demo mode)
-                            if !demoRunner.isRunning && phase == .reply, let reply = connectivity.lastAiReply {
-                                HStack {
-                                    Text(reply)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(teal)
+                                        )
+                                        .frame(maxWidth: 130, alignment: .trailing)
+                                } else {
+                                    Text(msg.text)
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(.primary)
                                         .padding(.horizontal, 10)
@@ -311,176 +331,176 @@ struct PulseMonitorView: View {
                                         .frame(maxWidth: 130, alignment: .leading)
                                     Spacer()
                                 }
-                                .padding(.horizontal, 8)
                             }
+                            .padding(.horizontal, 8)
+                            .id(index)
                         }
-                        .padding(.vertical, 8)
-                    }
-                    
-                    // Bottom status bar
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(connectivity.isReachable ? Color.green : Color.gray)
-                            .frame(width: 6, height: 6)
-                        Text(connectivity.isReachable ? "Connected" : "Offline")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                        
-                        Spacer()
-                        
-                        // Current state indicator
-                        if phase == .recording {
-                            HStack(spacing: 2) {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 6, height: 6)
-                                Text("Listening")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                }
 
-                // 快捷操作按鈕（Demo Mode 移除，腳本自動執行）
-                // if phase == .idle || phase == .reply {
-                //     HStack(spacing: 6) {
-                //         Button(action: {
-                //             if isDemoMode {
-                //                 // Demo mode: trigger "Create Agent" script
-                //                 demoScriptIndex = 0
-                //                 playDemoAnimation()
-                //             } else {
-                //                 withAnimation { activeFlow = .agentConfig }
-                //             }
-                //         }) {
-                //             HStack(spacing: 2) {
-                //                 Image(systemName: "cpu")
-                //                     .font(.system(size: 8))
-                //                 Text("Create Agent")
-                //                     .font(.system(size: 9))
-                //             }
-                //             .padding(.horizontal, 6)
-                //             .padding(.vertical, 3)
-                //         }
-                //         .buttonStyle(.bordered)
-                //         .tint(lobsterOrange)
-                //         .accessibilityIdentifier("createAgentButton")
-                //
-                //         Button(action: {
-                //             if isDemoMode {
-                //                 // Demo mode: trigger "Plan Trip" script
-                //                 demoScriptIndex = 1
-                //                 playDemoAnimation()
-                //             } else {
-                //                 withAnimation { activeFlow = .tripPlanner }
-                //             }
-                //         }) {
-                //             HStack(spacing: 2) {
-                //                 Image(systemName: "airplane")
-                //                     .font(.system(size: 8))
-                //                 Text("Plan Trip")
-                //                     .font(.system(size: 9))
-                //             }
-                //             .padding(.horizontal, 6)
-                //             .padding(.vertical, 3)
-                //         }
-                //         .buttonStyle(.bordered)
-                //         .tint(teal)
-                //         .accessibilityIdentifier("planTripButton")
-                //     }
-                //     .padding(.bottom, 2)
-                // }
+                        // Non-demo AI reply
+                        if !demoRunner.isRunning && !demoRunner.isComplete,
+                           let reply = connectivity.lastAiReply {
+                            HStack {
+                                Text(reply)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.gray.opacity(0.2))
+                                    )
+                                    .frame(maxWidth: 130, alignment: .leading)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 8)
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 70) // 為聲波 + 按鈕留空間
+                }
+                .onChange(of: demoRunner.chatMessages.count) { _ in
+                    if let last = demoRunner.chatMessages.indices.last {
+                        withAnimation {
+                            proxy.scrollTo(last, anchor: .bottom)
+                        }
+                    }
+                }
             }
         }
-    
+    }
 
-    // MARK: - Sub‑views
+    // MARK: - V3-E: Complete 狀態
+    private var completeView: some View {
+        VStack(spacing: 12) {
+            Spacer()
 
-    @ViewBuilder
-    private var micIcon: some View {
-        switch phase {
-        case .idle:
-            Image(systemName: "mic.fill")
-                .font(.system(size: 36, weight: .medium))
-                .foregroundColor(accentColor)
-        case .recording:
-            Image(systemName: "waveform")
-                .font(.system(size: 32, weight: .medium))
-                .foregroundColor(.red)
-        case .sending:
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(lobsterOrange)
-        case .reply:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 32))
-                .foregroundColor(teal)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("✅ Successfully created a travel agent")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.green)
+                Text("✅ Successfully planned a food trip to Tokyo")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.green)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.green.opacity(0.1))
+            )
+            .padding(.horizontal, 12)
+
+            Spacer()
+            // 為按鈕留空間
+            Spacer().frame(height: fabSize + 16)
         }
     }
 
-    @ViewBuilder
-    private var statusText: some View {
-        switch phase {
-        case .idle:
-            Text("Tap to speak")
-        case .recording:
-            Text("Listening…")
-        case .sending:
-            Text("Sending…")
-        case .reply:
-            Text("Tap mic to continue")
-        }
-    }
+    // MARK: - 浮動主按鈕（FAB）
 
     @ViewBuilder
-    private func replyBubble(_ reply: String) -> some View {
-        ScrollView {
-            Text(reply)
-                .font(.system(size: 11))
-                .foregroundColor(.white)
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxHeight: 60)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(teal.opacity(0.15))
-        )
-        .padding(.horizontal, 8)
-        .onTapGesture {
-            WatchTTSService.shared.speak(reply)
+    private var mainFAB: some View {
+        switch phase {
+        case .idle, .complete:
+            // 麥克風按鈕（綠色）
+            Button(action: handleMicTap) {
+                ZStack {
+                    Circle()
+                        .fill(teal)
+                        .frame(width: fabSize, height: fabSize)
+                        .shadow(color: teal.opacity(0.4), radius: 6, y: 2)
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("micButton")
+            .transition(.scale.combined(with: .opacity))
+
+        case .listening:
+            // 綠色送出按鈕（✓）
+            Button(action: submitListening) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: fabSize, height: fabSize)
+                        .shadow(color: Color.green.opacity(0.4), radius: 6, y: 2)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .buttonStyle(.plain)
+            .transition(.scale.combined(with: .opacity))
+
+        case .recognizing, .reply:
+            // 紅色停止按鈕
+            Button(action: stopAndReset) {
+                ZStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: fabSize, height: fabSize)
+                        .shadow(color: Color.red.opacity(0.4), radius: 6, y: 2)
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .buttonStyle(.plain)
+            .transition(.scale.combined(with: .opacity))
         }
     }
 
     // MARK: - Actions
 
-    private func handleTap() {
-        switch phase {
-        case .idle, .reply:
-            tts.stop()
-            
-            if isDemoMode {
-                // Demo mode: play animation instead of real dictation
-                playDemoAnimation()
-            } else {
-                // Normal mode: open dictation sheet
-                withAnimation(.easeInOut(duration: 0.2)) { phase = .recording }
-                startRecordingPulse()
-                dictatedText = ""
-                showDictation = true
+    private func handleMicTap() {
+        if phase == .complete {
+            // 重新開始循環
+            demoRunner.stop()
+            demoRunner.isComplete = false
+            demoRunner.chatMessages = []
+        }
+
+        if isDemoMode {
+            withAnimation(.easeInOut(duration: 0.3)) { phase = .listening }
+            // Demo: 1.5 秒後自動進入 recognizing
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                playDemoRecognition()
             }
-        case .recording:
-            if !isDemoMode {
-                // Normal mode: tapping again while recording → cancel
-                showDictation = false
-                withAnimation { phase = .idle }
-            }
-            // Demo mode: ignore tap while animating
-        case .sending:
-            break // ignore taps while sending
+        } else {
+            withAnimation(.easeInOut(duration: 0.3)) { phase = .listening }
+            dictatedText = ""
+            showDictation = true
+        }
+    }
+
+    private func submitListening() {
+        // 送出（Demo 模式下自動進入 recognizing）
+        if isDemoMode {
+            playDemoRecognition()
+        } else {
+            handleDictationDone()
+        }
+    }
+
+    private func cancelListening() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            phase = .idle
+            recognizedText = ""
+            isRecognizing = false
+        }
+        if demoRunner.isRunning { demoRunner.stop() }
+    }
+
+    private func stopAndReset() {
+        demoRunner.stop()
+        demoRunner.isComplete = false
+        demoRunner.chatMessages = []
+        withAnimation(.easeInOut(duration: 0.3)) {
+            phase = .idle
+            recognizedText = ""
+            isRecognizing = false
         }
     }
 
@@ -493,7 +513,6 @@ struct PulseMonitorView: View {
         }
         let lower = trimmed.lowercased()
 
-        // 語音觸發互動流程
         if lower.contains("create") && lower.contains("agent") {
             withAnimation { phase = .idle; activeFlow = .agentConfig }
             return
@@ -503,91 +522,49 @@ struct PulseMonitorView: View {
             return
         }
 
-        // 一般語音指令 → 直接發送到 iPhone
-        withAnimation(.easeInOut(duration: 0.2)) { phase = .sending }
+        withAnimation(.easeInOut(duration: 0.2)) { phase = .recognizing }
+        recognizedText = trimmed
         connectivity.sendVoiceCommand(trimmed)
     }
 
-    // MARK: - Demo Mode Animation
+    // MARK: - Demo Animation
 
-    private func playDemoAnimation() {
+    private func playDemoRecognition() {
         guard demoScriptIndex < demoScripts.count else {
-            // Reset to first script
             demoScriptIndex = 0
-            playDemoAnimation()
+            playDemoRecognition()
             return
         }
 
         let script = demoScripts[demoScriptIndex]
-        
-        // Step 1: Start recording animation (1-2 seconds)
-        withAnimation(.easeInOut(duration: 0.2)) {
-            phase = .recording
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            phase = .recognizing
+            isRecognizing = true
             recognizedText = ""
-            isRecognizing = false
         }
-        startRecordingPulse()
-        startRipplePulse()
 
-        // Step 2: After 1.5s, start typewriter effect
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation {
-                isRecognizing = true
-            }
-            typewriterEffect(text: script)
-        }
-    }
-
-    private func typewriterEffect(text: String) {
-        recognizedText = ""
-        let characters = Array(text)
+        // Typewriter effect
+        let characters = Array(script)
         var currentIndex = 0
-
-        // Type each character with 0.05s delay
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             if currentIndex < characters.count {
                 recognizedText.append(characters[currentIndex])
                 currentIndex += 1
             } else {
                 timer.invalidate()
-                // Step 3: Text complete, send command
-                sendDemoCommand()
-            }
-        }
-    }
-
-    private func sendDemoCommand() {
-        let command = recognizedText
-
-        // Flash text (blink effect)
-        withAnimation(.easeInOut(duration: 0.2)) {
-            recognizedText = "Sent ✓"
-        }
-
-        // Step 4: Send command via connectivity
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                phase = .sending
-            }
-            connectivity.sendVoiceCommand(command)
-
-            // Step 5: After 0.8s, reset to idle
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    phase = .idle
-                    recognizedText = ""
-                    isRecognizing = false
-                }
-                
-                // Move to next script
-                demoScriptIndex = (demoScriptIndex + 1) % demoScripts.count
-                autoDemoCompleted += 1
-                
-                // Auto-demo: chain next script after 2s pause
-                // (DemoScriptRunner handles full Story 1+2 flow; this is legacy fallback)
-                if isAutoDemoMode && autoDemoCompleted < demoScripts.count && !demoRunner.isRunning {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        playDemoAnimation()
+                isRecognizing = false
+                // 送出後切到對話模式
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    connectivity.sendVoiceCommand(script)
+                    demoScriptIndex += 1
+                    // 啟動 DemoScriptRunner 對話
+                    if !demoRunner.isRunning {
+                        demoRunner.start(connectivity: connectivity)
+                    }
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        phase = .reply
+                        recognizedText = ""
                     }
                 }
             }
@@ -596,29 +573,19 @@ struct PulseMonitorView: View {
 
     // MARK: - Animations
 
-    private func startIdlePulse() {
+    private func startListeningPulse() {
         pulseScale = 1.0
-        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-            pulseScale = 1.25
+        micPulseScale = 1.0
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+            pulseScale = 1.3
         }
-    }
-
-    private func startRecordingPulse() {
-        recordingPulse = 1.0
-        withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-            recordingPulse = 1.4
-        }
-    }
-
-    private func startRipplePulse() {
-        rippleScale = 1.0
-        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: false)) {
-            rippleScale = 1.6
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+            micPulseScale = 1.1
         }
     }
 }
 
-// MARK: - Dictation Sheet (minimal — auto‑focus TextField triggers watchOS dictation)
+// MARK: - Dictation Sheet
 
 struct DictationSheet: View {
     @Binding var text: String
@@ -627,7 +594,6 @@ struct DictationSheet: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // Recording indicator
             ZStack {
                 Circle()
                     .fill(Color.red.opacity(0.2))
@@ -641,14 +607,12 @@ struct DictationSheet: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white)
 
-            // Hidden TextField — triggers system dictation
             TextField("", text: $text)
                 .focused($focused)
                 .font(.system(size: 14))
                 .multilineTextAlignment(.center)
                 .onSubmit { onDone() }
 
-            // Send button (for manual submit after dictation)
             Button(action: onDone) {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.circle.fill")
@@ -665,7 +629,6 @@ struct DictationSheet: View {
         }
         .padding()
         .onAppear {
-            // Auto-trigger dictation keyboard
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 focused = true
             }
