@@ -61,6 +61,22 @@ vc.continuousMode = true; // hands-free: auto-starts STT after TTS
 
 ---
 
+## Apple Watch Voice Pipeline (DONE)
+
+The standalone WatchCompanion SwiftUI app (`ios/WatchCompanion/`, 15 Swift files) provides native voice I/O on watchOS 10+:
+
+- **SpeechRecognizer.swift** — `SFSpeechRecognizer` wrapper for on-device STT
+- **TTSService.swift** + **WatchTTSService.swift** — `AVSpeechSynthesizer` with pitch/rate voice differentiation
+- **ConnectivityProvider.swift** — `WCSession` bridge sends watch voice transcripts to Flutter via MethodChannel + HTTP POST fallback for simulator
+- **EarconPlayer.swift** — Audio earcons (thinking, success, surface_arrival) with haptic fallback
+- **DemoScriptRunner.swift** — 12-step automated demo (agent creation + travel booking flows)
+- **UI Components** — ChatBubbleView, AgentConfigView, TripPlannerView, WaveformView
+- **Testing** — `WatchCompanionUITests/WatchDemoFlowTest.swift` (XCUITest E2E)
+
+The watch app syncs health state (agent count, listening state) from the iPhone app via `PulseMonitorView` heartbeat display.
+
+---
+
 ## Gateway Connectivity (NEW)
 
 Live gateway communication is wired end-to-end:

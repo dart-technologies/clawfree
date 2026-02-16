@@ -76,6 +76,21 @@ clawfree/
 │           ├── clawfree_icons.dart
 │           ├── spring_curve.dart
 │           └── theme.dart         # Glassmorphism theme with JetBrainsMono typography
+├── ios/
+│   ├── Runner/               # iOS app target (Flutter host)
+│   ├── WatchCompanion/       # watchOS companion app (standalone SwiftUI)
+│   │   ├── WatchCompanionApp.swift     # App entry point
+│   │   ├── PulseMonitorView.swift      # Main UI: idle/conversation/complete states
+│   │   ├── DemoScriptRunner.swift      # 12-step scripted demo automation
+│   │   ├── ConnectivityProvider.swift  # WCSession bridge + HTTP POST fallback
+│   │   ├── SpeechRecognizer.swift      # SFSpeechRecognizer wrapper
+│   │   ├── TTSService.swift, WatchTTSService.swift  # AVSpeechSynthesizer
+│   │   ├── EarconPlayer.swift          # Audio earcons + haptic fallback
+│   │   ├── ChatBubbleView.swift, AgentConfigView.swift,
+│   │   │   TripPlannerView.swift, WaveformView.swift  # UI components
+│   │   └── Assets.xcassets/, Resources/  # Logo, icons, audio (.wav)
+│   ├── WatchCompanionUITests/ # XCUITests for watch demo flow
+│   └── Runner.xcodeproj/     # Xcode project (Runner + WatchCompanion + UITests targets)
 ├── .github/workflows/        # CI: Flutter Analyze + Test + iOS Simulator Build
 ├── infra/                    # Docker Compose, Dockerfile, configs
 ├── docs/
@@ -109,7 +124,7 @@ clawfree/
 - Prefer **yarn** over npm for Node.js/OpenClaw dependencies
 - genUI dependency via `dart-technologies/genui` fork (branch ref for CI, local path override via `pubspec_overrides.yaml` for dev)
 - OpenClaw gateway runs in Docker on port 18789
-- Flutter targets: web (Chrome), iOS (iPad), watchOS (Apple Watch voice)
+- Flutter targets: web (Chrome), iOS (iPad + iPhone). watchOS companion is a standalone SwiftUI app (`ios/WatchCompanion/`) acting as an audio I/O remote via WCSession
 - A2UI v0.9 flat component format: `{"component": "Text", "text": "Hello"}`
 - System prompt must include `A2uiMessage.a2uiMessageSchema(catalog)` + inline catalog rules with `catalogId: "clawfree-catalog"`
 - **VoiceController** is the single orchestrator for STT/TTS lifecycle; injected into `ChatSession` (not separate STT/TTS refs). `TtsService` supports `setPitch()` and `setVoice()` for voice customization (used in demo driver for user/agent differentiation)
