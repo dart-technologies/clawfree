@@ -92,3 +92,4 @@ docs/archive/
 
 # FFmpeg Rebuild Workspace
 ffmpeg_rebuild_workspace/
+demo_videos/*.mp4
