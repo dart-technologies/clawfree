@@ -164,9 +164,9 @@ class DemoScriptRunner: ObservableObject {
             earcon.play(.surfaceArrival)
         }
 
-        // TTS (skip for thinking dots)
+        // TTS (skip for thinking dots) - 全部使用男聲
         if !step.isThinking {
-            tts.speak(step.text, voice: step.isUser ? .male : .female)
+            tts.speak(step.text, voice: .male)
         }
 
         // Send to iPhone via WCSession
