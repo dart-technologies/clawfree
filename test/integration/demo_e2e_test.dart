@@ -80,8 +80,9 @@ void main() {
 
       // Send message via text field
       await tester.enterText(find.byType(TextField), 'Create an agent');
+      await tester.pump(); // flush text into controller
       await tester.testTextInput.receiveAction(TextInputAction.send);
-      await tester.pump();
+      await tester.pump(); // process submit
 
       // User message should be in session
       expect(
@@ -110,7 +111,8 @@ void main() {
 
       // Tap create suggestion chip
       await tester.tap(find.text('CREATE AN AGENT'));
-      await tester.pump();
+      await tester.pump(); // dispatch tap
+      await tester.pump(); // process async callback
 
       // User message sent
       expect(
@@ -162,7 +164,8 @@ void main() {
       await tester.pumpWidget(buildChatTestApp(session));
 
       await tester.tap(find.text('MANAGE OPENCLAW'));
-      await tester.pump();
+      await tester.pump(); // dispatch tap
+      await tester.pump(); // process async callback
 
       expect(
         session.messages.any((m) => m.isUser && m.text == 'Manage OpenClaw'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Maps icon name strings to Material Icons for A2UI components.
 const Map<String, IconData> _iconMap = {
@@ -27,6 +28,32 @@ const Map<String, IconData> _iconMap = {
   'location': Icons.location_on,
   'calendar': Icons.calendar_today,
   'time': Icons.access_time,
+  'mic': Icons.mic,
+  'mic_none': Icons.mic_none,
+  'dashboard': Icons.dashboard,
+  'play_arrow': Icons.play_arrow,
+  'smart_toy': Icons.smart_toy,
+  'qr_code': Icons.qr_code,
+  'qr_code_scanner': Icons.qr_code_scanner,
+  'extension': Icons.extension,
+  'analytics': Icons.analytics,
+  'security': Icons.security,
+  'check_circle': Icons.check_circle_outline,
+  'hub': Icons.hub,
+  'psychology': Icons.psychology,
+  'sync': Icons.sync,
+  'broken_image': Icons.broken_image,
+  'receipt_long': Icons.receipt_long,
+  'flight_takeoff': Icons.flight_takeoff,
+  'flight_land': Icons.flight_land,
+  'star_border': Icons.star_border,
+  'radio_button_checked': Icons.radio_button_checked,
+  'pause': Icons.pause,
+  'phone_iphone': Symbols.phone_iphone,
+  'tablet_mac': Symbols.tablet_mac,
+  'desktop_mac': Symbols.desktop_mac,
+  'watch': Symbols.watch,
+  'eyeglasses': Symbols.eyeglasses,
 };
 
 /// Resolves an icon name string to a Material [IconData].

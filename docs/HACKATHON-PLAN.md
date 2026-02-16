@@ -12,19 +12,17 @@
 
 ## What We're Building
 
-**clawfree** = hands-free AI agent orchestrator powered by Flutter genUI.
+**clawfree** = hands-free AI agentic orchestrator that lets anyone create and deploy OpenClaw agents using only voice — no coding, no typing required.
 
-Users speak to orchestrate, configure, and interact with agentic workflows through dynamically generated visual surfaces -- no typing, no JSON editing, no code.
+Voice-first interaction meets Opus 4.6's real-time UI streaming for a fully hands-free experience meeting users where they are — on-the-go, hands-full, eyes-busy. Voice commands on Apple Watch while jogging. Glanceable interfaces on iPhone while commuting. Full control tower orchestration on iPad at the coffee shop or Mac at your desk.
 
-Opus 4.6 powers both the conversational reasoning and the real-time UI generation via the A2UI protocol.
-
-**Problem Statement #2** (Break the Barriers) -- Expert AI agent configuration locked behind JSON editing, CLI, and technical knowledge. clawfree puts it in everyone's hands through voice + generative UI.
+**Problem Statement #2** (Break the Barriers) — Expert knowledge, essential tools, AI's benefits — take something powerful that's locked behind expertise, cost, language, or infrastructure and put it in everyone's hands.
 
 **Why it wins**:
-- **Demo (30%)**: Live voice-driven agent creation on Apple Watch + adaptive UI on iPad
-- **Impact (25%)**: Unlocks OpenClaw (165k+ stars) for non-technical users
-- **Opus 4.6 Use (25%)**: Opus powers both reasoning (agent config) AND UI generation (A2UI JSON) in a single streaming call
-- **Depth (20%)**: Full stack -- gateway A2UI server, Flutter genUI client, multi-device voice pipeline
+- **Demo (30%)**: Live voice-driven travel concierge across Watch + iPhone + iPad — itineraries, maps, flight comparisons, all voice-triggered
+- **Impact (25%)**: Transforms voice intent into production-ready agentic experiences instantly; meets users where they are across device contexts
+- **Opus 4.6 Use (25%)**: Opus as Contextual UI Architect — simultaneously reasons about *what* to present and *how*, adapting layout complexity to screen size, interaction patterns to input method, information density to attention context
+- **Depth (20%)**: Full stack -- Flutter genUI client with 33 custom components, multi-device voice pipeline, OpenClaw gateway integration
 
 ---
 
@@ -173,7 +171,7 @@ Opus 4.6 powers both the conversational reasoning and the real-time UI generatio
 - [x] Infrastructure: Flutter + genUI v0.9, CORS proxy, Makefile
 - [x] genUI Core: AI client (SSE streaming), chat session, A2UI schema injection, multi-turn, self-correction, demo mode (12 cached responses), agent store, adaptive layout, animations, theming
 - [x] Architecture: ChatScreen (5 extracted widgets), ChatSession (InteractionRouter + PromptLibrary extracted), VoiceController + VoiceServiceFactory, centralized assets/icons
-- [x] Testing: 504 tests across 52 files (unit + widget + e2e integration)
+- [x] Testing: 516 tests across 56 files (unit + widget + e2e integration)
 - [x] Gateway: GatewayClient (HTTP /health, /agents, /onboard, /sessions), HealthPoller (15s periodic + session polling), connect_gateway action, agent sync on home transition
 - [x] Remote Sessions: Live device indicators from `/sessions` endpoint, demo fallback, self-filtering
 - [x] Deployment: Docker Compose prod stack (frontend + OpenClaw + Redis), Makefile qa/stop/health targets

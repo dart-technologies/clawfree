@@ -14,7 +14,7 @@ void main() {
     testWidgets('error message shows retry button after retries exhausted', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
@@ -47,7 +47,7 @@ void main() {
     });
 
     testWidgets('retry button has refresh icon', (WidgetTester tester) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
@@ -69,7 +69,7 @@ void main() {
     testWidgets('error message text contains "Error:"', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       final client = ErrorAiClient();
       final session = ChatSession(aiClient: client);
 
@@ -93,7 +93,7 @@ void main() {
     testWidgets('ChatScreen renders without crash when message is sent', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       final session = ChatSession(
         aiClient: MockAiClient(responses: ['Just text']),
       );
@@ -115,7 +115,7 @@ void main() {
     testWidgets('on macOS, CupertinoTextField is used for input', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
 
       final session = ChatSession(
@@ -135,7 +135,7 @@ void main() {
     testWidgets('on Android, TextField is used for input', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
 
       final session = ChatSession(
@@ -155,7 +155,7 @@ void main() {
     testWidgets('on macOS, send button is CupertinoButton', (
       WidgetTester tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(400, 800));
+      setTestViewport(tester);
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
 
       final session = ChatSession(

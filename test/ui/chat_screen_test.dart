@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:clawfree/src/core/chat_session.dart';
 import 'package:clawfree/src/core/prompt_library.dart';
+import 'package:clawfree/src/ui/clawfree_icons.dart';
 import 'package:clawfree/src/voice/stt_service.dart';
 import 'package:clawfree/src/voice/tts_service.dart';
 import 'package:clawfree/src/voice/voice_controller.dart';
@@ -63,7 +64,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Hello');
       await tester.pump();
 
-      final sendButton = find.byIcon(Icons.send);
+      final sendButton = find.byIcon(ClawfreeIcons.send);
       expect(sendButton, findsOneWidget);
     });
 
@@ -75,8 +76,9 @@ void main() {
 
       // Type a message
       await tester.enterText(find.byType(TextField), 'Hello');
+      await tester.pump(); // flush text into controller
       await tester.testTextInput.receiveAction(TextInputAction.send);
-      await tester.pump();
+      await tester.pump(); // process submit
 
       // User message should appear in session
       expect(
@@ -96,7 +98,8 @@ void main() {
 
       // Tap a suggestion chip
       await tester.tap(find.text('MANAGE OPENCLAW'));
-      await tester.pump();
+      await tester.pump(); // dispatch tap
+      await tester.pump(); // process async callback
 
       // Message should be in session
       expect(

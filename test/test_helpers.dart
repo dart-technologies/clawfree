@@ -25,7 +25,7 @@ Widget buildChatTestApp(
         padding: EdgeInsets.only(top: 44), // Simulate iPhone status bar
         viewInsets: EdgeInsets.zero,
       ),
-      child: ChatScreen(chatSession: session, sttService: sttService),
+      child: ChatScreen(chatSession: session, sttService: sttService, showOnboarding: false),
     ),
   );
 }

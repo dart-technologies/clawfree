@@ -1,14 +1,14 @@
 # clawfree
 
-Hands-free AI agent orchestrator powered by Flutter genUI
+Hands-free AI agentic orchestrator powered by Flutter genUI
 
-Speak to create, configure, and interact with AI agents through dynamically generated UIs. No typing, no JSON editing, no code.
+Create and deploy OpenClaw agents using only voice — no coding, no typing required. clawfree combines voice-first interaction with Opus 4.6's real-time UI streaming for a fully hands-free experience meeting users where they are: on-the-go, hands-full, eyes-busy.
 
 ## How It Works
 
-1. **Speak** -- tell clawfree what agent you want ("Create a Telegram bot that summarizes my GitHub notifications")
-2. **See** -- Opus 4.6 generates an interactive configuration UI in real-time via the A2UI protocol
-3. **Refine** -- continue speaking to adjust settings, Opus updates the UI live
+1. **Speak** -- voice commands on Apple Watch while jogging, iPhone while commuting, iPad at the coffee shop, or Mac at your desk
+2. **See** -- Opus 4.6 generates context-adaptive interfaces in real-time: itineraries, interactive maps, flight and lodging comparisons — all voice-triggered
+3. **Refine** -- continue speaking to adjust; Opus adapts layout complexity to screen size, interaction patterns to input method, information density to attention context
 4. **Deploy** -- save and your agent is live on OpenClaw, connected to 18+ messaging channels
 
 ## Architecture
@@ -25,7 +25,7 @@ Voice Output (TTS)                           UI generation)
 
 - **Flutter genUI v0.9** renders dynamic UI from A2UI JSON at runtime
 - **OpenClaw** provides the AI gateway with 18+ messaging channels, tool execution, and agent management
-- **Opus 4.6** generates both conversational responses AND structured UI components in a single streaming call
+- **Opus 4.6** acts as contextual UI architect — simultaneously reasons about *what* to present and *how*, streaming structured A2UI JSON interlaced with natural language, adapting to device and context
 
 ## Quick Start
 
@@ -143,7 +143,7 @@ docker compose -f infra/docker-compose.prod.yml logs -f openclaw  # 5. Monitor l
 ### Run Tests
 
 ```bash
-flutter test        # 504 tests
+flutter test        # 516 tests
 flutter analyze     # 0 issues
 ```
 
@@ -174,7 +174,7 @@ lib/src/
     ├── voice_controller.dart    # STT↔TTS coordination
     ├── voice_service_factory.dart # Service creation
     └── ...                      # STT/TTS interfaces + platform implementations
-test/                            # 504 tests (unit + widget + e2e)
+test/                            # 516 tests (unit + widget + e2e)
 infra/
 ├── docker-compose.yml
 ├── .env.local                   # ANTHROPIC_API_KEY (gitignored)
@@ -199,6 +199,7 @@ infra/
 - **Remote agent creation** -- saved agents are deployed to OpenClaw gateway via POST /agents (fire-and-forget)
 - **QR pairing** -- scan a gateway QR code to pair iPhone, with deep link handling and gateway validation
 - **Apple Watch sync** -- real-time agent count, health level, and mic state pushed to WatchCompanion via WatchConnectivity
+- **Onboarding architecture diagram** -- interactive modal with 5-station pipeline visualization, animated marching-ant connectors, syntax-highlighted JSON code blocks, and adaptive mobile/desktop layouts; shown once on first launch via SharedPreferences
 
 ## Team genUIne
 
