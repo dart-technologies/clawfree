@@ -143,12 +143,12 @@ struct PulseMonitorView: View {
 
                 Spacer()
 
-                // 聲波動畫（V3-C, V3-D）
+                // 聲波動畫（V3-C, V3-D）— 縮小高度，緊貼按鈕上方
                 if phase == .recognizing || (phase == .reply && demoRunner.isRunning) {
                     WaveformView()
-                        .frame(height: 25)
+                        .frame(height: 15)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 4)
+                        .padding(.bottom, 2)
                 }
 
                 // 底部浮動按鈕列
@@ -292,8 +292,8 @@ struct PulseMonitorView: View {
             }
 
             Spacer()
-            // 為聲波 + 按鈕留空間
-            Spacer().frame(height: 70)
+            // 為縮小後的聲波 + 按鈕留空間
+            Spacer().frame(height: 60)
         }
     }
 
@@ -356,7 +356,7 @@ struct PulseMonitorView: View {
                         }
                     }
                     .padding(.top, 8)
-                    .padding(.bottom, 70) // 為聲波 + 按鈕留空間
+                    .padding(.bottom, 60) // 為縮小後的聲波 + 按鈕留空間
                 }
                 .onChange(of: demoRunner.chatMessages.count) { _ in
                     if let last = demoRunner.chatMessages.indices.last {
