@@ -67,6 +67,14 @@ class GatewayClient extends ChangeNotifier {
   /// The current gateway base URL.
   String get baseUrl => _baseUrl;
 
+  /// Closes the HTTP client and releases resources.
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _httpClient.close();
+    super.dispose();
+  }
+
   Map<String, String> get _headers {
     final h = <String, String>{'Content-Type': 'application/json'};
     if (_token.isNotEmpty) {
@@ -224,12 +232,5 @@ class GatewayClient extends ChangeNotifier {
       );
     }
     return jsonDecode(response.body) as Map<String, dynamic>;
-  }
-
-  @override
-  void dispose() {
-    _isDisposed = true;
-    _httpClient.close();
-    super.dispose();
   }
 }

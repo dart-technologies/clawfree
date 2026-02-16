@@ -134,14 +134,15 @@ class HealthPillBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sections = state.all;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final section in state.all) ...[
-            _Pill(section: section),
-            const SizedBox(width: 8),
+          for (int i = 0; i < sections.length; i++) ...[
+            _Pill(section: sections[i]),
+            if (i < sections.length - 1) const SizedBox(width: 8),
           ],
         ],
       ),

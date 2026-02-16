@@ -19,7 +19,7 @@ flutter run -d chrome --dart-define=DEMO_MODE=true
 flutter run -d "iPhone 17 Pro"
 
 # Tests
-flutter test        # 504 tests
+flutter test        # 516 tests
 flutter analyze     # 0 issues
 
 # Zero-to-One QA (full Docker stack)

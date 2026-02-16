@@ -215,7 +215,6 @@ Catalog getClawfreeCatalog() {
       widgetBuilder: (context) {
         final data = context.data as Map<String, dynamic>;
         final iconName = data['icon'] as String?;
-        final codePoint = data['codePoint'] as int?;
         final sizeStr = data['size'] as String? ?? 'medium';
         final iconSize = switch (sizeStr) {
           'small' => 16.0,
@@ -225,8 +224,6 @@ Catalog getClawfreeCatalog() {
         IconData? iconData;
         if (iconName != null) {
           iconData = resolveIcon(iconName);
-        } else if (codePoint != null) {
-          iconData = IconData(codePoint, fontFamily: 'MaterialIcons');
         }
         if (iconData == null) return const SizedBox.shrink();
         return Icon(iconData, size: iconSize);
@@ -397,7 +394,7 @@ Catalog getClawfreeCatalog() {
       dataSchema: _brandLogoSchema,
       widgetBuilder: (itemContext) {
         final data = itemContext.data as Map<String, dynamic>;
-        return ClawfreeLogo(size: data['size']?.toDouble() ?? 64.0);
+        return ClawfreeLogo(size: (data['size'] as num?)?.toDouble() ?? 64.0);
       },
     ),
     CatalogItem(

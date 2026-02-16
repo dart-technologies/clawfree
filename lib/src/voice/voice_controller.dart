@@ -16,8 +16,13 @@ class VoiceController extends ChangeNotifier {
   final TtsService? _tts;
   final EarconService? _earcon;
 
+  /// The underlying speech-to-text service.
   SttService? get stt => _stt;
+
+  /// The underlying text-to-speech service.
   TtsService? get tts => _tts;
+
+  /// The earcon service for acoustic feedback.
   EarconService? get earcon => _earcon;
 
   /// Whether voice services are available.
@@ -53,6 +58,9 @@ class VoiceController extends ChangeNotifier {
   SttResultCallback? _handsFreeCallback;
 
   /// Enable or disable hands-free wake word mode.
+  ///
+  /// When enabled, the controller continuously listens for [wakePhrase]
+  /// and dispatches following speech to [onCommand].
   Future<void> setHandsFreeMode({
     required bool enabled,
     SttResultCallback? onCommand,
@@ -97,9 +105,9 @@ class VoiceController extends ChangeNotifier {
   }
 
   void _restartWakeLoop() {
-    Future<void>.delayed(const Duration(milliseconds: 300), () {
-      if (_handsFreeMode) _startWakeLoop();
-    });
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (_handsFreeMode) unawaited(_startWakeLoop());
+    }));
   }
 
   /// Toggle the listening state.
@@ -118,7 +126,7 @@ class VoiceController extends ChangeNotifier {
     }
 
     _interimTranscript = '';
-    _earcon?.playMicOpen();
+    unawaited(_earcon?.playMicOpen());
 
     await _stt?.startListening(
       onResult: (transcript, isFinal) {
@@ -148,7 +156,7 @@ class VoiceController extends ChangeNotifier {
     );
     final completer = Completer<String>();
 
-    startListening(
+    unawaited(startListening(
       onResult: (transcript, isFinal) {
         if (isFinal && !completer.isCompleted) {
           completer.complete(transcript);
@@ -156,14 +164,14 @@ class VoiceController extends ChangeNotifier {
       },
     ).then((_) {
       (_stt! as MockSttService).simulateInput(text, null, wordDelay);
-    });
+    }));
 
     return completer.future;
   }
 
   /// Stop listening for speech.
   Future<void> stopListening() async {
-    _earcon?.playMicClose();
+    unawaited(_earcon?.playMicClose());
     await _stt?.stopListening();
     _interimTranscript = '';
 

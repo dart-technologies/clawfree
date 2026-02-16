@@ -12,6 +12,7 @@ abstract interface class AiClient {
     required List<Map<String, String>> history,
   });
 
+  /// Releases resources used by the AI client.
   void dispose();
 }
 

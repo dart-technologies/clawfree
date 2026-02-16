@@ -144,6 +144,7 @@ You must output a VALID JSON object representing one of the A2UI message types (
 - To show a UI, you typically send a `createSurface` message (if the surface doesn't exist), followed by an `updateComponents` message.
 ''';
 
+  /// Releases resources and closes internal streams.
   void dispose() {
     _surfaceAddedController.close();
     _surfaceUpdatedController.close();

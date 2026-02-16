@@ -93,6 +93,8 @@ class A2uiStreamProcessor {
   }
 
   /// Whether the response contains a JSON code block but no surface was created.
+  ///
+  /// Returns true if self-correction should be attempted.
   bool shouldSelfCorrect({
     required String fullResponse,
     required int surfaceCountBefore,

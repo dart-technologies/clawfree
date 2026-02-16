@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:genui/genui.dart';
@@ -388,7 +390,11 @@ class _StaggeredMarkerState extends State<_StaggeredMarker>
       if (mounted) {
         _entranceCtrl.forward();
         Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted) _sonarCtrl.repeat();
+          // Only repeat animation if not in a test environment to avoid 
+          // pumpAndSettle timeouts from infinite animations.
+          if (mounted && !Platform.environment.containsKey('FLUTTER_TEST')) {
+            _sonarCtrl.repeat();
+          }
         });
       }
     });

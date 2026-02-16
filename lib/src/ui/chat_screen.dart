@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,6 +19,7 @@ import 'layouts/voice_orb.dart';
 import 'mixins/health_monitor_mixin.dart';
 import 'mixins/watch_sync_manager.dart';
 import 'theme.dart';
+import 'widgets/onboarding_modal.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -24,11 +27,13 @@ class ChatScreen extends StatefulWidget {
     required this.chatSession,
     this.sttService,
     this.onNavigateHome,
+    this.showOnboarding = true,
   });
 
   final ChatSession chatSession;
   final SttService? sttService;
   final VoidCallback? onNavigateHome;
+  final bool showOnboarding;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -54,6 +59,19 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
+    
+    if (widget.showOnboarding) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierColor: Colors.black.withValues(alpha: 0.8),
+          builder: (context) => OnboardingModal(
+            onFinish: () => Navigator.of(context).pop(),
+          ),
+        );
+      });
+    }
+
     _session.addListener(_onSessionChanged);
     _session.onPairingRequested = _showPairingModal;
     _session.onNavigateBack = () => widget.onNavigateHome?.call();
@@ -476,12 +494,12 @@ class _ChatScreenState extends State<ChatScreen>
 
   Future<void> _send(String text) async {
     if (_session.isProcessing) return;
-    HapticFeedback.lightImpact();
+    unawaited(HapticFeedback.lightImpact());
     await _session.sendMessage(
       text,
       onTranscriptionResult: (transcript, isFinal) {
         if (isFinal && transcript.isNotEmpty) {
-          _send(transcript);
+          unawaited(_send(transcript));
         }
       },
     );

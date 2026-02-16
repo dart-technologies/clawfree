@@ -14,12 +14,13 @@ void main() {
       });
       final config = AgentConfigParser.tryParse(data);
       expect(config, isNotNull);
-      expect(config!['name'], 'TestBot');
-      expect(config['model'], 'claude-opus-4-6');
-      expect(config['tools'], ['browser', 'search']);
-      expect(config['channels'], ['telegram']);
-      expect(config['config']['version'], '1.0');
-      expect(config['config']['created_by'], 'clawfree');
+      final cfg = config as Map<String, dynamic>;
+      expect(cfg['name'], 'TestBot');
+      expect(cfg['model'], 'claude-opus-4-6');
+      expect(cfg['tools'], ['browser', 'search']);
+      expect(cfg['channels'], ['telegram']);
+      expect((cfg['config'] as Map)['version'], '1.0');
+      expect((cfg['config'] as Map)['created_by'], 'clawfree');
     });
 
     test('tryParse returns null for non-agent data', () {

@@ -41,7 +41,8 @@ class PlatformTtsService implements TtsService {
     final voices = await _tts.getVoices;
     if (voices is List) {
       final enVoices = voices.where((v) {
-        final lang = v['locale']?.toString() ?? '';
+        final vMap = v as Map;
+        final lang = vMap['locale']?.toString() ?? '';
         return lang.startsWith('en');
       }).toList();
       debugPrint('[PlatformTTS] Available EN voices: $enVoices');

@@ -29,20 +29,24 @@ sealed class InteractionResult {
   ) = SystemActionResult;
 }
 
+/// Request for AI to correct its previous invalid A2UI output.
 class CorrectionResult extends InteractionResult {
   const CorrectionResult(this.prompt);
   final String prompt;
 }
 
+/// Structured user input derived from a surface interaction.
 class UserInputResult extends InteractionResult {
   const UserInputResult(this.text);
   final String text;
 }
 
+/// Indicates the interaction requires no further processing.
 class IgnoredResult extends InteractionResult {
   const IgnoredResult();
 }
 
+/// Terminal state when self-correction attempts are exhausted.
 class MaxCorrectionsResult extends InteractionResult {
   const MaxCorrectionsResult(this.message);
   final MessageItem message;
@@ -193,9 +197,9 @@ class A2uiInteractionRouter {
   }
 
   InteractionResult _handleValidationError(Map<String, dynamic> parsed) {
-    final error = parsed['error'];
-    final code = error['code'] ?? 'UNKNOWN';
-    final message = error['message'] ?? 'Unknown error';
+    final error = parsed['error'] as Map<String, dynamic>? ?? {};
+    final code = error['code']?.toString() ?? 'UNKNOWN';
+    final message = error['message']?.toString() ?? 'Unknown error';
     final correctionPrompt =
         'The previous A2UI JSON had a validation error ($code): $message. '
         'Please fix the JSON and regenerate. Remember: '
@@ -227,7 +231,7 @@ class A2uiInteractionRouter {
     final config = <String, dynamic>{
       'name': name.isNotEmpty ? name : 'Untitled Agent',
       'model': model is List && model.isNotEmpty
-          ? model.first.toString()
+          ? (model.first as Object).toString()
           : 'claude-opus-4-6',
       'tools': tools is List ? tools.cast<String>() : <String>[],
       'channels': channels is List ? channels.cast<String>() : <String>[],
