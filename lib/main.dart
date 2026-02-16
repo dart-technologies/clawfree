@@ -76,6 +76,7 @@ class ClawfreeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'clawfree',
+      debugShowCheckedModeBanner: false, // 移除 debug banner
       theme: ClawfreeTheme.light,
       darkTheme: ClawfreeTheme.dark,
       themeMode: ThemeMode.dark, // Force dark mode for HUD-first experience
