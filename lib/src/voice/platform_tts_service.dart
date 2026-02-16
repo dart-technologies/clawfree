@@ -21,11 +21,13 @@ class PlatformTtsService implements TtsService {
       _isSpeaking = false;
       debugPrint('[PlatformTTS] Error: $msg');
     });
-    _tts.setLanguage('en-AU');
-    // _tts.setLanguage('en-US');
+    _tts.setLanguage('en-US');
     _tts.setSpeechRate(0.5);
     _tts.setVolume(1.0);
     _tts.setPitch(1.0);
+    
+    // 設定男聲（Alex - 美國腔）
+    _tts.setVoice({"name": "Alex", "locale": "en-US"});
 
     if (kDebugMode) {
       _printDiscovery();
