@@ -172,29 +172,18 @@ class _TelemetryHeader extends StatelessWidget {
           ),
 
           // --- Right Group: Sessions + Version ---
-          const SizedBox(width: 32),
-          Flexible(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              reverse: true,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final session in remoteSessions) ...[
-                    RemoteSessionIndicator(
-                      icon: ClawfreeIcons.iconForDeviceType(session.deviceType),
-                      label: session.deviceName,
-                    ),
-                    const SizedBox(width: 10),
-                  ],
-                  _VersionBadge(
-                    gatewayVersion: gatewayVersion,
-                    updateAvailable: updateAvailable,
-                    onUpdate: onUpdate,
-                  ),
-                ],
-              ),
+          const SizedBox(width: 16),
+          for (final session in remoteSessions) ...[
+            RemoteSessionIndicator(
+              icon: ClawfreeIcons.iconForDeviceType(session.deviceType),
+              label: session.deviceName,
             ),
+            const SizedBox(width: 10),
+          ],
+          _VersionBadge(
+            gatewayVersion: gatewayVersion,
+            updateAvailable: updateAvailable,
+            onUpdate: onUpdate,
           ),
         ],
       ),

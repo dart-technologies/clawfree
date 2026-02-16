@@ -90,7 +90,7 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
     } catch (_) {}
 
     if (widget.isListening && !isTest) _controller.repeat(reverse: true);
-    _loadShader();
+    unawaited(_loadShader());
   }
 
   Future<void> _loadShader() async {
@@ -114,10 +114,11 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
 
           // Dynamic haptic pulse synced with visual amplitude
           if (widget.isListening && _elapsed % 0.75 < 0.016) {
-            HapticFeedback.lightImpact();
+            unawaited(HapticFeedback.lightImpact());
           }
-        })
-          ..start();
+        });
+        final Ticker t = _shaderTicker!;
+        unawaited(t.start());
       }
     } catch (_) {
       // No GPU (flutter test) — fall back to waveform painter.
@@ -156,7 +157,7 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
 
   void _onTapUp(TapUpDetails _) {
     _tapController.forward();
-    HapticFeedback.lightImpact();
+    unawaited(HapticFeedback.lightImpact());
     widget.onTap?.call();
   }
 

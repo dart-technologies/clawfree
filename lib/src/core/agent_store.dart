@@ -7,10 +7,13 @@ import 'package:flutter/foundation.dart';
 class AgentRepository extends ChangeNotifier {
   final List<Map<String, dynamic>> _agents = [];
 
+  /// List of all agents in the store.
   List<Map<String, dynamic>> get agents => List.unmodifiable(_agents);
 
+  /// Current number of agents in the store.
   int get count => _agents.length;
 
+  /// Adds a new agent configuration to the store.
   void addAgent(Map<String, dynamic> config) {
     config['created_at'] ??= DateTime.now().toIso8601String();
     config['status'] ??= 'active';
@@ -19,6 +22,7 @@ class AgentRepository extends ChangeNotifier {
     onModified();
   }
 
+  /// Finds an agent by its unique name. Returns null if not found.
   Map<String, dynamic>? findByName(String name) {
     for (final agent in _agents) {
       if (agent['name'] == name) return agent;
@@ -26,6 +30,7 @@ class AgentRepository extends ChangeNotifier {
     return null;
   }
 
+  /// Removes an agent by its unique name. Returns true if removed.
   bool removeByName(String name) {
     final idx = _agents.indexWhere((a) => a['name'] == name);
     if (idx >= 0) {
@@ -37,6 +42,7 @@ class AgentRepository extends ChangeNotifier {
     return false;
   }
 
+  /// Removes all agents from the store.
   void clear() {
     _agents.clear();
     notifyListeners();

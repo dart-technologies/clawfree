@@ -106,10 +106,11 @@ class VideoImageDownloader {
   /// Skips images that already exist on disk (cache hit).
   static Future<List<String>> downloadAll({
     DownloadProgress? onProgress,
+    http.Client? client,
   }) async {
     final cacheDir = await getCacheDir();
     final paths = <String>[];
-    final client = http.Client();
+    final httpClient = client ?? http.Client();
 
     try {
       for (var i = 0; i < _imageSpecs.length; i++) {
@@ -118,7 +119,7 @@ class VideoImageDownloader {
         final file = File(filePath);
 
         if (!file.existsSync()) {
-          final response = await client.get(Uri.parse(spec.url));
+          final response = await httpClient.get(Uri.parse(spec.url));
           if (response.statusCode == 200) {
             await file.writeAsBytes(response.bodyBytes);
           } else {
@@ -132,7 +133,7 @@ class VideoImageDownloader {
         onProgress?.call(i + 1, _imageSpecs.length, filePath);
       }
     } finally {
-      client.close();
+      if (client == null) httpClient.close();
     }
 
     return paths;

@@ -14,13 +14,13 @@ void main() {
       await tester.pumpWidget(const ClawfreeApp());
 
       // App bar or title
-      expect(find.text('clawfree'), findsOneWidget);
+      expect(find.text('CLAWFREE'), findsOneWidget);
 
       // API key field (on non-web)
-      expect(find.text('Anthropic API Key'), findsOneWidget);
+      expect(find.text('ANTHROPIC API KEY'), findsOneWidget);
 
       // Start button
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('START'), findsOneWidget);
     });
 
     testWidgets('empty key shows snackbar on non-web', (
@@ -30,7 +30,7 @@ void main() {
       await tester.pumpWidget(const ClawfreeApp());
 
       // Tap start without key
-      await tester.tap(find.text('Start'));
+      await tester.tap(find.text('START'));
       await tester.pump();
 
       expect(find.text('Please enter your Anthropic API key'), findsOneWidget);
@@ -46,7 +46,7 @@ void main() {
     testWidgets('demo mode toggle is visible', (WidgetTester tester) async {
       await tester.pumpWidget(const ClawfreeApp());
 
-      expect(find.text('Demo mode'), findsOneWidget);
+      expect(find.text('DEMO MODE'), findsOneWidget);
       expect(find.byType(Switch), findsOneWidget);
     });
 
@@ -57,7 +57,7 @@ void main() {
       await tester.pumpWidget(const ClawfreeApp());
 
       // Initially, API key field should be visible
-      expect(find.text('Anthropic API Key'), findsOneWidget);
+      expect(find.text('ANTHROPIC API KEY'), findsOneWidget);
 
       // Toggle demo mode on
       final switchFinder = find.byType(Switch);
@@ -66,16 +66,16 @@ void main() {
       await tester.pump();
 
       // API key field should be hidden
-      expect(find.text('Anthropic API Key'), findsNothing);
+      expect(find.text('ANTHROPIC API KEY'), findsNothing);
 
       // Demo mode banner should appear
       expect(
-        find.textContaining('Demo mode: using cached responses'),
+        find.textContaining('DEMO MODE: CACHED RESPONSES'),
         findsOneWidget,
       );
 
-      // Start button should say "Start Demo"
-      expect(find.text('Start Demo'), findsOneWidget);
+      // Start button should say "START DEMO"
+      expect(find.text('START DEMO'), findsOneWidget);
     });
 
     testWidgets('demo mode starts without API key', (
@@ -94,7 +94,7 @@ void main() {
       await tester.pump();
 
       // Tap start — triggers Navigator.push with route transition
-      final startButton = find.text('Start Demo');
+      final startButton = find.text('START DEMO');
       await tester.ensureVisible(startButton);
       await tester.tap(startButton);
       // Use pump + duration instead of pumpAndSettle (VoiceOrb shader ticker never settles).

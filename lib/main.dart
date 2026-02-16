@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/core/agent_store.dart';
 import 'src/core/ai_client.dart';
@@ -194,8 +195,10 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     );
 
     // Await both in parallel.
-    final results = await Future.wait([agentStoreFuture, earconFuture]);
+    final prefsFuture = SharedPreferences.getInstance();
+    final results = await Future.wait([agentStoreFuture, earconFuture, prefsFuture]);
     final agentStore = results[0] as AgentRepository;
+    final prefs = results[2] as SharedPreferences;
 
     sl.reset();
     sl.register<AiClient>(aiClient);
@@ -218,9 +221,9 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
 
     // Resolve LAN IP for scannable QR codes (non-blocking).
     if (injectedGateway == null) {
-      getLocalIpAddress().then((localIp) {
+      unawaited(getLocalIpAddress().then((localIp) {
         _chatSession?.pairingUrl = 'http://$localIp:18789/pair';
-      });
+      }));
     } else {
       _chatSession?.setMode(SessionMode.home);
     }
@@ -228,17 +231,23 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
     _sttService = sl.tryGet<SttService>();
 
     if (_useDemoMode && _demoScenario == 'travel') {
-      _runDemoAutomation();
+      unawaited(_runDemoAutomation());
+    }
+
+    final showOnboarding = !(prefs.getBool('has_seen_onboarding') ?? false);
+    if (showOnboarding) {
+      unawaited(prefs.setBool('has_seen_onboarding', true));
     }
 
     if (!mounted) return;
-    Navigator.of(context)
+    unawaited(Navigator.of(context)
         .push(
           MaterialPageRoute(
             builder: (_) => ChatScreen(
               chatSession: _chatSession!,
               sttService: _sttService,
               onNavigateHome: () => Navigator.of(context).pop(),
+              showOnboarding: showOnboarding,
             ),
           ),
         )
@@ -249,7 +258,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
           _sttService = null;
           sl.tryGet<GatewayClient>()?.dispose();
           sl.reset();
-        });
+        }));
   }
 
   /// Runs the full "Tokyo Travel" demo workflow automatically.
@@ -378,21 +387,24 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'clawfree',
+                    'CLAWFREE',
                     style: ClawfreeTheme.technicalStyle(
                       context: context,
                       fontSize: isLarge ? 48 : 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 3.0,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4.0,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
-                    'Hands-free AI agent orchestrator powered by Flutter genUI',
+                    'HANDS-FREE AI AGENTIC ORCHESTRATOR',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: isLarge ? 20 : 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: ClawfreeTheme.technicalStyle(
+                      context: context,
+                      fontSize: isLarge ? 16 : 12,
+                      color: ClawfreeTheme.hudTextSecondary,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 2.0,
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -400,7 +412,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                     TextField(
                       controller: _apiKeyController,
                       decoration: const InputDecoration(
-                        labelText: 'Anthropic API Key',
+                        labelText: 'ANTHROPIC API KEY',
                         hintText: 'sk-ant-...',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.key),
@@ -410,22 +422,22 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                     ),
                   if (isWeb && !_useDemoMode)
                     Text(
-                      'Using gateway at ${PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      'GATEWAY: ${PlatformConfig.resolveBaseUrl(gatewayUrl: _gatewayUrl)}',
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 12,
+                        color: ClawfreeTheme.hudTextMuted,
+                        letterSpacing: 1.0,
                       ),
                     ),
                   if (_useDemoMode)
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.tertiaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        color: ClawfreeTheme.hudActive.withValues(alpha: 0.08),
+                        borderRadius: ClawfreeBorderRadius.interactive,
                         border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.tertiary.withValues(alpha: 0.4),
+                          color: ClawfreeTheme.hudActive.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -433,19 +445,18 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                           Icon(
                             Icons.play_circle,
                             size: 28,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onTertiaryContainer,
+                            color: ClawfreeTheme.hudActive,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Demo mode: using cached responses (no API key needed)',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onTertiaryContainer,
+                              'DEMO MODE: CACHED RESPONSES (NO API KEY)',
+                              style: ClawfreeTheme.technicalStyle(
+                                context: context,
+                                fontSize: 12,
+                                color: ClawfreeTheme.hudActive,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.0,
                               ),
                             ),
                           ),
@@ -462,10 +473,11 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                             onPressed: _start,
                             icon: const Icon(Icons.play_arrow),
                             label: Text(
-                              _useDemoMode ? 'Start Demo' : 'Start',
+                              _useDemoMode ? 'START DEMO' : 'START',
                               style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
                               ),
                             ),
                           ),
@@ -485,7 +497,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                                     ),
                                   );
                               if (result != null && mounted) {
-                                _handleQrResult(result);
+                                unawaited(_handleQrResult(result));
                               }
                             },
                             icon: const Icon(Icons.qr_code_scanner),
@@ -496,15 +508,16 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Demo mode toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Demo mode',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        'DEMO MODE',
+                        style: ClawfreeTheme.technicalStyle(
+                          context: context,
+                          fontSize: 12,
+                          color: ClawfreeTheme.hudTextMuted,
+                          letterSpacing: 1.5,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -517,10 +530,12 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
                   if (!isWeb && !_useDemoMode) ...[
                     const SizedBox(height: 12),
                     Text(
-                      'Or pass via: --dart-define=ANTHROPIC_API_KEY=sk-ant-...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      '--dart-define=ANTHROPIC_API_KEY=sk-ant-...',
+                      style: ClawfreeTheme.technicalStyle(
+                        context: context,
+                        fontSize: 11,
+                        color: ClawfreeTheme.hudTextFaint,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -551,7 +566,7 @@ class _ClawfreeHomeState extends State<ClawfreeHome> {
       }
       // Raw HTTP URL — validate that it's a clawfree gateway.
       if (!await _validateGateway(pairing.url)) return;
-      _start(injectedGateway: pairing.url);
+      unawaited(_start(injectedGateway: pairing.url));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

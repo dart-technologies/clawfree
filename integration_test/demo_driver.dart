@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -201,7 +202,7 @@ void main() {
     expect(session.messages.last.text?.toLowerCase(), contains('booked'));
 
     // Play booking confirm earcon.
-    earcon.playBookingConfirm();
+    await earcon.playBookingConfirm();
     await _pumpSettle(tester);
 
     // Let final TTS play out before cleanup.
@@ -291,7 +292,7 @@ Future<void> _pumpVoiceCommand(
   String text,
 ) async {
   var done = false;
-  session.sendVoiceCommand(text).whenComplete(() => done = true);
+  unawaited(session.sendVoiceCommand(text).whenComplete(() => done = true));
 
   for (var i = 0; i < _maxPumps && !done; i++) {
     await tester.pump(_frameDuration);

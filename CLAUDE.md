@@ -2,7 +2,7 @@
 
 ## Project
 
-**clawfree** is a hands-free AI agent orchestrator powered by Flutter genUI, built for the Anthropic Opus 4.6 hackathon (Feb 10-16, 2026).
+**clawfree** is a hands-free AI agentic orchestrator that lets anyone create and deploy OpenClaw agents using only voice — no coding, no typing required. Built with Flutter genUI for the Anthropic Opus 4.6 hackathon (Feb 10-16, 2026).
 
 Team **genUIne**: [Mike](https://cerebralvalley.ai/u/michow) (Flutter/infra) + [Roy](https://cerebralvalley.ai/u/roylin) (voice/OpenClaw)
 
@@ -69,7 +69,7 @@ clawfree/
 │           │                 # VoiceOrb (shader-driven)
 │           ├── mixins/       # HealthMonitorMixin, WatchSyncManager
 │           ├── widgets/      # QrScannerDialog, RemoteSessionIndicator,
-│           │                 # EmptyStateView, SuggestionChip
+│           │                 # EmptyStateView, SuggestionChip, OnboardingModal
 │           ├── chat_screen.dart        # Slim orchestrator
 │           ├── chat_screen_dialogs.dart # Extracted dialog flows
 │           ├── clawfree_assets.dart
@@ -85,7 +85,7 @@ clawfree/
 │   ├── INTEGRATION_MERGE.md  # ChatClaw merge spec
 │   ├── WATCH_VOICE.md        # WatchOS voice implementation
 │   └── background/           # Concise reference primers
-├── test/                     # 491+ tests (unit + widget + e2e)
+├── test/                     # 516 tests (unit + widget + e2e)
 └── pubspec.yaml
 ```
 
@@ -101,6 +101,7 @@ clawfree/
 - `json_schema_builder` — A2UI component schema definitions
 - `material_symbols_icons` — device-type and extended icon set
 - `logging` — structured logging
+- `shared_preferences` — onboarding persistence (first-launch detection)
 - `mocktail` (dev) — mock generation for unit tests
 
 ## Conventions
@@ -115,7 +116,7 @@ clawfree/
 - **Theme**: HUD-style glassmorphism with `ClawfreeTheme.glassDecoration()`, ghost header (transparent AppBar), `SpringCurve` animations, ultra-thin borders (0.5px), `BackdropFilter` blur on glass cards
 - **Design tokens**: `ClawfreeTheme.success/warning/error/info/neutral` (status colors), `onboardingMode/homeMode/agentBuilderMode` (session mode colors), `glassOverlayColor/glassBlur/itineraryAccent` (glass constants), `hudActive/scaffoldBlack/ratingGold` (accent colors), `hudBorder/hudSurfaceFaint/hudDivider/hudContainerColor/hudOverlayColor` (surface tokens), `hudTextPrimary/Secondary/Muted/Faint` (text opacity hierarchy). All color literals must use centralized tokens — no `Colors.white70`, `Colors.black.withValues(alpha:)`, or `Color(0xFF...)` in component files.
 - **Typography**: JetBrainsMono font family throughout (w800–w900 headlines, w700 titles, w400 body). Use `ClawfreeTheme.technicalStyle()` for consistent technical text. UI labels are **uppercased** (`text.toUpperCase()`).
-- **Icons**: Centralized via `ClawfreeIcons` (abstract final class). Platform-adaptive getters for `send`, `menuOpen`, `download`. Component icons: `arrowForward`, `receipt`, `flightTakeoff/Land`, `star/starBorder`, `timelineDot`, `pause`, `playArrow`, `brokenImage`. Device-type icons via `ClawfreeIcons.iconForDeviceType()` using `material_symbols_icons`. No raw `Icons.*` in component files.
+- **Icons**: Centralized via `ClawfreeIcons` (abstract final class). Platform-adaptive getters for `send`, `menuOpen`, `download`. Component icons: `arrowForward`, `receipt`, `flightTakeoff/Land`, `star/starBorder`, `timelineDot`, `pause`, `playArrow`, `brokenImage`. Device-type icons via `ClawfreeIcons.iconForDeviceType()` using `material_symbols_icons`. A2UI icon names resolved by `icon_resolver.dart` (50+ mappings). No raw `Icons.*` in component files.
 - **A2UI Catalog**: 33 components total — 7 polyfilled core (Column, Row, Image, Icon, Divider, Slider, CheckBox) + 19 custom (ResponsiveContainer, HealthSparkline, VideoPlayer, TripMap, Gap, BrandLogo, Badge, ProgressBar, Chip, Grid, Stack, Animated, ItineraryHeader, ItineraryTimeline, ItineraryDay, AgentCard, BookingSummary, HotelCard, FlightTicket) + 5 core overrides (Card, Button, Text, ChoicePicker, TextField) + 2 custom form (AgentFormSurface, TravelSetupSurface via SurfaceController). All registered in `catalog.dart` with `catalogId: 'clawfree-catalog'`.
 - **Polyfilled schemas** must include `'component': S.string(enumValues: ['ComponentName'])` for genUI's `_schemaMatchesType()` validation. Column supports `gap`, Row supports `wrap`/`spacing`.
 - **Component variants**: Button adds `gradient` variant. ChoicePicker supports `layout: 'segmented' | 'wrap' | 'grid'`. Card `glass` variant uses real `BackdropFilter`.
@@ -126,6 +127,8 @@ clawfree/
 - Test animations: use `tester.pump()` + `tester.pump(Duration)` instead of `pumpAndSettle()` for animated widgets. Widget tests with ChatSession must flush timers with an extra `tester.pump(Duration(seconds: 3))` at end to avoid "Timer is still pending" from debounce/mood timers.
 - **PhoneLayout**: draggable history tray with snap-to-height animation (collapsed/200px/full), surface-first layout with scrollable genUI surface area
 - **Stream processor** debounce interval: 100ms (stability over frame-rate)
+- **Strict lint rules** in `analysis_options.yaml`: `prefer_final_locals`, `avoid_dynamic_calls`, `always_declare_return_types`, `unawaited_futures`. Fire-and-forget futures must be wrapped with `unawaited()`.
+- **Onboarding modal**: `ChatScreen(showOnboarding: true)` shows architecture diagram on first launch; `SharedPreferences('has_seen_onboarding')` persists dismissal. Tests pass `showOnboarding: false` via `buildChatTestApp`.
 
 ## Key Files (genUI v0.9 reference)
 

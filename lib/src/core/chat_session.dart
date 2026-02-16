@@ -70,9 +70,12 @@ class ChatSession extends ChangeNotifier {
   /// The gateway client, if configured (non-demo mode).
   GatewayClient? get gatewayClient => _gatewayClient;
 
+  /// Access to the agent configuration store.
   AgentRepository get agentStore => _agentStore;
 
   final List<MessageItem> _messages = [];
+
+  /// The immutable list of messages in the current session.
   List<MessageItem> get messages => List.unmodifiable(_messages);
 
   late final UIFeedbackService _feedbackService;
@@ -87,17 +90,25 @@ class ChatSession extends ChangeNotifier {
 
   /// Interaction router (for production demo automation).
   A2uiInteractionRouter get interactionRouter => _interactionRouter;
+
+  /// The genUI surface host for building widgets.
   SurfaceHost get surfaceHost => _surfaceManager.surfaceHost;
 
   final List<Map<String, String>> _chatHistory = [];
 
   bool _isProcessing = false;
+
+  /// Whether the session is currently awaiting an AI response.
   bool get isProcessing => _isProcessing;
 
   String? _activeSurfaceId;
+
+  /// The ID of the currently focused genUI surface.
   String? get activeSurfaceId => _activeSurfaceId;
 
   SessionMode _sessionMode = SessionMode.onboarding;
+
+  /// The current functional mode of the session (onboarding, home, builder).
   SessionMode get sessionMode => _sessionMode;
 
   /// Whether the session is currently in onboarding mode.
@@ -159,7 +170,7 @@ class ChatSession extends ChangeNotifier {
       // Premium acoustic feedback
       final earcon = voiceController?.earcon;
       if (earcon != null) {
-        AcousticEarcons.playSurfaceArrival(earcon);
+        unawaited(AcousticEarcons.playSurfaceArrival(earcon));
       }
     }
     
@@ -204,7 +215,7 @@ class ChatSession extends ChangeNotifier {
         _performGeneration(text);
       case MaxCorrectionsResult(:final message):
         _messages.add(message);
-        voiceController?.speak(message.text ?? '');
+        unawaited(voiceController?.speak(message.text ?? ''));
         notifyListeners();
       case SuccessFeedbackResult(:final message):
         _messages.add(message);
@@ -219,7 +230,7 @@ class ChatSession extends ChangeNotifier {
           _messages.clear();
           _chatHistory.clear();
           _activeSurfaceId = null;
-          _syncAgentsFromGateway();
+          unawaited(_syncAgentsFromGateway());
         }
         _messages.add(message);
         voiceController?.speak(message.text ?? '');
@@ -264,7 +275,7 @@ class ChatSession extends ChangeNotifier {
     // Play booking confirm earcon (ascending C-E-G chord)
     final earcon = voiceController?.earcon;
     if (earcon != null) {
-      AcousticEarcons.playBookingConfirm(earcon);
+      unawaited(AcousticEarcons.playBookingConfirm(earcon));
     }
 
     _successMoodTimer?.cancel();
@@ -348,6 +359,7 @@ class ChatSession extends ChangeNotifier {
     await sendMessage(transcript);
   }
 
+  /// Sends a user message to the AI and starts the generation pipeline.
   Future<void> sendMessage(
     String text, {
     void Function(String transcript, bool isFinal)? onTranscriptionResult,
@@ -417,7 +429,7 @@ class ChatSession extends ChangeNotifier {
     // Subtle acoustic heartbeat when thinking
     final earcon = voiceController?.earcon;
     if (earcon != null) {
-      AcousticEarcons.playThinking(earcon);
+      unawaited(AcousticEarcons.playThinking(earcon));
     }
 
     final surfaceCountBefore = _messages.where((m) => m.isSurface).length;
@@ -561,6 +573,7 @@ class ChatSession extends ChangeNotifier {
   // Agent config export
   // ---------------------------------------------------------------------------
 
+  /// Extracts the latest agent configuration from the session history.
   Map<String, dynamic>? exportAgentConfig() {
     final agents = _agentStore.agents;
     if (agents.isNotEmpty) return agents.last;
